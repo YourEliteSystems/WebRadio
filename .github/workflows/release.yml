@@ -25,17 +25,19 @@ jobs:
       
       - name: Build Windows Installer
         run: npm run dist-win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Installer
-        uses: softprops/action-gh-release@v2
-        with:
-          files: "dist/WebRadioSetup.exe"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Upload Installer
+#        uses: softprops/action-gh-release@v2
+#        with:
+#          files: "dist/WebRadioSetup.exe"
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
