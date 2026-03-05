@@ -7,8 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-
+    runs-on: windows-latest
     permissions:
       contents: write
 
@@ -20,7 +19,27 @@ jobs:
           node-version: 22.14
 
       - run: npm install
+      
+      - run: npm run build
+      
+      - name: Build Windows Installer
+        run: makensis dist/WebRadioInstaller.nsi
 
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Installer
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "dist/WebRadioSetup.exe"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "build/*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

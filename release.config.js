@@ -12,5 +12,7 @@ module.exports = {
         message: "chore(release): ${nextRelease.version}"
       }
     ]
-  ]
+  ],
+  "preset": "angular",
+  "tagFormat": "v${version}"
 };
