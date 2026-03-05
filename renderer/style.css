@@ -1,0 +1,78 @@
+* {
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #1e1e1e;
+  color: #fff;
+}
+
+.app {
+  display: flex;
+  height: calc(100vh - 50px);
+}
+
+.sidebar {
+  width: 260px;
+  background: #252526;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.sidebar input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+}
+
+li:hover {
+  background: #444;
+}
+
+button {
+  background: #007acc;
+  border: none;
+  color: white;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0096ff;
+}
+
+.player {
+  height: 50px;
+  background: #007acc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+}
+
+.sidebar select {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 5px;
+}
