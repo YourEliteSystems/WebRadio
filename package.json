@@ -1,0 +1,73 @@
+{
+  "name": "webradio",
+  "version": "1.0.0",
+  "description": "Plattformübergreifende WebRadio-App mit Electron",
+  "main": "electron/main.js",
+  "author": "Your Elite Systms",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.example.webradio",
+    "productName": "WebRadio",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "plugins/**/*",
+      "data/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "assets/icons/tray.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "category": "public.app-category.music",
+      "icon": "assets/icons/tray.png",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio",
+      "icon": "assets/icons"
+    }
+  },
+  "devDependencies": {
+    "electron": "^40.7.0",
+    "electron-builder": "^26.8.1",
+    "semantic-release": "^25.0.3",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/npm": "^13.1.5"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "electron-updater": "^6.8.3",
+    "ffmpeg-static": "^5.3.0",
+    "fluent-ffmpeg": "^2.1.3"
+  }
+}

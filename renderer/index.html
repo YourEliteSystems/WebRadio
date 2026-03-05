@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src *;">
+  <title>WebRadio</title>
+  <script type="module" src="app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <h2>WebRadio</h2>
+
+
+  <input id="searchInput" placeholder="Sender suchen">
+  
+  <select id="countryFilter">
+    <option value="">Alle Länder</option>
+  </select>
+
+  <select id="genreFilter">
+    <option value="">Alle Genres</option>
+  </select>
+
+  <button id="searchBtn">Suchen</button>
+
+    <h3>Favoriten</h3>
+    <ul id="favList"></ul>
+    <button id="loadFav">Favoriten laden</button>
+
+    <h3>Zuletzt gehört</h3>
+    <ul id="historyList"></ul>
+    <button id="loadHistory">Verlauf laden</button>
+
+  </aside>
+
+  <main class="content">
+    <h3>Sender</h3>
+    <ul id="radioList"></ul>
+  </main>
+
+</div>
+
+<footer class="player">
+  <span id="nowPlaying">Kein Sender aktiv</span>
+  <label>
+    Lautstärke
+    <input id="volume" type="range" min="0" max="1" step="0.01" value="1.0">
+    <canvas id="vu" width="300" height="50"></canvas>
+  </label>
+  <button id="playBtn">▶</button>
+  <button id="stopBtn">⏹</button>
+</footer>
+</body>
+</html>
