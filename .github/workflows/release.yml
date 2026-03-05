@@ -23,7 +23,8 @@ jobs:
       - run: npm run pack
       
       - name: Build Windows Installer
-        run: & "C:/Program Files/NSIS/makensis.exe" "installer/WebRadioInstaller.nsi"
+        run: '"C:/Program Files/NSIS/makensis.exe" "installer/WebRadioInstaller.nsi"'
+        shell: powershell
 
       - run: npx semantic-release
         env:
