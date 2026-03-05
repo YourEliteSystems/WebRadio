@@ -59,7 +59,7 @@
     "electron": "^40.7.0",
     "electron-builder": "^26.8.1",
     "semantic-release": "^21.0.7",
-    "@semantic-release/git": "^10.0.2",
+    "@semantic-release/git": "^10.0",
     "@semantic-release/github": "^9.0.1",
     "@semantic-release/changelog": "^6.0.1",
     "@semantic-release/commit-analyzer": "^9.0.3",
