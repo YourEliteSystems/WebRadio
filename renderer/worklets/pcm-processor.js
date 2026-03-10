@@ -2,7 +2,6 @@ class PCMProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.buffer = new Float32Array(0);
-
     this.port.onmessage = e => {
       const incoming = new Float32Array(e.data);
       const tmp = new Float32Array(this.buffer.length + incoming.length);
@@ -12,7 +11,7 @@ class PCMProcessor extends AudioWorkletProcessor {
     };
   }
 
-  process(inputs, outputs) {
+  process(_, outputs) {
     const output = outputs[0];
     if (!output || output.length < 2) return true;
 

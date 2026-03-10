@@ -26,6 +26,13 @@
       "assets/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "themes",
+        "to": "themes",
+        "filter": ["**/*"]
+      }
+    ],
     "win": {
       "target": [
         "nsis",

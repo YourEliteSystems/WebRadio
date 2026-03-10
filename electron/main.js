@@ -9,6 +9,7 @@ const { loadPlugins} = require("./pluginLoader");
 const ffmpeg_StaticPath = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
 const {Readable} = require("stream");
+const fs = require("fs");
 
 const settings = loadSettings();
 const { getPlugins } = require("./pluginLoader");
@@ -47,8 +48,9 @@ ipcMain.handle("save-settings", (event, newSettings) => {
 
   return true;
 });
-let ffmpegProcess;
+let ffmpegStream;
 let mainWindow;
+let ffmpegCommand;
 
 /*
 console.log(process.versions.node);
@@ -57,22 +59,59 @@ console.log("typeof fetch =", typeof fetch);
 console.log("typeof globalThis.fetch =", typeof globalThis.fetch);
 */
 
+//Theme laden automatisch
+ipcMain.handle("theme:get", async () => {
+  const themesPath = path.join(__dirname,"../themes");
+  const folders = fs.readdirSync(themesPath, { withFileTypes: true })
+
+  const themes = [];
+  for (const folder of folders) {
+    if (!folder.isDirectory())continue;
+    const themeJsonPath = path.join(themesPath, folder.name, "theme.json");
+    if (!fs.existsSync(themeJsonPath)) continue;
+
+    const data = JSON.parse(fs.readFileSync(themeJsonPath));
+
+    themes.push({
+      id: folder.name,
+      name: data.name,
+      css: `../themes/${folder.name}/${data.css}`,
+    });
+  }
+  return themes;
+});
 // FFmpeg-Stream starten
 ipcMain.handle("radio:start", async (_, url) => {
   ffmpeg.setFfmpegPath(ffmpeg_StaticPath);
-  if (ffmpegProcess) {
-    ffmpegProcess.kill("SIGKILL");
-    ffmpegProcess = null;
+  if (ffmpegCommand) {
+    try {
+    ffmpegCommand.kill("SIGKILL");
+    } catch (err) {
+      console.warn("Fehler beim Stoppen des vorherigen FFmpeg-Prozesses:", err);
+    }
+    ffmpegCommand = null;
+    ffmpegStream = null;
   }
 
-  ffmpegProcess = ffmpeg(url)
+  ffmpegCommand = ffmpeg(url)
     .audioChannels(2)
     .audioFrequency(48000)
     .format("f32le")
-    .on("error", err => console.error("FFmpeg Fehler:", err))
-    .pipe();
+    .on("error", err =>{ 
+      if(err.message.includes("ffmpeg was killed with signal SIGKILL")){
+        console.log("FFmpeg Prozess wurde ordnungsgemäß beendet.");
+        return;
+      }
+      console.error("FFmpeg Fehler:", err) 
+    })
 
-  ffmpegProcess.on("data", chunk => {
+  ffmpegCommand.on("end", () => {
+    console.log("FFmpeg-Stream beendet.");
+  });
+
+  ffmpegStream = ffmpegCommand.pipe();
+
+  ffmpegStream.on("data", chunk => {
     // 🔴 DAS IST KRITISCH
     const pcm = new Float32Array(
       chunk.buffer,
@@ -88,7 +127,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 700,
-    show: !settings.startMinimized,
+    icon: path.join(__dirname, "../assets/icons/tray.ico"),
+    //show: !settings.startMinimized,
     webPreferences: {
       autoplayPolicy: "no-user-gesture-required",
       preload: path.join(__dirname, "preload.js"),

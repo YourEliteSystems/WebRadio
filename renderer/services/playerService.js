@@ -8,6 +8,9 @@ let started = false;
 let primed = false; // Flag, um zu verhindern, dass ctx.resume() mehrfach aufgerufen wird
 let initialized = false;
 
+let currentStation = null;
+let switching = false;
+
 let limiter;
 
 
@@ -71,26 +74,39 @@ export async function initPlayer() {
 }
 
 export async function switchStream(url) {
-  if (!started) return;
-  if(ctx.state !== "running") await ctx.resume();
+  if(!url) return;
+  if(url === currentStation){ console.warn("Already playing this station"); return; }
+  if(switching){ console.warn("Already switching streams"); return; }
+  
+  switching = true;
 
-  // Crossfade über 3 Sekunden
-  const now = ctx.currentTime;
-  const fadeTime = 0.3;
+  try {
+    if(ctx.state !== "running") await ctx.resume();
 
-  const nextGainNode = activeGainNode === gainA ? gainB : gainA;
-  activeGainNode.gain.cancelScheduledValues(now);
-  nextGainNode.gain.cancelScheduledValues(now);
+    // Crossfade über 3 Sekunden
+    const now = ctx.currentTime;
+    const fadeTime = 0.3;
 
-  activeGainNode.gain.setValueAtTime(1.0, now);
-  activeGainNode.gain.linearRampToValueAtTime(0, now + fadeTime);
+    const nextGainNode = activeGainNode === gainA ? gainB : gainA;
+    activeGainNode.gain.cancelScheduledValues(now);
+    nextGainNode.gain.cancelScheduledValues(now);
 
-  nextGainNode.gain.setValueAtTime(0, now);
-  nextGainNode.gain.linearRampToValueAtTime(1.0, now + fadeTime);
+    activeGainNode.gain.setValueAtTime(1.0, now);
+    activeGainNode.gain.linearRampToValueAtTime(0, now + fadeTime);
 
-  window.radioAPI.startStream(url);
+    nextGainNode.gain.setValueAtTime(0, now);
+    nextGainNode.gain.linearRampToValueAtTime(1.0, now + fadeTime);
 
-  activeGainNode = nextGainNode;
+    window.radioAPI.startStream(url);
+
+    activeGainNode = nextGainNode;
+  } catch (err) {
+    console.error("Error switching stream:", err);
+  }
+
+  setTimeout(() => {
+    switching = false;
+  },800); // Sicherstellen, dass der Wechsel
 }
 
 export async function playStream(url) {

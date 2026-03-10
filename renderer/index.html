@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src *;">
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src *; img-src *;">
   <title>WebRadio</title>
   <script type="module" src="app.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <!--<link rel="stylesheet" href="style.css"> -->
+  <link rel="stylesheet" id="theme-style">
 </head>
 <body>
 
@@ -40,7 +41,7 @@
 
   <main class="content">
     <h3>Sender</h3>
-    <ul id="radioList"></ul>
+    <div id="radioGrid"></div>
   </main>
 
 </div>
@@ -54,6 +55,11 @@
   </label>
   <button id="playBtn">▶</button>
   <button id="stopBtn">⏹</button>
+  <select id="themeSelector">
+    <option value="default">Default</option>
+    <option value="dark">Dunkel</option>
+    <option value="neon">Neon</option>
+  </select>
 </footer>
 </body>
 </html>

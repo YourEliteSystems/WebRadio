@@ -12,7 +12,37 @@ import { loadRadio } from "./services/radioService.js";
 console.log("radioAPI:", window.radioAPI);
 
 await initPlayer();
+loadThemes();
 
+async function loadThemes() {
+  const themes = await window.themeAPI.getThemes();
+  const selector = document.getElementById("themeSelector");
+  selector.innerHTML = "";
+  for (const theme of themes) {
+    const option = document.createElement("option");
+    option.value = theme.css;
+    option.textContent = theme.name;
+    selector.appendChild(option);
+  }
+  if(themes.length > 0) {
+    setTheme(themes[1].css);
+  }
+}
+
+function setTheme(cssPath) {
+  let link = document.getElementById("theme-style");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.id = "theme-style";
+    document.head.appendChild(link);
+  }
+  link.href = cssPath;
+}
+
+document.getElementById("themeSelector").addEventListener("change", (e) => {
+  setTheme(e.target.value);
+});
 document.addEventListener("DOMContentLoaded", () => {
   //loadRadio();
   document.getElementById("searchBtn")
@@ -49,40 +79,34 @@ async function loadRadios() {
   renderStations(stations.slice(0, 50));
 };
 
+const radioGrid = document.getElementById("radioGrid");
+
 function renderStations(stations) {
-  const list = document.getElementById("stations");
-  list.innerHTML = "";
+  radioGrid.innerHTML = "";
 
   stations.forEach(s => {
-    const li = document.createElement("li");
+    const card = document.createElement("div");
+    card.className = "stationcard";
 
-    const fav = isFavorite(s.stationuuid) ? "★" : "☆";
-
-    li.innerHTML = `
-      <strong>${s.name}</strong> (${s.country})
-      <button data-id="${s.stationuuid}">${fav}</button>
-    `;
-
-    li.onclick = () => {
+    card.onclick = () => {
       playStream(s.url_resolved);
-      setNowPlaying(s.name);
-      addHistory({
-        id: s.stationuuid,
-        name: s.name,
-        country: s.country,
-        streamUrl: s.url_resolved,
-        favicon: s.favicon
-      });
-      loadHistory();
     };
 
-    li.querySelector("button").onclick = (e) => {
-      e.stopPropagation();
-      toggleFavorite(s);
-      loadFavorites();
-    };
+    const logo = document.createElement("img");
+    logo.className = "logo";
+    logo.src = station.logo;
 
-    list.appendChild(li);
+    const name = document.createElement("div");
+    name.className = "stationName";
+    name.textContent = station.name;
+
+//    li.querySelector("button").onclick = (e) => {
+//      e.stopPropagation();
+//      toggleFavorite(s);
+//      loadFavorites();
+//    };
+
+    radioGrid.appendChild(card);
   });
 }
 

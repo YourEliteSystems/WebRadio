@@ -29,3 +29,8 @@ contextBridge.exposeInMainWorld("media", {
   onStop: (cb) => ipcRenderer.on("media-stop", cb),
   onNext: (cb) => ipcRenderer.on("media-next", cb)
 });
+
+// THEME API
+contextBridge.exposeInMainWorld("themeAPI", {
+  getThemes: () => ipcRenderer.invoke("theme:get")
+});
