@@ -1,11 +1,15 @@
 :root {
 
+  --titlebar-bg:#111827;
+
+  --text-main: #ffffff;
+
+  --hover:#1f2937;
+
   --bg-main: #0f172a;
   --bg-card: #1e293b;
 
   --accent: #3b82f6;
-
-  --text-main: #ffffff;
 
 }
 

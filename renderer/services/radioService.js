@@ -51,6 +51,7 @@ export async function loadRadio() {
       }
       //playStream(station.url_resolved);
       switchStream(station.url_resolved);
+      setNowPlaying(station);
     });
 
     grid.appendChild(card);
@@ -96,4 +97,14 @@ function playStation(station, player) {
     .catch(err => {
       console.error("❌ Playback error:", err);
     });
+}
+
+function setNowPlaying(station){
+
+  document.getElementById("np-station").textContent =
+    station.name;
+
+  document.getElementById("np-logo").src =
+    station.favicon || "assets/default-radio.png";
+
 }

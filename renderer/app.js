@@ -14,6 +14,21 @@ console.log("radioAPI:", window.radioAPI);
 await initPlayer();
 loadThemes();
 
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (window.radioAPI?.onMetadata) {
+    window.radioAPI.onMetadata(meta => {
+      if (meta.StreamTitle) {
+        const titleEl = document.getElementById("np-title");
+        if (titleEl) {
+          titleEl.textContent = meta.StreamTitle;
+        }
+      }
+    });
+  }
+});
+
+
 async function loadThemes() {
   const themes = await window.themeAPI.getThemes();
   const selector = document.getElementById("themeSelector");
@@ -99,16 +114,10 @@ function renderStations(stations) {
     const name = document.createElement("div");
     name.className = "stationName";
     name.textContent = station.name;
-
-//    li.querySelector("button").onclick = (e) => {
-//      e.stopPropagation();
-//      toggleFavorite(s);
-//      loadFavorites();
-//    };
-
     radioGrid.appendChild(card);
   });
 }
+
 
 function toggleFavorite(station) {
   if (isFavorite(station.stationuuid)) {
@@ -121,14 +130,17 @@ function toggleFavorite(station) {
   }
 }
 
+
 window.media.onPlayPause(() => {
   togglePlayPause();
 });
+
 
 window.media.onStop(() => {
   stop();
   setNowPlaying(null);
 });
+
 
 function initVisualizer() {
   const canvas = document.getElementById("vu");

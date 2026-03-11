@@ -8,3 +8,12 @@
   --text-main: #ffffff;
 
 }
+
+.titlebar {
+  height: 40px;
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+}
+

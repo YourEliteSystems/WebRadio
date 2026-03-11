@@ -1,7 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const { createTray } = require("./tray");
-//const db = require("./database");
 const { loadSettings, saveSettings } = require("./settings");
 const { registerMediaKeys, unregisterMediaKeys } = require("./mediaKeys");
 const { autoUpdater } = require("electron-updater");
@@ -24,6 +23,23 @@ ipcMain.handle("plugin-onStop", () => {
   getPlugins().forEach(p => {
     if (p.onStop) p.onStop();
   });
+});
+
+ipcMain.on("window:minimize", () => {
+  BrowserWindow.getFocusedWindow().minimize();
+});
+
+ipcMain.on("window:close", () => {
+  BrowserWindow.getFocusedWindow().close();
+});
+
+ipcMain.on("window:maximize", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win.isMaximized()) {
+    win.unmaximize();
+  } else {
+    win.maximize();
+  }
 });
 
 ipcMain.handle("load-settings", async () => {
@@ -52,13 +68,6 @@ let ffmpegStream;
 let mainWindow;
 let ffmpegCommand;
 
-/*
-console.log(process.versions.node);
-console.log(process.versions.electron);
-console.log("typeof fetch =", typeof fetch);
-console.log("typeof globalThis.fetch =", typeof globalThis.fetch);
-*/
-
 //Theme laden automatisch
 ipcMain.handle("theme:get", async () => {
   const themesPath = path.join(__dirname,"../themes");
@@ -80,6 +89,7 @@ ipcMain.handle("theme:get", async () => {
   }
   return themes;
 });
+
 // FFmpeg-Stream starten
 ipcMain.handle("radio:start", async (_, url) => {
   ffmpeg.setFfmpegPath(ffmpeg_StaticPath);
@@ -97,6 +107,15 @@ ipcMain.handle("radio:start", async (_, url) => {
     .audioChannels(2)
     .audioFrequency(48000)
     .format("f32le")
+    .on("stderr", line => {
+      if(line.includes("StreamTitle")){
+        const match = line.match(/StreamTitle='([^']*)';/);
+        if(match){
+          const metadata = { StreamTitle: match[1] };
+          mainWindow.webContents.send("radio:metadata", metadata);
+        }
+      }
+    })
     .on("error", err =>{ 
       if(err.message.includes("ffmpeg was killed with signal SIGKILL")){
         console.log("FFmpeg Prozess wurde ordnungsgemäß beendet.");
@@ -134,6 +153,8 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      frame: false,
+      titleBarStyle: "hidden",
       sandbox: false
     }
   });
@@ -163,19 +184,6 @@ app.whenReady().then(() => {
   checkForUpdates();
   loadPlugins(mainWindow);
 });
-/*
-ipcMain.handle("favorites:get", () => {
-  return db.prepare("SELECT * FROM favorites").all();
-});
-
-ipcMain.handle("favorites:add", (e, fav) => {
-  db.prepare("INSERT OR REPLACE INTO favorites VALUES (?, ?, ?, ?)")
-    .run(fav.id, fav.name, fav.url, fav.country);
-});
-
-ipcMain.handle("history:get", () => {
-  return db.prepare("SELECT * FROM history ORDER BY lastPlayed DESC").all();
-});*/
 
 ipcMain.handle("radio:search", async (event, name) => {
   const url = `https://de1.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(name)}`;
@@ -187,14 +195,6 @@ ipcMain.handle("radio:search", async (event, name) => {
     return [];
   }
 });
-/*
-ipcMain.handle("history:add", (e, entry) => {
-  db.prepare(`
-    INSERT INTO history (id, name, url, country, lastPlayed)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET lastPlayed = excluded.lastPlayed
-  `).run(entry.id, entry.name, entry.url, entry.country, new Date().toISOString());
-});*/
 
 // Update-Check
 function checkForUpdates() {
