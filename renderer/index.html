@@ -16,15 +16,15 @@
     <span class="app-title">WebRadio</span>
   </div>
   <div class="titlebar-right">
-    <button class="window-btn" onclick="window.api.minimize()">
+    <button class="window-btn" id="btnMinimize">
       <svg viewbox="0 0 10 1"><rect width="10" height="1"/></svg>
     </button>
-    <button class="window-btn" onclick="window.api.maximize()">
+    <button class="window-btn" id="btnMaximize">
       <svg viewbox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor"/></svg>
     </button>
-    <button class="window-btn close" onclick="window.api.close()">
+    <button class="window-btn close" id="btnClose">
       <svg viewbox="0 0 10 10">
-        <path d="M1 1 L9 M9 1 L1 9" stroke="currentColor"/>
+        <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor"/>
       </svg>
     </button>
   </div>
@@ -34,7 +34,7 @@
 
   <div class="np-left">
 
-    <img id="np-logo" class="np-logo" src="assets/default-radio.png">
+    <img id="np-logo" class="np-logo" src="../assets/default-logo.png">
 
     <div class="np-info">
       <div id="np-station" class="np-station">Kein Sender</div>

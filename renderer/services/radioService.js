@@ -105,6 +105,6 @@ function setNowPlaying(station){
     station.name;
 
   document.getElementById("np-logo").src =
-    station.favicon || "assets/default-radio.png";
+    station.favicon || "../assets/default-logo.png";
 
 }

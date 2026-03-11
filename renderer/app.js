@@ -1,5 +1,3 @@
-//import { GENRES, COUNTRIES, searchStations } from "./services/radioService.js";
-import { play } from "./audio/audioPlayer.js";
 import {
   addFavorite,
   getFavorites,
@@ -14,7 +12,6 @@ console.log("radioAPI:", window.radioAPI);
 await initPlayer();
 loadThemes();
 
-
 document.addEventListener("DOMContentLoaded", () => {
   if (window.radioAPI?.onMetadata) {
     window.radioAPI.onMetadata(meta => {
@@ -26,6 +23,24 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+});
+
+document.getElementById("btnMinimize")
+  .addEventListener("click", () => {
+    window.radioAPI.minimize();
+});
+document.getElementById("btnMaximize")
+  .addEventListener("click", () => {
+    window.radioAPI.maximize();
+});
+document.getElementById("btnClose")
+  .addEventListener("click", () => {
+    window.radioAPI.close();
+});
+
+document.getElementById("btnClose")
+  .addEventListener("click", () => {
+    window.radioAPI.close();
 });
 
 

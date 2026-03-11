@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('api', {
 contextBridge.exposeInMainWorld("radioAPI", {
   startStream: (url) => ipcRenderer.invoke("radio:start", url),
   onMetadata: (callback) => ipcRenderer.on("radio:metadata", (_, data) => callback(data)),
+  minimize: () => ipcRenderer.send("window:minimize"),
+  maximize: () => ipcRenderer.send("window:maximize"),
+  close: () => ipcRenderer.send("window:close"),
   onPCM: (callback) => {
     ipcRenderer.removeAllListeners("radio:pcm");
     ipcRenderer.on("radio:pcm", (_, data) => callback(data));
@@ -34,11 +37,4 @@ contextBridge.exposeInMainWorld("media", {
 // THEME API
 contextBridge.exposeInMainWorld("themeAPI", {
   getThemes: () => ipcRenderer.invoke("theme:get")
-});
-
-
-// MAIN API
-contextBridge.exposeInMainWorld("api", {
-  minimize: () => ipcRenderer.send("window:minimize"),
-  close: () => ipcRenderer.send("window:close")
 });

@@ -146,6 +146,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 700,
+    frame: false,
+    titleBarStyle: "hidden",
     icon: path.join(__dirname, "../assets/icons/tray.ico"),
     //show: !settings.startMinimized,
     webPreferences: {
@@ -153,8 +155,6 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      frame: false,
-      titleBarStyle: "hidden",
       sandbox: false
     }
   });
