@@ -3,12 +3,17 @@ name: Build WebRadio
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
+
   build:
 
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
 
@@ -20,17 +25,16 @@ jobs:
         with:
           node-version: 20
 
-      - name: Abhängigkeiten installieren
+      - name: Dependencies installieren
         run: npm install
 
-      - name: Build erstellen
+      - name: App bauen
         run: npm run make
 
-      - name: GitHub Release erstellen
+      - name: Release erstellen
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/make/**/*.exe
-            out/make/**/*.zip
+            out/make/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
