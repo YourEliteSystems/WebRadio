@@ -10,12 +10,18 @@
     "make": "electron-forge make"
   },
   "build": {
-    "appId": "com.example.webradio",
-    "productName": "WebRadio",
+    "appId": "de.bbg.webradio",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
     },
+    "publsh": [
+      {
+        "provider": "github",
+        "owner": "YourEliteSystems",
+        "repo": "webradio"
+      }
+    ],
     "files": [
       "electron/**/*",
       "renderer/**/*",
