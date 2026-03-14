@@ -30,7 +30,9 @@ ipcMain.on("window:minimize", () => {
 });
 
 ipcMain.on("window:close", () => {
-  BrowserWindow.getFocusedWindow().close();
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) return;
+  win.close();
 });
 
 ipcMain.on("window:maximize", () => {
@@ -181,7 +183,6 @@ console.log("Preload path:", path.join(__dirname, "preload.js"));
 
 app.whenReady().then(() => {
   createWindow();
-  checkForUpdates();
   loadPlugins(mainWindow);
 });
 
@@ -196,30 +197,6 @@ ipcMain.handle("radio:search", async (event, name) => {
   }
 });
 
-// Update-Check
-function checkForUpdates() {
-  autoUpdater.checkForUpdatesAndNotify();
-
-  autoUpdater.on("update-available", (info) => {
-    tray.displayBalloon({
-      title: "WebRadio Update",
-      content: `Update ${info.version} verfügbar. Download startet...`
-    });
-  });
-
-  autoUpdater.on("update-downloaded", () => {
-    tray.displayBalloon({
-      title: "WebRadio Update",
-      content: "Update heruntergeladen. App wird neu gestartet..."
-    });
-    autoUpdater.quitAndInstall();
-  });
-
-  autoUpdater.on("error", (err) => {
-    console.error("Update-Fehler:", err);
-  });
-}
-
 app.setLoginItemSettings({
   openAtLogin: settings.autostart,
   openAsHidden: settings.startMinimized
@@ -233,3 +210,24 @@ app.on("will-quit", () => {
   unregisterMediaKeys();
 });
 
+// Auto-Updater
+app.whenReady().then(() => {
+  autoUpdater.checkForUpdatesAndNotify();
+});
+
+autoUpdater.on("checking-for-update", () => {
+  console.log("Suche nach Updates...");
+});
+
+autoUpdater.on("update-available", () => {
+  console.log("Update verfügbar");
+});
+
+autoUpdater.on("update-not-available", () => {
+  console.log("Kein Update");
+});
+
+autoUpdater.on("update-downloaded", () => {
+  console.log("Update geladen – Neustart nötig");
+  autoUpdater.quitAndInstall();
+});

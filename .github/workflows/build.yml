@@ -1,0 +1,36 @@
+name: Build WebRadio
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+
+      - name: Repository klonen
+        uses: actions/checkout@v4
+
+      - name: Node installieren
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Build erstellen
+        run: npm run make
+
+      - name: GitHub Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/**/*.exe
+            out/make/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,15 +1,13 @@
 {
   "name": "webradio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systms",
   "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder build --dir",
-    "dist-win": "electron-builder build --win --x64",
-    "dist-mac": "electron-builder build --mac",
-    "dist-linux": "electron-builder build --linux"
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "build": {
     "appId": "com.example.webradio",
@@ -30,7 +28,9 @@
       {
         "from": "themes",
         "to": "themes",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -65,17 +65,26 @@
     }
   },
   "devDependencies": {
-    "electron": "^40.7.0",
-    "electron-builder": "^26.8.1",
-    "semantic-release": "^21.0.7",
-    "@semantic-release/git": "^10.0",
-    "@semantic-release/github": "^9.0.1",
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-rpm": "^7.11.1",
+    "@electron-forge/maker-squirrel": "^7.11.1",
+    "@electron-forge/maker-zip": "^7.11.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
+    "@electron-forge/plugin-fuses": "^7.11.1",
+    "@electron/fuses": "^1.8.0",
     "@semantic-release/changelog": "^6.0.1",
     "@semantic-release/commit-analyzer": "^9.0",
-    "@semantic-release/release-notes-generator": "^10.0.3"
+    "@semantic-release/git": "^10.0",
+    "@semantic-release/github": "^9.0.1",
+    "@semantic-release/release-notes-generator": "^10.0.3",
+    "electron": "^40.7.0",
+    "electron-builder": "^26.8.1",
+    "semantic-release": "^21.0.7"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
+    "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.8.3",
     "ffmpeg-static": "^5.3.0",
     "fluent-ffmpeg": "^2.1.3"
