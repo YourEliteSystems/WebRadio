@@ -1,13 +1,14 @@
 {
   "name": "webradio",
-  "version": "1.0.1",
+  "version": "1.0.1a",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systms",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "publish": "electron-forge publish"
   },
   "build": {
     "appId": "de.bbg.webradio",

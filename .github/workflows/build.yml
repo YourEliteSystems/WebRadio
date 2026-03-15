@@ -1,19 +1,34 @@
 name: Build WebRadio
 
 on:
+
   push:
+    branches:
+      - main
     tags:
       - "v*"
+
+  workflow_dispatch:
+    inputs:
+
+      build_type:
+        description: "Build Typ"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
 
   build:
 
-    runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
 
@@ -24,14 +39,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Dependencies installieren
         run: npm install
 
-      - name: App bauen
+      - name: Build starten
         run: npm run make
 
+      - name: Artefakte speichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebRadio-${{ matrix.os }}
+          path: out/make/**
+
       - name: Release erstellen
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
