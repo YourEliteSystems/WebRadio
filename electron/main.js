@@ -1,28 +1,20 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
-const { createTray } = require("./tray");
-const { loadSettings, saveSettings } = require("./settings");
-const { registerMediaKeys, unregisterMediaKeys } = require("./mediaKeys");
+const { createTray } = require("./core/tray");
+const { initialize, trackEvent } = require("@aptabase/electron/main");
+const Sentry = require("@sentry/electron/main");
+const { registerMediaKeys, unregisterMediaKeys } = require("./core/mediaKeys");
 const { autoUpdater } = require("electron-updater");
-const { loadPlugins} = require("./pluginLoader");
+const pluginManager = require("./plugins/pluginManager");
 const ffmpeg_StaticPath = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
 const {Readable} = require("stream");
 const fs = require("fs");
 
-const settings = loadSettings();
-const { getPlugins } = require("./pluginLoader");
+let settingsWindow;
 
-ipcMain.handle("plugin-onPlay", (event, station) => {
-  getPlugins().forEach(p => {
-    if (p.onPlay) p.onPlay(station);
-  });
-});
-
-ipcMain.handle("plugin-onStop", () => {
-  getPlugins().forEach(p => {
-    if (p.onStop) p.onStop();
-  });
+ipcMain.on("open-settings", () => {
+  createSettingsWindow();
 });
 
 ipcMain.on("window:minimize", () => {
@@ -35,6 +27,14 @@ ipcMain.on("window:close", () => {
   win.close();
 });
 
+ipcMain.handle("plugins:get", () => {
+  return pluginManager.getPlugins();
+});
+
+ipcMain.handle("plugins:toggle", (_, id, enabled) => {
+  pluginManager.togglePlugin(id, enabled);
+});
+
 ipcMain.on("window:maximize", () => {
   const win = BrowserWindow.getFocusedWindow();
   if (win.isMaximized()) {
@@ -44,35 +44,13 @@ ipcMain.on("window:maximize", () => {
   }
 });
 
-ipcMain.handle("load-settings", async () => {
-  return loadSettings();
-});
-
-ipcMain.handle("save-settings", (event, newSettings) => {
-  saveSettings(newSettings);
-
-  // Autostart und MediaKeys direkt umsetzen
-  app.setLoginItemSettings({
-    openAtLogin: newSettings.autostart,
-    openAsHidden: newSettings.startMinimized
-  });
-
-  // Media-Keys aktivieren/deaktivieren
-  if (newSettings.mediaKeys) {
-    registerMediaKeys(mainWindow);
-  } else {
-    unregisterMediaKeys();
-  }
-
-  return true;
-});
 let ffmpegStream;
 let mainWindow;
 let ffmpegCommand;
 
 //Theme laden automatisch
 ipcMain.handle("theme:get", async () => {
-  const themesPath = path.join(__dirname,"../themes");
+  const themesPath = path.join(__dirname,"../renderer/themes");
   const folders = fs.readdirSync(themesPath, { withFileTypes: true })
 
   const themes = [];
@@ -86,7 +64,7 @@ ipcMain.handle("theme:get", async () => {
     themes.push({
       id: folder.name,
       name: data.name,
-      css: `../themes/${folder.name}/${data.css}`,
+      css: `../renderer/themes/${folder.name}/${data.css}`,
     });
   }
   return themes;
@@ -115,6 +93,8 @@ ipcMain.handle("radio:start", async (_, url) => {
         if(match){
           const metadata = { StreamTitle: match[1] };
           mainWindow.webContents.send("radio:metadata", metadata);
+          pluginManager.emit("onMetadata", metadata);
+          eventBus.emit("onMetadata", metadata);
         }
       }
     })
@@ -160,15 +140,10 @@ function createWindow() {
       sandbox: false
     }
   });
-console.log("Preload path:", path.join(__dirname, "preload.js"));
+  //console.log("Preload path:", path.join(__dirname, "preload.js"));
   mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
-
-  mainWindow.once("ready-to-show", () => {
-    if (!settings.startMinimized){
-      mainWindow.show();
-    }
-  });
-
+  //mainWindow.webContents.openDevTools();
+  
   // ❗ Fenster-Schließen → Tray
   mainWindow.on("close", (event) => {
     if (!app.isQuiting) {
@@ -176,14 +151,41 @@ console.log("Preload path:", path.join(__dirname, "preload.js"));
       mainWindow.hide();
     }
   });
-
-  createTray(mainWindow);
-  registerMediaKeys(mainWindow);
 }
 
+Sentry.init({
+  dsn: "https://84cda7a2f665ab15b9ac790890b55a24@o4509039289040897.ingest.de.sentry.io/4511078839550032",
+  debug: true,
+  release: app.getVersion(),
+  tracesSampleRate: 1.0
+});
+
+// Handler für Renderer-Events
+ipcMain.handle('analytics:trackEvent', (_, { eventName, props }) => {
+  if (!trackEvent) return;
+  trackEvent(eventName, props);
+});
+
+// IPC Handler
+ipcMain.handle('sentry:captureException', (_, payload) => {
+  Sentry.captureException(new Error(payload.message + '\n' + payload.stack));
+});
+
+ipcMain.handle('sentry:captureMessage', (_, payload) => {
+  Sentry.captureMessage(payload.message);
+});
+
+ipcMain.handle('sentry:addBreadcrumb', (_, breadcrumb) => {
+  Sentry.addBreadcrumb(breadcrumb);
+});
+
+initialize("A-EU-8544304569");
+
 app.whenReady().then(() => {
+  //console.log(pluginManager);
   createWindow();
-  loadPlugins(mainWindow);
+  pluginManager.loadPlugins();
+  trackEvent("App Started");
 });
 
 ipcMain.handle("radio:search", async (event, name) => {
@@ -197,10 +199,40 @@ ipcMain.handle("radio:search", async (event, name) => {
   }
 });
 
-app.setLoginItemSettings({
-  openAtLogin: settings.autostart,
-  openAsHidden: settings.startMinimized
-});
+function createSettingsWindow() {
+
+  if (settingsWindow) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 600,
+    height: 500,
+    frame: false, // gleiches Design wie Hauptfenster
+    resizable: false,
+    icon: path.join(__dirname, "../assets/icons/tray.ico"),
+    webPreferences: {
+      //autoplayPolicy: "no-user-gesture-required",
+      preload: path.join(__dirname, "preload.js"),
+      //devTools: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  });
+//mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
+  settingsWindow.loadFile(path.join(__dirname, "..", "renderer", "settings.html"));
+  /*settingsWindow.webContents.on("before-input-event", (event, input) => {
+    if(input.key === "F12"){
+      settingsWindow.webContents.openDevTools();
+    }
+  });*/
+  settingsWindow.on("closed", () => {
+    settingsWindow = null;
+  });
+
+}
 
 app.on("window-all-closed", (e) => {
   // App soll weiterlaufen

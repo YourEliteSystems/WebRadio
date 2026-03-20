@@ -51,6 +51,7 @@ export async function loadRadio() {
       }
       //playStream(station.url_resolved);
       switchStream(station.url_resolved);
+      window.analytics.trackEvent("Station Switched", { station: station.name });
       setNowPlaying(station);
     });
 

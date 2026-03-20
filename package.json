@@ -1,14 +1,15 @@
 {
   "name": "webradio",
-  "version": "1.0.1a",
+  "version": "1.0.2",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systms",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish"
+    "make": "electron-forge make && npm run sentry:sourcemaps",
+    "publish": "electron-forge publish",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org black-beast-gaming --project electron ./out && sentry-cli sourcemaps upload --org black-beast-gaming --project electron ./out"
   },
   "build": {
     "appId": "de.bbg.webradio",
@@ -90,6 +91,9 @@
     "semantic-release": "^21.0.7"
   },
   "dependencies": {
+    "@aptabase/electron": "^0.3.1",
+    "@sentry/cli": "^2.58.5",
+    "@sentry/electron": "^7.10.0",
     "better-sqlite3": "^12.6.2",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.8.3",

@@ -1,0 +1,8 @@
+{
+  "name": "Discord Rich Presence",
+  "id": "discordRPC",
+  "version": "1.0.0",
+  "main": "plugin.js",
+  "author": "WebRadio",
+  "description": "Zeigt aktuellen Radiosong in Discord"
+}

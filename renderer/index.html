@@ -46,7 +46,7 @@
   </div>
 
 </div>
-
+<div id="main-container">
   <aside class="sidebar">
 
 
@@ -76,19 +76,24 @@
     <h3>Sender</h3>
     <div id="radioGrid"></div>
   </main>
-
 </div>
-
 <footer class="player">
-  <span id="nowPlaying">Kein Sender aktiv</span>
+  <div class="player-center">
+      <button id="playBtn" class="player-btn play">▶</button>
+      <button id="stopBtn" class="player-btn">⏹</button>
+  </div>
+  <div class="player-right">
   <label>
     Lautstärke
     <input id="volume" type="range" min="0" max="1" step="0.01" value="1.0">
     <canvas id="vu" width="300" height="50"></canvas>
   </label>
-  <button id="playBtn">▶</button>
-  <button id="stopBtn">⏹</button>
+  <div id="plugin-area"></div>
   <select id="themeSelector"></select>
+
+  <button id="openSettings">⚙ Einstellungen</button>
+  </div>
 </footer>
+</div>
 </body>
 </html>

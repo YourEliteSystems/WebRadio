@@ -17,6 +17,26 @@ html, body{
   height:100%;
 }
 
+#main-container{
+  display:flex;
+  flex-direction:row;
+  flex:1;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 250px;
+  background: #252526;
+  padding: 15px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 .titlebar{
 
   height:42px;
@@ -70,6 +90,12 @@ html, body{
   transition:background 0.15s;
 }
 
+.content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
 .window-btn svg{
   width:10px;
   height:10px;
@@ -97,6 +123,119 @@ html, body{
   background:var(--bg-card);
 
   color:var(--text-main);
+
+}
+
+.plugin-item {
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 10px;
+  margin-bottom: 8px;
+
+  background: var(--bg-secondary);
+  border-radius: 6px;
+
+}
+
+/* Player UI */
+.player {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 8px 12px;
+
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+
+  position: relative;
+
+}
+
+/* Controls mittig */
+
+.player-center {
+
+  display: flex;
+  gap: 12px;
+
+}
+
+/* Rechte Seite */
+
+.player-right {
+
+  position: absolute;
+  right: 10px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+}
+
+/* Buttons */
+
+.player-btn {
+
+  width: 34px;
+  height: 34px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: var(--hover);
+  color: var(--text-main);
+
+  cursor: pointer;
+
+}
+
+/* Play Button hervorheben */
+
+.player-btn.play {
+
+  background: var(--accent-color);
+  color: black;
+
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+
+}
+
+/* Volume klein halten */
+
+#volume {
+  width: 90px;
+}
+
+/* Plugin UI */
+
+#plugin-area{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-left:20px;
+}
+
+.plugin-badge{
+
+  padding:4px 8px;
+
+  font-size:12px;
+
+  border-radius:4px;
+
+  background:var(--bg-card);
+
+  color:var(--text-main);
+
+  opacity:0.8;
 
 }
 

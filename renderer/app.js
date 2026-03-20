@@ -7,10 +7,24 @@ import { addHistory, loadHistory } from "./services/historyService.js";
 import { initPlayer, getAnalyser, stopStream, playStream, setVolume, switchStream } from "./services/playerService.js";
 
 import { loadRadio } from "./services/radioService.js";
-console.log("radioAPI:", window.radioAPI);
+//console.log("radioAPI:", window.radioAPI);
+
+window.addEventListener('error', (event) => {
+  window.sentry.captureException(event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  window.sentry.captureException(event.reason);
+});
 
 await initPlayer();
 loadThemes();
+
+document.getElementById("openSettings")
+  .addEventListener("click", () => {
+    window.api.openSettings();
+    window.analytics.trackEvent("Settings Opened");
+  });
 
 document.addEventListener("DOMContentLoaded", () => {
   if (window.radioAPI?.onMetadata) {
@@ -21,26 +35,26 @@ document.addEventListener("DOMContentLoaded", () => {
           titleEl.textContent = meta.StreamTitle;
         }
       }
+      eventBus.emit("metadata", meta);
     });
   }
 });
 
 document.getElementById("btnMinimize")
   .addEventListener("click", () => {
-    window.radioAPI.minimize();
+    window.windowControls.minimize();
+    window.analytics.trackEvent("Window Minimized");
 });
 document.getElementById("btnMaximize")
   .addEventListener("click", () => {
-    window.radioAPI.maximize();
-});
-document.getElementById("btnClose")
-  .addEventListener("click", () => {
-    window.radioAPI.close();
+    window.windowControls.maximize();
+    window.analytics.trackEvent("Window Maximized");
 });
 
 document.getElementById("btnClose")
   .addEventListener("click", () => {
-    window.radioAPI.close();
+    window.windowControls.close();
+    window.analytics.trackEvent("App Closed");
 });
 
 
@@ -89,10 +103,6 @@ vol.addEventListener("input", (e) => {
   setVolume(val);
 });
 initVisualizer();
-
-function onStationClick(station) {
-  playStream(station.url_resolved);
-}
 
 document.getElementById("searchBtn").addEventListener("click", loadRadio);
 document.getElementById("loadFav")
