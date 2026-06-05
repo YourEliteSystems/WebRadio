@@ -7,7 +7,6 @@ let analyser;
 let started = false;
 let primed = false; // Flag, um zu verhindern, dass ctx.resume() mehrfach aufgerufen wird
 let initialized = false;
-
 let currentStation = null;
 let switching = false;
 
@@ -109,24 +108,30 @@ export async function switchStream(url) {
   },800); // Sicherstellen, dass der Wechsel
 }
 
+let currentVolume = 1.0;
+
 export async function playStream(url) {
   if (!started) throw new Error("Player not initialized");
   if (ctx.state !== "running") {
     await ctx.resume();
   }
-  gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+  gainNode.gain.setValueAtTime(currentVolume, ctx.currentTime);
   window.radioAPI.startStream(url);
 }
 
-export function stopStream() {
-  if (!started) return;
-
-  window.radioAPI.stopStream?.();
+export async function stopPlayer() {
+  if (ctx && ctx.state === "running") {
+    await ctx.suspend();
+  }
+  if (window.radioAPI && window.radioAPI.stopStream) {
+    window.radioAPI.stopStream();
+  }
 }
 
 export function setVolume(value) {
   if (!ctx || ctx.state !== "running" || !gainNode) return;
   const vol = Math.max(0, Math.min(1, value));
+  currentVolume = vol;
   gainNode.gain.cancelScheduledValues(ctx.currentTime);
   gainNode.gain.setTargetAtTime(vol, ctx.currentTime, 0.01);
 }

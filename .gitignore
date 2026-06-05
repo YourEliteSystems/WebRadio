@@ -4,6 +4,9 @@ dist/*
 node_modules
 node_modules/*
 
+legacy
+legacy/*
+
 *.log
 out/
 # Sentry Config File

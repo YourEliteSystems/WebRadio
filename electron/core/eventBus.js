@@ -23,7 +23,13 @@ function emit(event, data) {
 
 }
 
+function off(event, callback) {
+  if (!listeners[event]) return;
+  listeners[event] = listeners[event].filter(cb => cb !== callback);
+}
+
 module.exports = {
   on,
+  off,
   emit
 };

@@ -1,76 +1,19 @@
 {
   "name": "webradio",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systms",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make && npm run sentry:sourcemaps",
-    "publish": "electron-forge publish",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org black-beast-gaming --project electron ./out && sentry-cli sourcemaps upload --org black-beast-gaming --project electron ./out"
+    "start": "npm run build-react && electron-forge start",
+    "package": "npm run build-react && electron-forge package",
+    "make": "npm run build-react && electron-forge make",
+    "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm",
+    "publish": "npm run build-react && electron-forge publish",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org black-beast-gaming --project electron ./renderer/dist && sentry-cli sourcemaps upload --org black-beast-gaming --project electron ./renderer/dist"
   },
-  "build": {
-    "appId": "de.bbg.webradio",
-    "directories": {
-      "output": "dist",
-      "buildResources": "assets"
-    },
-    "publsh": [
-      {
-        "provider": "github",
-        "owner": "YourEliteSystems",
-        "repo": "webradio"
-      }
-    ],
-    "files": [
-      "electron/**/*",
-      "renderer/**/*",
-      "plugins/**/*",
-      "data/**/*",
-      "assets/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "themes",
-        "to": "themes",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": [
-        "nsis",
-        "zip"
-      ],
-      "icon": "assets/icons/tray.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": true,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    },
-    "mac": {
-      "category": "public.app-category.music",
-      "icon": "assets/icons/tray.png",
-      "target": [
-        "dmg",
-        "zip"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Audio",
-      "icon": "assets/icons"
-    }
+  "config": {
+    "forge": "./forge.config.js"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
@@ -80,24 +23,29 @@
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
+    "@electron-forge/publisher-github": "^7.11.1",
     "@electron/fuses": "^1.8.0",
-    "@semantic-release/changelog": "^6.0.1",
-    "@semantic-release/commit-analyzer": "^9.0",
-    "@semantic-release/git": "^10.0",
-    "@semantic-release/github": "^9.0.1",
-    "@semantic-release/release-notes-generator": "^10.0.3",
+    "@types/node": "^25.6.0",
     "electron": "^40.7.0",
-    "electron-builder": "^26.8.1",
-    "semantic-release": "^21.0.7"
+    "esbuild": "^0.28.0",
+    "semantic-release": "^21.0.7",
+    "typescript": "^6.0.2"
   },
   "dependencies": {
+    "@amplitude/analytics-node": "^1.5.52",
+    "@amplitude/unified": "^1.0.15",
     "@aptabase/electron": "^0.3.1",
     "@sentry/cli": "^2.58.5",
     "@sentry/electron": "^7.10.0",
-    "better-sqlite3": "^12.6.2",
+    "discord-rpc": "^4.0.1",
     "electron-squirrel-startup": "^1.0.1",
-    "electron-updater": "^6.8.3",
     "ffmpeg-static": "^5.3.0",
-    "fluent-ffmpeg": "^2.1.3"
+    "fluent-ffmpeg": "^2.1.3",
+    "fs-extra": "^11.3.4",
+    "mixpanel": "^0.20.0",
+    "mixpanel-browser": "^2.77.0",
+    "posthog-node": "^5.21.2",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   }
 }

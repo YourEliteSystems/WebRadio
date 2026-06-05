@@ -5,36 +5,35 @@ contextBridge.exposeInMainWorld('api', {
   // FAVORITES
   getFavorites: () => ipcRenderer.invoke("favorites:get"),
   addFavorite: (fav) => ipcRenderer.invoke("favorites:add", fav),
+  removeFavorite: (url) => ipcRenderer.invoke("favorites:remove", url),
+
+  // RADIO SEARCH
+  searchRadio: (name) => ipcRenderer.invoke("radio:search", name),
 
   // SETTINGS && PLUGINS SYSTEM
   openSettings: () => ipcRenderer.send("open-settings"),
   getPlugins: () => ipcRenderer.invoke("plugins:get"),
   togglePlugin: (id, enabled) => ipcRenderer.invoke("plugins:toggle", id, enabled),
+  getRendererScripts: () => ipcRenderer.invoke("plugins:getRendererScripts"),
+});
+
+// PLUGIN API FOR RENDERER SCRIPTS
+contextBridge.exposeInMainWorld("pluginAPI", {
+  onPluginToggled: (callback) => {
+    ipcRenderer.removeAllListeners("plugin:toggled");
+    ipcRenderer.on("plugin:toggled", (_, data) => callback(data));
+  },
 
   // HISTORY
   getHistory: () => ipcRenderer.invoke("history:get"),
   addHistory: (entry) => ipcRenderer.invoke("history:add", entry),
-
-  // RADIO SEARCH
-  searchRadio: (name) => ipcRenderer.invoke("radio:search", name),
-
 });
 
-// Aptabase
-contextBridge.exposeInMainWorld("analytics", {
-  trackEvent: (eventName, properties) => ipcRenderer.invoke("analytics:trackEvent", eventName, properties)
-});
 
-//Sentry
-contextBridge.exposeInMainWorld("sentry", {
-  captureException: (error) => ipcRenderer.invoke("sentry:captureException", {message:error?.message, stack: error?.stack}),
-  captureMessage: (msg) => ipcRenderer.invoke("sentry:captureMessage", msg),
-  addBreadcrumb: (breadcrumb) => ipcRenderer.invoke("sentry:addBreadcrumb", breadcrumb)
-});
-
-  // PLAYER
+// PLAYER
 contextBridge.exposeInMainWorld("radioAPI", {
   startStream: (url) => ipcRenderer.invoke("radio:start", url),
+  stopStream: () => ipcRenderer.invoke("radio:stop"),
   onMetadata: (callback) => ipcRenderer.on("radio:metadata", (_, data) => callback(data)),
   onPCM: (callback) => {
     ipcRenderer.removeAllListeners("radio:pcm");
@@ -57,5 +56,7 @@ contextBridge.exposeInMainWorld("media", {
 
 // THEME API
 contextBridge.exposeInMainWorld("themeAPI", {
-  getThemes: () => ipcRenderer.invoke("theme:get")
+  getThemes: () => ipcRenderer.invoke("theme:get"),
+  getActiveTheme: () => ipcRenderer.invoke("theme:getActive"),
+  setActiveTheme: (id) => ipcRenderer.invoke("theme:setActive", id)
 });

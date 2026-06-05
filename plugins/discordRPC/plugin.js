@@ -1,31 +1,40 @@
 const RPC = require("discord-rpc");
-const clientId = "1482831973826301972";
-const rpc = new RPC.Client({ transport: "ipc" });
+const clientId = "1512468839508476037";
+let rpc = null;
 let startTimestamp = new Date();
 
 module.exports = {
   init() {
-    rpc.on("ready", () => {
-      console.log("Discord RPC verbunden");
-    });
-    rpc.login({ clientId }).catch(console.error);
+    if (!rpc) {
+      rpc = new RPC.Client({ transport: "ipc" });
+      rpc.on("ready", () => {
+        console.log("Discord RPC verbunden");
+      });
+      rpc.login({ clientId }).catch(console.error);
+    }
   },
   onMetadata(meta) {
-    rpc.setActivity({
-      details: meta.StreamTitle || "Radio hören",
-      state: meta.station || "WebRadio",
-      startTimestamp,
-      largeImageKey: "radio",
-      largeImageText: "WebRadio",
-      instance:false
-    });
+    if (rpc) {
+      rpc.setActivity({
+        details: meta.StreamTitle || "Radio hören",
+        state: meta.station || "WebRadio",
+        startTimestamp,
+        largeImageKey: "logo",
+        largeImageText: "WebRadio",
+        instance: false
+      }).catch(console.error);
+    }
   },
-  initRenderer(){
-    const area = document.getElementById("plugin-area");
-    if(!area) return;
-    const badge = document.createElement("div");
-    badge.className = "plugin-badge";
-    badge.textContent = "Discord verbunden";
-    area.appendChild(badge);
+  onStop() {
+    if (rpc) {
+      rpc.clearActivity().catch(console.error);
+    }
+  },
+  destroy() {
+    if (rpc) {
+      rpc.clearActivity().catch(console.error);
+      rpc.destroy().catch(console.error);
+      rpc = null;
+    }
   }
 };
