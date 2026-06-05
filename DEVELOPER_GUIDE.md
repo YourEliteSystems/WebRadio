@@ -11,7 +11,7 @@ Dieser Guide richtet sich an alle, die eigene **Themes** oder **Plugins** für W
 
 > Die aktuelle Plugin- und Theme-Struktur funktioniert, ist aber noch nicht final. Baue neue Erweiterungen möglichst klein und räume Ressourcen sauber wieder auf.
 
-## Schnellstart
+## 🚀 Schnellstart
 
 | Du möchtest | Dann nutze |
 | --- | --- |
@@ -20,7 +20,7 @@ Dieser Guide richtet sich an alle, die eigene **Themes** oder **Plugins** für W
 | sichtbare Elemente einfügen | ein Renderer-Plugin |
 | beides kombinieren | `plugin.js` plus `renderer.js` |
 
-## Themes
+## 🎨 Themes
 
 Ein Theme liegt in einem eigenen Ordner unter `themes/`.
 
@@ -30,7 +30,7 @@ themes/mein-theme/
   style.css
 ```
 
-### theme.json
+### `theme.json`
 
 ```json
 {
@@ -48,7 +48,7 @@ themes/mein-theme/
 | `version` | empfohlen | Version des Themes |
 | `css` | ja | CSS-Datei relativ zum Theme-Ordner |
 
-### style.css
+### `style.css`
 
 Themes überschreiben aktuell vor allem CSS-Variablen aus `renderer/styles/core.css`.
 
@@ -86,7 +86,7 @@ Themes überschreiben aktuell vor allem CSS-Variablen aus `renderer/styles/core.
 5. Im Bereich **Themes** auf **Neu laden** klicken.
 6. Theme auswählen.
 
-## Plugins
+## 🔌 Plugins
 
 Ein Plugin liegt in einem eigenen Ordner unter `plugins/`.
 
@@ -99,7 +99,7 @@ plugins/mein-plugin/
 
 `plugin.js` läuft im Main-Prozess. `renderer.js` ist optional und läuft im Renderer.
 
-### plugin.json
+### `plugin.json`
 
 ```json
 {
@@ -212,7 +212,7 @@ window.registerPluginRenderer("meinPlugin", {
 6. Im Bereich **Plugins** auf **Neu laden** klicken.
 7. Plugin aktivieren oder deaktivieren.
 
-## Stabilität und Sicherheit
+## 🛡️ Stabilität und Sicherheit
 
 | Empfehlung | Grund |
 | --- | --- |
@@ -222,7 +222,7 @@ window.registerPluginRenderer("meinPlugin", {
 | Netzwerkzugriffe sparsam nutzen | Vertrauen und Performance schützen |
 | keine großen DOM-Eingriffe | React-Integration bleibt wartbarer |
 
-## Externe Dienste
+## 🌐 Externe Dienste
 
 | Dienst | Einschätzung |
 | --- | --- |
@@ -230,7 +230,7 @@ window.registerPluginRenderer("meinPlugin", {
 | Spotify | DRM-geschützt, nicht direkt per FFmpeg abspielbar |
 | YouTube Music | technisch möglich, aber mit zusätzlicher Auflösung und rechtlicher Prüfung |
 
-## Zukünftige Erweiterungen
+## 🧭 Zukünftige Erweiterungen
 
 Geplant oder angedacht:
 

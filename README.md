@@ -11,29 +11,29 @@ Ein moderner Desktop-Player für Webradio, gebaut mit **Electron**, **React** un
 
 > WebRadio ist aktuell in einer Übergangsphase: React ist frisch integriert, alte Module werden entfernt und die Core-Struktur wird für kommende Versionen vorbereitet.
 
-## Überblick
+## 🎧 Überblick
 
 WebRadio soll ein schlanker, erweiterbarer Desktop-Radio-Player werden. Der aktuelle Stand bringt bereits Wiedergabe, Sendersuche, Favoriten, Verlauf, Themes, Plugins und ein Update-Fenster mit.
 
 Die nächsten Versionen konzentrieren sich auf Stabilität, bessere Wartbarkeit und den Ausbau der Plugin- und Theme-Systeme.
 
-## Aktuelle Features
+## ✨ Features
 
 | Feature | Beschreibung |
 | --- | --- |
-| Sendersuche | Suche über die Radio Browser API |
-| Streaming | FFmpeg dekodiert Streams und gibt PCM-Daten an die Web Audio API weiter |
-| Player | Lautstärke, Play, Stop und aktueller Sender |
-| Favoriten | Sender lokal speichern und wieder laden |
-| Verlauf | zuletzt gespielte Sender lokal speichern |
-| Themes | Themes über `theme.json` und CSS-Dateien |
-| Plugins | Main-Plugins und optionale Renderer-Plugins |
-| Discord RPC | Beispiel-Plugin für Discord Rich Presence |
-| Einstellungen | Plugins, Themes und Updates in einem eigenen Fenster |
-| Update-Check | Prüfung über `latest.json` mit externem Download-Link |
-| Custom Titlebar | rahmenloses Fenster mit eigenen Fensterbuttons |
+| 🔎 Suche | Suche über die Radio Browser API |
+| ▶️ Wiedergabe | FFmpeg dekodiert Streams und gibt PCM-Daten an die Web Audio API weiter |
+| 🎚️ Player | Lautstärke, Play, Stop und aktueller Sender |
+| ⭐ Favoriten | Sender lokal speichern und wieder laden |
+| 🕘 Verlauf | zuletzt gespielte Sender lokal speichern |
+| 🎨 Themes | Themes über `theme.json` und CSS-Dateien |
+| 🔌 Plugins | Main-Plugins und optionale Renderer-Plugins |
+| 🎮 Discord RPC | Beispiel-Plugin für Discord Rich Presence |
+| ⚙️ Einstellungen | Plugins, Themes und Updates in einem eigenen Fenster |
+| ⬆️ Update-Check | Prüfung über `latest.json` mit externem Download-Link |
+| 🪟 Fenster | rahmenloses Fenster mit eigenen Fensterbuttons |
 
-## Im Umbau
+## 🛠️ Im Umbau
 
 Diese Funktionen sind vorbereitet oder geplant, aber noch nicht final:
 
@@ -47,7 +47,7 @@ Diese Funktionen sind vorbereitet oder geplant, aber noch nicht final:
 | Audio | effizienteres Buffering und weniger IPC-Last |
 | Sentry | nach dem React-Umstieg sauber neu anbinden |
 
-## Tech Stack
+## 🧱 Tech Stack
 
 | Bereich | Technologie |
 | --- | --- |
@@ -58,7 +58,7 @@ Diese Funktionen sind vorbereitet oder geplant, aber noch nicht final:
 | Erweiterungen | Node.js-Plugins und Renderer-Plugins |
 | Paketierung | Electron Forge Maker |
 
-## Quickstart
+## 🚀 Quickstart
 
 ### Voraussetzungen
 
@@ -76,7 +76,7 @@ npm start
 
 `npm start` baut zuerst das React-Frontend und startet danach Electron Forge.
 
-## Skripte
+## 📦 Skripte
 
 | Befehl | Zweck |
 | --- | --- |
@@ -87,7 +87,7 @@ npm start
 | `npm run publish` | Veröffentlichung über Electron Forge vorbereiten |
 | `npm run sentry:sourcemaps` | Sentry-Sourcemaps, aktuell noch im Umbau |
 
-## Projektstruktur
+## 📁 Projektstruktur
 
 ```txt
 WebRadio/
@@ -122,7 +122,7 @@ WebRadio/
   DEVELOPER_GUIDE.md         # Anleitung für Plugins und Themes
 ```
 
-## Dokumentation
+## 📚 Dokumentation
 
 | Datei | Inhalt |
 | --- | --- |
@@ -130,7 +130,7 @@ WebRadio/
 | [docs/roadmap.md](./docs/roadmap.md) | Meilensteine und geplante Funktionen |
 | [docs/internal-notes.md](./docs/internal-notes.md) | interne technische Planung |
 
-## Erweiterbarkeit
+## 🔌 Erweiterbarkeit
 
 WebRadio ist nicht nur als Radio-Player gedacht, sondern als erweiterbare App:
 
@@ -138,7 +138,7 @@ WebRadio ist nicht nur als Radio-Player gedacht, sondern als erweiterbare App:
 - Plugins können auf Events reagieren und eigene Renderer-Elemente einhängen.
 - Die Plugin-API wird in kommenden Versionen schrittweise stabilisiert.
 
-## Aktueller Teststand
+## 🧪 Teststand
 
 | Umgebung | Status |
 | --- | --- |
@@ -147,6 +147,6 @@ WebRadio ist nicht nur als Radio-Player gedacht, sondern als erweiterbare App:
 | Linux nativ | geplant, noch nicht offiziell |
 | macOS | Idee für spätere Versionen |
 
-## Lizenz
+## 📄 Lizenz
 
 Dieses Projekt steht unter der Lizenz, die in der [LICENSE](./LICENSE)-Datei beschrieben ist.

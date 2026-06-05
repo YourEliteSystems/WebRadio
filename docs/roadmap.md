@@ -2,18 +2,18 @@
 
 Diese Roadmap zeigt die grobe Richtung für kommende WebRadio-Versionen. Sie ist ein Planungsdokument: Reihenfolge, Inhalte und Versionen können sich durch Tests, Aufwand oder neue Prioritäten ändern.
 
-| Version | Schwerpunkt | Zielbild |
-| --- | --- | --- |
-| `v1.0.x` | Stabilisierung | React-Version sauber und schlank machen |
-| `v1.1` | Core-Aufräumung | wartbare Modulstruktur |
-| `v1.2` | Plugin-System | bessere API und mehr Events |
-| `v1.3` | Theme-System | stabilere Themes und Vorschau |
-| `v1.4` | App Shell | Tray, Fenster und Media-Keys |
-| `v1.5` | Audio & Performance | effizientere Wiedergabe |
-| `v1.6` | Sentry & Diagnose | bessere Fehlerberichte |
-| `v2.0` | Erweiterbarer Player | klare Produktbasis mit Community-Potenzial |
+| Version | Status | Schwerpunkt | Zielbild |
+| --- | --- | --- | --- |
+| `v1.0.x` | 🔄 in Arbeit | Stabilisierung | React-Version sauber und schlank machen |
+| `v1.1` | 🧭 geplant | Core-Aufräumung | wartbare Modulstruktur |
+| `v1.2` | 🧭 geplant | Plugin-System | bessere API und mehr Events |
+| `v1.3` | 🧭 geplant | Theme-System | stabilere Themes und Vorschau |
+| `v1.4` | 💡 vorgesehen | App Shell | Tray, Fenster und Media-Keys |
+| `v1.5` | 💡 vorgesehen | Audio & Performance | effizientere Wiedergabe |
+| `v1.6` | 💡 vorgesehen | Sentry & Diagnose | bessere Fehlerberichte |
+| `v2.0` | 🌟 Vision | Erweiterbarer Player | klare Produktbasis mit Community-Potenzial |
 
-## v1.0.x - Stabilisierung
+## 🔄 v1.0.x - Stabilisierung
 
 **Ziel:** Die aktuelle React-Version stabilisieren und Altlasten reduzieren.
 
@@ -33,7 +33,7 @@ Mögliche Kandidaten:
 - nicht genutzte Tracking-/Analytics-Pakete entfernen
 - Sentry parken, aber nicht aufgeben
 
-## v1.1 - Core-Aufräumung
+## 🧱 v1.1 - Core-Aufräumung
 
 **Ziel:** Die interne Struktur besser wartbar machen, damit neue Features nicht direkt in `main.js` landen.
 
@@ -59,7 +59,7 @@ electron/core/
   updates/
 ```
 
-## v1.2 - Plugin-System Ausbau
+## 🔌 v1.2 - Plugin-System Ausbau
 
 **Ziel:** Plugins sollen leichter wartbar, dokumentierbar und erweiterbar werden.
 
@@ -79,7 +79,7 @@ Mögliche Funktionen:
 - besserer Reload ohne App-Neustart
 - einfache Beispiel-Plugins
 
-## v1.3 - Theme-System Neuordnung
+## 🎨 v1.3 - Theme-System Neuordnung
 
 **Ziel:** Das Theme-System von der Übergangslösung zu einem stabileren System machen.
 
@@ -100,7 +100,7 @@ Mögliche Funktionen:
 - Theme-Export
 - bessere Theme-Beispiele
 
-## v1.4 - App Shell
+## 🪟 v1.4 - App Shell
 
 **Ziel:** Desktop-Funktionen zentralisieren und wieder aktivieren.
 
@@ -120,7 +120,7 @@ Mögliche Funktionen:
 - optionaler Autostart
 - optionaler Start minimiert
 
-## v1.5 - Audio und Performance
+## 🎧 v1.5 - Audio und Performance
 
 **Ziel:** Die Wiedergabe effizienter und robuster machen.
 
@@ -140,7 +140,7 @@ Mögliche Funktionen:
 - sauberer Senderwechsel ohne Hänger
 - optionale Audio-Diagnose im Debug-Modus
 
-## v1.6 - Sentry und Diagnose
+## 🧪 v1.6 - Sentry und Diagnose
 
 **Ziel:** Fehlerberichte für größere Testgruppen wieder sauber nutzbar machen.
 
@@ -158,7 +158,7 @@ Mögliche Funktionen:
 - interne Diagnoseanzeige
 - bessere Crash- und Fehlerlogs
 
-## v2.0 - Erweiterbarer WebRadio-Player
+## 🌟 v2.0 - Erweiterbarer WebRadio-Player
 
 **Ziel:** WebRadio als klar erweiterbaren Desktop-Radio-Player positionieren.
 
@@ -174,7 +174,7 @@ Mögliche große Funktionen:
 - bessere Release- und Update-Erfahrung
 - Wiki für Plugin- und Theme-Entwicklung
 
-## Ideen für spätere Versionen
+## 💡 Ideen für spätere Versionen
 
 Diese Punkte sind Ideen, aber noch nicht fest geplant:
 
@@ -192,7 +192,7 @@ Diese Punkte sind Ideen, aber noch nicht fest geplant:
 | offizielle Linux-Builds | breitere Plattformunterstützung |
 | macOS-Builds | spätere Plattformoption |
 
-## Prioritäten
+## 🧭 Prioritäten
 
 | Zeitraum | Fokus |
 | --- | --- |
