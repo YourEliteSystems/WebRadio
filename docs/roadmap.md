@@ -1,43 +1,52 @@
 # WebRadio Roadmap
 
-Diese Roadmap zeigt die grobe Richtung fuer kommende WebRadio-Versionen. Sie ist bewusst als Planungsdokument gedacht: Reihenfolge, Inhalte und Versionen koennen sich je nach Stabilitaet, Tests und Aufwand noch aendern.
+Diese Roadmap zeigt die grobe Richtung für kommende WebRadio-Versionen. Sie ist ein Planungsdokument: Reihenfolge, Inhalte und Versionen können sich durch Tests, Aufwand oder neue Prioritäten ändern.
+
+| Version | Schwerpunkt | Zielbild |
+| --- | --- | --- |
+| `v1.0.x` | Stabilisierung | React-Version sauber und schlank machen |
+| `v1.1` | Core-Aufräumung | wartbare Modulstruktur |
+| `v1.2` | Plugin-System | bessere API und mehr Events |
+| `v1.3` | Theme-System | stabilere Themes und Vorschau |
+| `v1.4` | App Shell | Tray, Fenster und Media-Keys |
+| `v1.5` | Audio & Performance | effizientere Wiedergabe |
+| `v1.6` | Sentry & Diagnose | bessere Fehlerberichte |
+| `v2.0` | Erweiterbarer Player | klare Produktbasis mit Community-Potenzial |
 
 ## v1.0.x - Stabilisierung
 
-Ziel: Die aktuelle React-Version sauber stabilisieren und Altlasten reduzieren.
+**Ziel:** Die aktuelle React-Version stabilisieren und Altlasten reduzieren.
 
-Geplant:
+| Bereich | Geplant |
+| --- | --- |
+| Code | Relikte aus der Vor-React-Zeit entfernen |
+| Dependencies | ungenutzte Pakete reduzieren |
+| Audio | Stream-Start, Wechsel und Stop robuster machen |
+| Daten | Favoriten und Verlauf prüfen |
+| Updates | Update-Check stabil halten |
+| Erweiterungen | Plugin- und Theme-Grundsystem funktionsfähig halten |
 
-- alte Relikte aus der Vor-React-Zeit entfernen
-- ungenutzte Dependencies reduzieren
-- Audio-Stabilitaet verbessern
-- Stream-Start, Stream-Wechsel und Stop robuster machen
-- Favoriten und Verlauf weiter pruefen
-- Update-Check stabil halten
-- Plugin- und Theme-Grundsystem funktionsfaehig halten
-- kleinere UI- und Settings-Korrekturen
-
-Moegliche Kandidaten:
+Mögliche Kandidaten:
 
 - `database.js` entfernen
 - alte DOM-basierte Renderer-Services entfernen
 - nicht genutzte Tracking-/Analytics-Pakete entfernen
-- Sentry vorerst parken, aber nicht aufgeben
+- Sentry parken, aber nicht aufgeben
 
-## v1.1 - Core-Aufraeumung
+## v1.1 - Core-Aufräumung
 
-Ziel: Die interne Struktur besser wartbar machen, damit neue Features nicht direkt in `main.js` landen.
+**Ziel:** Die interne Struktur besser wartbar machen, damit neue Features nicht direkt in `main.js` landen.
 
 Geplant:
 
 - Core-Struktur neu ordnen
 - Plugin-System nach `electron/core/plugins/` verschieben
-- Audio-Logik aus `main.js` weiter auslagern
+- Audio-Logik aus `main.js` auslagern
 - Update-Logik nach `electron/core/updates/` verschieben
 - EventBus und Plugin-Events sauberer trennen
 - Window- und Settings-Window-Logik vorbereiten
 
-Moegliche neue Struktur:
+Mögliche Struktur:
 
 ```txt
 electron/core/
@@ -52,39 +61,38 @@ electron/core/
 
 ## v1.2 - Plugin-System Ausbau
 
-Ziel: Plugins sollen leichter wartbar, dokumentierbar und erweiterbar werden.
+**Ziel:** Plugins sollen leichter wartbar, dokumentierbar und erweiterbar werden.
 
-Geplant:
+| Thema | Geplant |
+| --- | --- |
+| API | Plugin-API-Versionen einführen |
+| Events | Events vereinheitlichen |
+| Settings | Plugin-Einstellungen vorbereiten |
+| Runtime | Plugin-Konfiguration vom Laufzeitcode trennen |
+| Renderer | Renderer-Plugins klarer einbinden |
+| Doku | Developer Guide erweitern |
 
-- Plugin-API-Versionen einfuehren
-- Plugin-Events vereinheitlichen
-- neue Events fuer Streamfehler, Favoriten, Verlauf und Senderwechsel
-- Plugin-Einstellungen vorbereiten
-- Plugin-Konfiguration besser vom Runtime-Code trennen
-- Renderer-Plugins sicherer und klarer einbinden
-- Developer Guide fuer Plugins erweitern
-
-Moegliche Funktionen:
+Mögliche Funktionen:
 
 - Plugin-Einstellungen im Settings-Fenster
 - Plugin-Statusanzeige
-- Plugin-Reload ohne App-Neustart verbessern
-- einfachere Beispiel-Plugins
+- besserer Reload ohne App-Neustart
+- einfache Beispiel-Plugins
 
 ## v1.3 - Theme-System Neuordnung
 
-Ziel: Das Theme-System von der Uebergangsloesung zu einem stabileren System machen.
+**Ziel:** Das Theme-System von der Übergangslösung zu einem stabileren System machen.
 
 Geplant:
 
-- Theme-Manager einfuehren
+- Theme-Manager einführen
 - Theme-Metadaten erweitern
 - CSS-Variablen standardisieren
-- Theme-Kompatibilitaet zur App-Version kennzeichnen
+- Theme-Kompatibilität zur App-Version kennzeichnen
 - Theme-Wechsel im Renderer sauberer behandeln
-- Developer Guide fuer Themes erweitern
+- Developer Guide für Themes erweitern
 
-Moegliche Funktionen:
+Mögliche Funktionen:
 
 - Theme-Vorschau
 - Live-Preview
@@ -94,58 +102,57 @@ Moegliche Funktionen:
 
 ## v1.4 - App Shell
 
-Ziel: Desktop-Funktionen zentralisieren und wieder aktivieren.
+**Ziel:** Desktop-Funktionen zentralisieren und wieder aktivieren.
 
-Geplant:
+| Bereich | Geplant |
+| --- | --- |
+| Fenster | WindowManager für MainWindow und SettingsWindow |
+| Tray | Tray-System neu anbinden |
+| Hintergrund | Minimieren und Wiederherstellen sauber behandeln |
+| Steuerung | Media-Keys reaktivieren |
+| Start | Autostart und Start minimiert prüfen |
 
-- WindowManager fuer MainWindow und SettingsWindow
-- Tray-System neu anbinden
-- Hintergrundbetrieb vorbereiten
-- Media-Keys reaktivieren
-- App-Schliessen, Minimieren und Wiederherstellen sauberer behandeln
-- Settings-Fenster robuster verwalten
-
-Moegliche Funktionen:
+Mögliche Funktionen:
 
 - minimieren in den Tray
-- Tray-Menue mit Play, Stop, Einstellungen und Beenden
+- Tray-Menü mit Play, Stop, Einstellungen und Beenden
 - globale Media-Tasten
 - optionaler Autostart
 - optionaler Start minimiert
 
 ## v1.5 - Audio und Performance
 
-Ziel: Die Wiedergabe effizienter und robuster machen.
+**Ziel:** Die Wiedergabe effizienter und robuster machen.
 
 Geplant:
 
 - PCM-IPC-Verkehr reduzieren oder besser puffern
 - AudioWorklet-Buffering verbessern
-- Ringbuffer fuer PCM-Daten pruefen
+- Ringbuffer für PCM-Daten prüfen
 - Visualizer effizienter zeichnen
 - Renderer-Listener mit sauberem Cleanup versehen
-- stabilere Fehlerbehandlung bei toten oder langsamen Streams
+- bessere Fehlerbehandlung bei toten oder langsamen Streams
 
-Moegliche Funktionen:
+Mögliche Funktionen:
 
 - Stream-Fehleranzeige
 - automatische Wiederverbindung
-- sauberer Senderwechsel ohne Haenger
+- sauberer Senderwechsel ohne Hänger
 - optionale Audio-Diagnose im Debug-Modus
 
 ## v1.6 - Sentry und Diagnose
 
-Ziel: Fehlerberichte fuer groessere Testgruppen wieder sauber nutzbar machen.
+**Ziel:** Fehlerberichte für größere Testgruppen wieder sauber nutzbar machen.
 
 Geplant:
 
 - Sentry mit React-Bundle neu anbinden
-- Sourcemaps fuer Renderer-Build erzeugen
-- Sentry-Release-Upload pruefen
-- Fehlerkontext fuer Streams, Plugins und App-Version erfassen
+- Sourcemaps für Renderer-Build erzeugen
+- Sentry-Release-Upload prüfen
+- Fehlerkontext für Streams, Plugins und App-Version erfassen
 - Datenschutz-Hinweise vorbereiten
 
-Moegliche Funktionen:
+Mögliche Funktionen:
 
 - opt-in Fehlerberichte
 - interne Diagnoseanzeige
@@ -153,9 +160,9 @@ Moegliche Funktionen:
 
 ## v2.0 - Erweiterbarer WebRadio-Player
 
-Ziel: WebRadio als klar erweiterbaren Desktop-Radio-Player positionieren.
+**Ziel:** WebRadio als klar erweiterbaren Desktop-Radio-Player positionieren.
 
-Moegliche grosse Funktionen:
+Mögliche große Funktionen:
 
 - stabilere Plugin-API
 - Plugin-Permissions
@@ -165,42 +172,30 @@ Moegliche grosse Funktionen:
 - erweiterte Suche und Filter
 - stabiler Tray- und Media-Key-Support
 - bessere Release- und Update-Erfahrung
-- Wiki fuer Plugin- und Theme-Entwicklung
+- Wiki für Plugin- und Theme-Entwicklung
 
-## Ideen fuer spaetere Versionen
+## Ideen für spätere Versionen
 
 Diese Punkte sind Ideen, aber noch nicht fest geplant:
 
-- Equalizer
-- Aufnahmefunktion
-- Sleep-Timer
-- Wecker
-- Benachrichtigungen bei neuem Song
-- Stream-Health-Anzeige
-- eigene Senderquellen
-- Import und Export von Favoriten
-- Plugin-/Theme-Galerie
-- offizielle Linux-Builds
-- macOS-Builds
+| Idee | Nutzen |
+| --- | --- |
+| Equalizer | mehr Kontrolle über Klang |
+| Aufnahmefunktion | Streams lokal mitschneiden |
+| Sleep-Timer | App automatisch stoppen |
+| Wecker | Sender zeitgesteuert starten |
+| Benachrichtigungen | neuer Song oder Senderstatus |
+| Stream-Health | Qualität und Erreichbarkeit anzeigen |
+| eigene Senderquellen | mehr Flexibilität |
+| Favoriten-Import/-Export | bessere Sicherung |
+| Plugin-/Theme-Galerie | Community-Inhalte leichter nutzen |
+| offizielle Linux-Builds | breitere Plattformunterstützung |
+| macOS-Builds | spätere Plattformoption |
 
-## Prioritaet
+## Prioritäten
 
-Kurzfristig:
-
-- 1.0.4 stabilisieren
-- Altcode entfernen
-- Dependencies reduzieren
-- Audio und Update-Check pruefen
-
-Mittelfristig:
-
-- Core-Struktur umbauen
-- Plugin-System erweitern
-- Theme-System neu ordnen
-
-Langfristig:
-
-- Sentry reaktivieren
-- Desktop-Funktionen ausbauen
-- Wiki/Dokumentation dezentralisieren
-- Community-Plugins und Community-Themes ermoeglichen
+| Zeitraum | Fokus |
+| --- | --- |
+| kurzfristig | `v1.0.4` stabilisieren, Altcode entfernen, Dependencies reduzieren |
+| mittelfristig | Core-Struktur umbauen, Plugin-System erweitern, Theme-System neu ordnen |
+| langfristig | Sentry reaktivieren, Desktop-Funktionen ausbauen, Wiki und Community-Erweiterungen ermöglichen |

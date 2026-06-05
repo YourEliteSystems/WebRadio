@@ -1,8 +1,24 @@
 # WebRadio Developer Guide
 
-Dieser Guide richtet sich an alle, die eigene **Themes** oder **Plugins** fuer WebRadio erstellen moechten. Interne Architektur- und Roadmap-Notizen stehen getrennt in `docs/internal-notes.md`.
+Dieser Guide richtet sich an alle, die eigene **Themes** oder **Plugins** für WebRadio erstellen möchten.
 
-> Stand: WebRadio v1.0.4. Theme- und Plugin-System funktionieren bereits, werden aber in den naechsten Versionen weiter ausgebaut.
+| Bereich | Status |
+| --- | --- |
+| Zielgruppe | Theme- und Plugin-Autoren |
+| App-Version | `v1.0.4` in Entwicklung |
+| API-Status | nutzbar, aber noch im Ausbau |
+| Interne Planung | [docs/internal-notes.md](./docs/internal-notes.md) |
+
+> Die aktuelle Plugin- und Theme-Struktur funktioniert, ist aber noch nicht final. Baue neue Erweiterungen möglichst klein und räume Ressourcen sauber wieder auf.
+
+## Schnellstart
+
+| Du möchtest | Dann nutze |
+| --- | --- |
+| Farben und Layout anpassen | ein Theme in `themes/` |
+| auf Metadaten, Play oder Stop reagieren | ein Main-Plugin in `plugins/` |
+| sichtbare Elemente einfügen | ein Renderer-Plugin |
+| beides kombinieren | `plugin.js` plus `renderer.js` |
 
 ## Themes
 
@@ -25,16 +41,16 @@ themes/mein-theme/
 }
 ```
 
-| Feld | Bedeutung |
-| --- | --- |
-| `name` | Anzeigename in den Einstellungen |
-| `author` | Autor des Themes |
-| `version` | Theme-Version |
-| `css` | CSS-Datei relativ zum Theme-Ordner |
+| Feld | Pflicht | Bedeutung |
+| --- | --- | --- |
+| `name` | ja | Anzeigename in den Einstellungen |
+| `author` | empfohlen | Autor des Themes |
+| `version` | empfohlen | Version des Themes |
+| `css` | ja | CSS-Datei relativ zum Theme-Ordner |
 
 ### style.css
 
-Themes ueberschreiben aktuell vor allem CSS-Variablen aus `renderer/styles/core.css`.
+Themes überschreiben aktuell vor allem CSS-Variablen aus `renderer/styles/core.css`.
 
 ```css
 :root {
@@ -53,20 +69,22 @@ Themes ueberschreiben aktuell vor allem CSS-Variablen aus `renderer/styles/core.
 }
 ```
 
-Hinweise:
+### Theme-Regeln
 
-- Nutze bevorzugt CSS-Variablen statt harte Selektor-Ueberschreibungen.
-- Halte Theme-CSS klein, damit es mit zukuenftigen React-Komponenten kompatibel bleibt.
-- Das Theme-System ist aktuell noch ein Uebergangssystem und kann sich in spaeteren Versionen aendern.
+- Nutze bevorzugt CSS-Variablen.
+- Vermeide tiefe Selektor-Überschreibungen, solange das React-Layout noch im Umbau ist.
+- Halte Theme-CSS klein und gut lesbar.
+- Prüfe helle und dunkle Kontraste.
+- Plane ein, dass Theme-Metadaten in späteren Versionen erweitert werden.
 
 ### Theme testen
 
-1. Theme-Ordner unter `themes/` anlegen.
+1. Ordner unter `themes/` anlegen.
 2. `theme.json` und `style.css` erstellen.
 3. App starten.
-4. Einstellungen oeffnen.
+4. Einstellungen öffnen.
 5. Im Bereich **Themes** auf **Neu laden** klicken.
-6. Theme auswaehlen.
+6. Theme auswählen.
 
 ## Plugins
 
@@ -79,7 +97,7 @@ plugins/mein-plugin/
   renderer.js
 ```
 
-`plugin.js` laeuft im Main-Prozess. `renderer.js` ist optional und laeuft im Renderer.
+`plugin.js` läuft im Main-Prozess. `renderer.js` ist optional und läuft im Renderer.
 
 ### plugin.json
 
@@ -95,21 +113,21 @@ plugins/mein-plugin/
 }
 ```
 
-| Feld | Bedeutung |
-| --- | --- |
-| `name` | Anzeigename in den Einstellungen |
-| `id` | eindeutige Plugin-ID |
-| `version` | Plugin-Version |
-| `main` | optionales Main-Prozess-Skript |
-| `renderer` | optionales Renderer-Skript |
-| `author` | Autor des Plugins |
-| `description` | kurze Beschreibung |
+| Feld | Pflicht | Bedeutung |
+| --- | --- | --- |
+| `name` | ja | Anzeigename in den Einstellungen |
+| `id` | ja | eindeutige Plugin-ID |
+| `version` | empfohlen | Plugin-Version |
+| `main` | optional | Main-Prozess-Skript |
+| `renderer` | optional | Renderer-Skript |
+| `author` | empfohlen | Autor des Plugins |
+| `description` | empfohlen | kurze Beschreibung |
 
-Die `id` sollte stabil bleiben, weil sie fuer Aktivierung, Deaktivierung und Renderer-Registrierung genutzt wird.
+Die `id` sollte stabil bleiben. Sie wird für Aktivierung, Deaktivierung und Renderer-Registrierung genutzt.
 
 ## Main-Plugin
 
-Beispiel fuer `plugin.js`:
+Beispiel für `plugin.js`:
 
 ```javascript
 module.exports = {
@@ -135,7 +153,7 @@ module.exports = {
 };
 ```
 
-Aktuell vorbereitet sind diese Hook-Namen:
+### Vorbereitete Hooks
 
 | Hook | Zweck |
 | --- | --- |
@@ -145,14 +163,14 @@ Aktuell vorbereitet sind diese Hook-Namen:
 | `onStationChange(station)` | Senderwechsel |
 | `onPlay(data)` | Wiedergabe gestartet |
 | `onStop()` | Wiedergabe gestoppt |
-| `onVolumeChange(value)` | Lautstaerke geaendert |
+| `onVolumeChange(value)` | Lautstärke geändert |
 | `onThemeChange(theme)` | Theme gewechselt |
 
-Einige Events werden im aktuellen Core noch vereinheitlicht. Fuer neue Plugins sollten `init()` und `destroy()` immer sauber implementiert werden; weitere Events koennen sich waehrend des Core-Umbaus noch aendern.
+Einige Events werden im aktuellen Core noch vereinheitlicht. `init()` und `destroy()` sollten deshalb immer sauber funktionieren, auch wenn andere Events später angepasst werden.
 
 ## Renderer-Plugin
 
-Renderer-Plugins registrieren sich ueber `window.registerPluginRenderer`.
+Renderer-Plugins registrieren sich über `window.registerPluginRenderer`.
 
 ```javascript
 let element = null;
@@ -176,11 +194,13 @@ window.registerPluginRenderer("meinPlugin", {
 });
 ```
 
-Wichtig:
+### Renderer-Regeln
 
-- Raeume in `destroy()` alle DOM-Elemente, Timer und Listener wieder auf.
-- Nutze fuer sichtbare Elemente bevorzugt den Bereich `#plugin-area`.
-- Halte Renderer-Plugins klein, weil die Plugin-UI spaeter noch staerker in React integriert werden kann.
+- Räume in `destroy()` alle DOM-Elemente, Timer und Listener wieder auf.
+- Nutze sichtbare Elemente bevorzugt im Bereich `#plugin-area`.
+- Halte Renderer-Plugins klein.
+- Vermeide ungeprüfte globale Änderungen am DOM.
+- Rechne damit, dass die Plugin-UI später stärker in React integriert wird.
 
 ## Plugin testen
 
@@ -188,35 +208,35 @@ Wichtig:
 2. `plugin.json` erstellen.
 3. Optional `plugin.js` und/oder `renderer.js` erstellen.
 4. App starten.
-5. Einstellungen oeffnen.
+5. Einstellungen öffnen.
 6. Im Bereich **Plugins** auf **Neu laden** klicken.
 7. Plugin aktivieren oder deaktivieren.
 
-## Sicherheit und Stabilitaet
+## Stabilität und Sicherheit
 
-Plugins laufen aktuell mit viel Vertrauen in der App. Deshalb:
-
-- Keine unnoetigen Netzwerkzugriffe einbauen.
-- Keine sensiblen Daten speichern.
-- Fehler in Plugin-Code immer selbst abfangen.
-- Ressourcen bei Deaktivierung freigeben.
-- Keine grossen UI-Elemente unkontrolliert in den Renderer einhaengen.
+| Empfehlung | Grund |
+| --- | --- |
+| Fehler selbst abfangen | Plugins sollen die App nicht mitreißen |
+| Ressourcen freigeben | wichtig bei Aktivieren und Deaktivieren |
+| keine sensiblen Daten speichern | Plugin-System ist noch nicht sandboxed |
+| Netzwerkzugriffe sparsam nutzen | Vertrauen und Performance schützen |
+| keine großen DOM-Eingriffe | React-Integration bleibt wartbarer |
 
 ## Externe Dienste
 
-Integrationen wie Spotify oder YouTube Music brauchen eigene APIs oder SDKs.
+| Dienst | Einschätzung |
+| --- | --- |
+| Webradio | Standardweg über Radio Browser API und Stream-URL |
+| Spotify | DRM-geschützt, nicht direkt per FFmpeg abspielbar |
+| YouTube Music | technisch möglich, aber mit zusätzlicher Auflösung und rechtlicher Prüfung |
 
-- Spotify-Streams sind DRM-geschuetzt und koennen nicht einfach per FFmpeg abgespielt werden.
-- YouTube-Integrationen sind technisch moeglich, brauchen aber eigene Aufloesung und rechtliche Pruefung.
-- Fuer Webradio bleibt die Radio Browser API der aktuelle Standardweg.
+## Zukünftige Erweiterungen
 
-## Zukunft
+Geplant oder angedacht:
 
-Geplant sind unter anderem:
-
-- API-Versionen fuer Plugins
-- stabilere und besser dokumentierte Events
+- API-Versionen für Plugins
+- stabilere Event-Namen
 - Plugin-Einstellungen
 - Plugin-Permissions
-- ueberarbeitetes Theme-System
-- spaetere Wiki-Struktur fuer groessere Dokumentation
+- Theme-Metadaten mit Kompatibilitätsangaben
+- spätere Wiki-Struktur für größere Dokumentation

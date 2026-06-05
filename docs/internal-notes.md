@@ -1,32 +1,54 @@
 # Internal Notes
 
-Diese Datei ist fuer interne Planung gedacht. Der `DEVELOPER_GUIDE.md` bleibt vorerst die schlanke Anleitung fuer Theme- und Plugin-Autoren.
+Interne technische Notizen für WebRadio. Diese Datei sammelt Entscheidungen, Aufräumarbeiten und Architekturideen. Die öffentliche Anleitung für Theme- und Plugin-Autoren bleibt im `DEVELOPER_GUIDE.md`.
 
-## Stand 1.0.4
+| Bereich | Status |
+| --- | --- |
+| Aktuelle Version | `v1.0.4` in Entwicklung |
+| Hauptfokus | Stabilisierung nach React-Umstieg |
+| Doku-Rolle | interne Planung |
+| Roadmap | [docs/roadmap.md](./roadmap.md) |
 
-- React ist frisch integriert und ersetzt nach und nach alte DOM-basierte Renderer-Logik.
-- Plugin-System und Theme-System existieren, sind aber bewusst noch nicht final ausgebaut.
-- Der aktuelle Fokus liegt auf Stabilitaet, Audio-Zuverlaessigkeit, kleinerem Codeumfang und besser wartbarer Core-Struktur.
-- Sentry soll perspektivisch erhalten bleiben, ist durch den React-Umstieg aber vorerst nicht sauber angebunden.
+## Leitlinie
 
-## Aufraeumen
+WebRadio soll schrittweise kleiner, stabiler und leichter erweiterbar werden. Neue Features sollen nicht mehr direkt in `electron/main.js` wachsen, sondern in klar abgegrenzte Core-Module wandern.
 
-Klare Altlasten oder starke Weg-Kandidaten:
+## Aktueller Stand
 
-- `electron/core/database.js`: Relikt aus der Zeit vor React, importiert ausserdem `better-sqlite3`, das nicht als Dependency eingetragen ist.
-- `renderer/audio/audioPlayer.js`: alte Audio-Logik ueber `new Audio()`.
-- `renderer/services/radioService.js`: alte DOM-basierte Senderliste.
-- `renderer/models/stations.js`: leer.
-- `renderer/style.css`: alte CSS-Datei; aktuell wird `renderer/styles/core.css` genutzt.
+| Thema | Einschätzung |
+| --- | --- |
+| React | frisch integriert |
+| Theme-System | vorhanden, aber Übergangslösung |
+| Plugin-System | vorhanden, aber API noch im Ausbau |
+| Audio | funktional, Performance muss beobachtet werden |
+| Sentry | geplant, nach React-Umstieg noch nicht sauber angebunden |
+| Core-Struktur | soll neu geordnet werden |
 
-Nur nach Entscheidung entfernen:
+## Aufräumen
 
-- `renderer/ui/componentRegistry.js`: eventuell spaeter fuer Plugin-UI interessant.
-- `electron/plugins/pluginAPI.js`: pruefen, ob es in die neue Core-Plugin-Struktur uebernommen wird.
+### Klare Weg-Kandidaten
+
+| Datei | Grund |
+| --- | --- |
+| `electron/core/database.js` | Relikt vor React, importiert nicht eingetragenes `better-sqlite3` |
+| `renderer/audio/audioPlayer.js` | alte Audio-Logik über `new Audio()` |
+| `renderer/services/radioService.js` | alte DOM-basierte Senderliste |
+| `renderer/models/stations.js` | leer |
+| `renderer/style.css` | alte CSS-Datei, aktuell wird `renderer/styles/core.css` genutzt |
+
+### Erst prüfen
+
+| Datei | Frage |
+| --- | --- |
+| `renderer/ui/componentRegistry.js` | später für Plugin-UI relevant? |
+| `electron/plugins/pluginAPI.js` | in neue Core-Plugin-Struktur übernehmen? |
+| `electron/core/depackUserdata.js` | für User-Plugins/User-Themes reaktivieren? |
 
 ## Dependencies
 
-Kann voraussichtlich entfernt werden, wenn kein Tracking/Telemetry geplant ist:
+### Entfernen prüfen
+
+Diese Pakete wirken aktuell nicht notwendig, wenn kein Tracking oder Telemetry geplant ist:
 
 - `@amplitude/analytics-node`
 - `@amplitude/unified`
@@ -35,16 +57,16 @@ Kann voraussichtlich entfernt werden, wenn kein Tracking/Telemetry geplant ist:
 - `mixpanel-browser`
 - `posthog-node`
 
-Sentry getrennt behandeln:
+### Behalten oder parken
 
-- `@sentry/electron` behalten, wenn Sentry spaeter wieder aktiv eingebunden wird.
-- `@sentry/cli` behalten, wenn Sourcemap-Upload fuer Releases weiter geplant ist.
+| Paket | Entscheidung |
+| --- | --- |
+| `@sentry/electron` | behalten, wenn Sentry später wieder aktiv genutzt wird |
+| `@sentry/cli` | behalten, wenn Sourcemap-Uploads geplant bleiben |
 
-## Core-Struktur
+## Geplante Core-Struktur
 
-Ziel: `electron/main.js` soll langfristig kleiner werden und hauptsaechlich Initialisierung und Registrierung koordinieren.
-
-Moegliche Struktur:
+Ziel: `electron/main.js` soll vor allem starten, registrieren und koordinieren.
 
 ```txt
 electron/core/
@@ -58,12 +80,8 @@ electron/core/
     ffmpegResolver.js
     streamController.js
 
-  storage/
-    storage.js
-    settingsStore.js
-
-  updates/
-    updater.js
+  events/
+    eventBus.js
 
   plugins/
     pluginManager.js
@@ -72,70 +90,84 @@ electron/core/
     pluginRegistry.js
     pluginConfig.js
 
+  storage/
+    storage.js
+    settingsStore.js
+
   themes/
     themeManager.js
 
-  events/
-    eventBus.js
+  updates/
+    updater.js
 ```
 
 ## Geparkte Core-Bausteine
 
-Diese Module wirken aktuell nicht voll angebunden, koennen aber spaeter bewusst reaktiviert oder umgebaut werden:
-
-- `electron/core/tray.js`: spaeter Tray-Menue, Hintergrundbetrieb und Show/Hide.
-- `electron/core/windowManager.js`: spaeter MainWindow, SettingsWindow und Fensterzustaende zentralisieren.
-- `electron/core/mediaKeys.js`: globale Mediensteuerung.
-- `electron/core/session.js`: spaeter nutzbar fuer Sentry-Kontext oder Diagnose.
-- `electron/core/depackUserdata.js`: spaeter fuer User-Plugins und User-Themes pruefen.
+| Modul | Geplante Rolle |
+| --- | --- |
+| `electron/core/tray.js` | Tray-Menü, Hintergrundbetrieb, Show/Hide |
+| `electron/core/windowManager.js` | MainWindow, SettingsWindow, Fensterzustände |
+| `electron/core/mediaKeys.js` | globale Mediensteuerung |
+| `electron/core/session.js` | Sentry-Kontext oder Diagnose |
+| `electron/core/depackUserdata.js` | User-Plugins und User-Themes |
 
 ## Plugin-System
 
-Naechste sinnvolle Schritte:
+Nächste technische Schritte:
 
-- Plugin-Code aus `electron/plugins/` nach `electron/core/plugins/` verschieben.
-- Plugin-API versionieren, z. B. `apiVersion` in `plugin.json`.
-- Plugin-Konfiguration getrennt von Plugin-Laufzeitlogik halten.
-- Events sauber dokumentieren: Play, Stop, Metadata, StationChange, ThemeChange, FavoritesChange, StreamError.
-- Langfristig Plugin-Permissions einfuehren.
-- Plugin-Einstellungen pro Plugin vorbereiten.
+1. Plugin-Code nach `electron/core/plugins/` verschieben.
+2. Plugin-API versionieren, z. B. über `apiVersion` in `plugin.json`.
+3. Plugin-Konfiguration von Runtime-Logik trennen.
+4. Events sauber dokumentieren.
+5. Plugin-Einstellungen vorbereiten.
+6. Langfristig Permissions einführen.
+
+Wichtige Event-Kandidaten:
+
+- `Play`
+- `Stop`
+- `Metadata`
+- `StationChange`
+- `ThemeChange`
+- `FavoritesChange`
+- `StreamError`
 
 ## Theme-System
 
-Aktuell ist das Theme-System ein Uebergangssystem nach dem React-Umstieg.
+Aktuell ist das Theme-System ein Übergangssystem nach dem React-Umstieg.
 
-Naechste sinnvolle Schritte:
+Nächste technische Schritte:
 
-- Theme-Manager in `electron/core/themes/` vorbereiten.
-- Theme-Metadaten erweitern: Autor, Version, Beschreibung, kompatible App-Version.
-- CSS-Variablen als stabilen Standardweg nutzen.
-- Optionales Custom-CSS spaeter kontrolliert erlauben.
-- Live-Preview und Theme-Vorschau erst nach stabiler Core-Struktur angehen.
+1. Theme-Manager vorbereiten.
+2. Theme-Metadaten erweitern.
+3. CSS-Variablen als stabilen Standardweg definieren.
+4. Optionales Custom-CSS später kontrolliert erlauben.
+5. Live-Preview erst nach stabiler Core-Struktur angehen.
 
 ## Performance-Punkte
 
-Wichtige Baustellen:
-
-- PCM-Audio wird aktuell sehr haeufig ueber IPC geschickt.
-- `pcm-processor.js` kopiert Buffer bei jedem eingehenden Chunk neu.
-- Visualizer erzeugt pro Frame und Balken neue Gradients.
-- Einige Renderer-Listener brauchen Cleanup, damit sie sich nicht mehrfach registrieren.
-- React-Keys in der Senderliste sollten stabil sein und nicht auf `Math.random()` fallen.
+| Bereich | Risiko |
+| --- | --- |
+| PCM über IPC | viele Nachrichten und mögliche Kopien |
+| AudioWorklet | Buffer werden aktuell häufig neu kopiert |
+| Visualizer | Canvas-Arbeit pro Frame kann reduziert werden |
+| Renderer-Listener | Cleanup nötig, damit sich Listener nicht sammeln |
+| React-Keys | keine zufälligen Fallback-Keys verwenden |
 
 ## Release-Fokus
 
-Fuer 1.0.4:
+### v1.0.4
 
-- Alte Relikte entfernen.
-- Unbenutzte Dependencies reduzieren.
-- Audio-Stabilitaet pruefen.
-- Update-Check testen.
-- Plugin- und Theme-System funktionsfaehig halten, aber noch nicht finalisieren.
+- alte Relikte entfernen
+- unbenutzte Dependencies reduzieren
+- Audio-Stabilität prüfen
+- Update-Check testen
+- Plugin- und Theme-Grundsystem funktional halten
 
-Fuer spaetere Versionen:
+### Spätere Versionen
 
-- Core-Struktur umbauen.
-- Plugin-System erweitern.
-- Theme-System neu ordnen.
-- Sentry sauber mit React-Bundle und Sourcemaps reaktivieren.
-- Wiki/Doku dezentral aufbauen, sobald die Developer-Doku zu gross wird.
+- Core-Struktur umbauen
+- Plugin-System erweitern
+- Theme-System neu ordnen
+- Sentry sauber mit React-Bundle und Sourcemaps reaktivieren
+- Wiki/Doku dezentral aufbauen

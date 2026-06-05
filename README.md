@@ -1,45 +1,62 @@
 # WebRadio
 
-WebRadio ist eine Desktop-App fuer Webradio, gebaut mit **Electron**, **React** und **FFmpeg**. Die App durchsucht Radiosender ueber die Radio Browser API, spielt Streams ueber die Web Audio API ab und bringt ein erstes Theme- und Plugin-System mit.
+Ein moderner Desktop-Player für Webradio, gebaut mit **Electron**, **React** und **FFmpeg**. WebRadio verbindet klassische Radiosender mit einem anpassbaren Theme- und Plugin-System.
 
-Aktuelle Entwicklungsversion: **v1.0.4**
+| Bereich | Stand |
+| --- | --- |
+| Version | `v1.0.4` in Entwicklung |
+| Fokus | Stabilisierung nach dem React-Umstieg |
+| Plattform | Windows im Fokus, erster Wine-Test erfolgreich |
+| Erweiterbarkeit | Plugins und Themes vorhanden, Ausbau geplant |
 
-> WebRadio befindet sich noch im aktiven Umbau. React ist frisch integriert, einige alte Module werden noch entfernt oder spaeter neu angebunden.
+> WebRadio ist aktuell in einer Übergangsphase: React ist frisch integriert, alte Module werden entfernt und die Core-Struktur wird für kommende Versionen vorbereitet.
 
-## Features
+## Überblick
 
-- **Sendersuche** ueber die Radio Browser API
-- **FFmpeg-basiertes Streaming** mit PCM-Ausgabe an die Web Audio API
-- **Lautstaerkeregelung** mit Speicherung im Renderer
-- **Favoriten und Verlauf** ueber lokale JSON-Persistenz
-- **Theme-System** mit `theme.json` und CSS-Dateien
-- **Plugin-System** mit Main- und optionalen Renderer-Plugins
-- **Discord Rich Presence Plugin** als Beispiel fuer ein integriertes Plugin
-- **Einstellungsfenster** fuer Plugins, Themes und Updates
-- **Update-Check** ueber `latest.json` und externen Download-Link
-- **Custom Titlebar** mit eigenen Fensterbuttons
+WebRadio soll ein schlanker, erweiterbarer Desktop-Radio-Player werden. Der aktuelle Stand bringt bereits Wiedergabe, Sendersuche, Favoriten, Verlauf, Themes, Plugins und ein Update-Fenster mit.
 
-## Geplant oder im Umbau
+Die nächsten Versionen konzentrieren sich auf Stabilität, bessere Wartbarkeit und den Ausbau der Plugin- und Theme-Systeme.
 
-Diese Funktionen sind im Code teilweise vorbereitet, aber noch nicht final angebunden:
+## Aktuelle Features
 
-- System Tray und Hintergrundbetrieb
-- globale Media-Keys
-- neue Core-Struktur fuer Fenster, Tray, Audio, Plugins und Themes
-- erweiterte Plugin-API mit Versionierung, Events, Permissions und Plugin-Einstellungen
-- ueberarbeitetes Theme-System mit stabileren Metadaten und besserer Vorschau
-- Sentry-Integration mit React-Bundle und Sourcemaps
+| Feature | Beschreibung |
+| --- | --- |
+| Sendersuche | Suche über die Radio Browser API |
+| Streaming | FFmpeg dekodiert Streams und gibt PCM-Daten an die Web Audio API weiter |
+| Player | Lautstärke, Play, Stop und aktueller Sender |
+| Favoriten | Sender lokal speichern und wieder laden |
+| Verlauf | zuletzt gespielte Sender lokal speichern |
+| Themes | Themes über `theme.json` und CSS-Dateien |
+| Plugins | Main-Plugins und optionale Renderer-Plugins |
+| Discord RPC | Beispiel-Plugin für Discord Rich Presence |
+| Einstellungen | Plugins, Themes und Updates in einem eigenen Fenster |
+| Update-Check | Prüfung über `latest.json` mit externem Download-Link |
+| Custom Titlebar | rahmenloses Fenster mit eigenen Fensterbuttons |
+
+## Im Umbau
+
+Diese Funktionen sind vorbereitet oder geplant, aber noch nicht final:
+
+| Bereich | Ziel |
+| --- | --- |
+| Core-Struktur | `main.js` entlasten und Logik in klare Module verschieben |
+| Tray | Hintergrundbetrieb und Tray-Menü sauber anbinden |
+| Media-Keys | globale Mediensteuerung reaktivieren |
+| Plugin-System | API-Versionen, Events, Settings und Permissions |
+| Theme-System | stabilere Metadaten, Vorschau und bessere React-Integration |
+| Audio | effizienteres Buffering und weniger IPC-Last |
+| Sentry | nach dem React-Umstieg sauber neu anbinden |
 
 ## Tech Stack
 
 | Bereich | Technologie |
 | --- | --- |
-| App-Framework | Electron |
+| App | Electron |
 | UI | React |
-| Build | esbuild + Electron Forge |
+| Build | esbuild, Electron Forge |
 | Audio | fluent-ffmpeg, ffmpeg-static, Web Audio API |
-| Plugins | Node.js im Main-Prozess, optionales Renderer-Skript |
-| Paketierung | Electron Forge Maker fuer Windows und Linux |
+| Erweiterungen | Node.js-Plugins und Renderer-Plugins |
+| Paketierung | Electron Forge Maker |
 
 ## Quickstart
 
@@ -61,48 +78,37 @@ npm start
 
 ## Skripte
 
-| Befehl | Beschreibung |
+| Befehl | Zweck |
 | --- | --- |
-| `npm start` | React bauen und App im Entwicklungsmodus starten |
-| `npm run build-react` | Renderer mit esbuild nach `renderer/dist/renderer.js` bauen |
+| `npm start` | React bauen und Electron im Entwicklungsmodus starten |
+| `npm run build-react` | Renderer nach `renderer/dist/renderer.js` bauen |
 | `npm run package` | App paketieren |
-| `npm run make` | Installer bzw. Distributionspakete erstellen |
-| `npm run publish` | Release ueber Electron Forge veroeffentlichen |
-| `npm run sentry:sourcemaps` | Sentry-Sourcemaps vorbereiten und hochladen, aktuell noch im Umbau |
+| `npm run make` | Installer oder Distributionspakete erstellen |
+| `npm run publish` | Veröffentlichung über Electron Forge vorbereiten |
+| `npm run sentry:sourcemaps` | Sentry-Sourcemaps, aktuell noch im Umbau |
 
 ## Projektstruktur
 
 ```txt
 WebRadio/
   electron/
-    main.js                  # Electron-Hauptprozess, IPC, Fenster, Streaming
-    preload.js               # sichere Bridge zwischen Renderer und Main-Prozess
-    core/
-      eventBus.js            # interner Event-Bus
-      ffmpeg-resolver.js     # FFmpeg-Pfad fuer Dev und Build
-      storage.js             # Favoriten, Verlauf und Settings
-      updater.js             # Update-Check und Download-Link
-      mediaKeys.js           # vorbereitet fuer globale Mediensteuerung
-      tray.js                # vorbereitet fuer Tray und Hintergrundbetrieb
-    plugins/
-      pluginManager.js       # Plugin-Erkennung, Aktivierung und Deaktivierung
-      pluginAPI.js           # aeltere Plugin-API, wird geprueft
+    main.js                  # Hauptprozess, IPC, Fenster, Streaming
+    preload.js               # sichere Bridge zwischen Main und Renderer
+    core/                    # Core-Bausteine und geplante Struktur
+    plugins/                 # aktueller Plugin-Manager
 
   renderer/
-    index.html               # Hauptfenster
-    settings.html            # Einstellungsfenster
+    App.jsx                  # React-Root
     renderer.jsx             # React-Einstieg
-    App.jsx                  # Root-Komponente
     components/              # Player, Sidebar, Senderliste
-    services/playerService.js# AudioContext, Worklet und Stream-Steuerung
-    worklets/pcm-processor.js# PCM-Ausgabe im AudioWorklet
-    pluginLoader.js          # Renderer-Plugins laden
-    styles/core.css          # Basis-Design
+    services/                # Player- und Audio-Logik
+    worklets/                # AudioWorklet für PCM-Ausgabe
+    styles/                  # Basisdesign
 
   plugins/
-    discordRPC/              # Discord Rich Presence Plugin
-    logger/                  # einfaches Debug-Plugin
-    plugins.json             # Plugin-Aktivierungsstatus
+    discordRPC/              # Discord Rich Presence
+    logger/                  # Debug-Plugin
+    plugins.json             # Aktivierungsstatus
 
   themes/
     default/
@@ -110,89 +116,36 @@ WebRadio/
     neon/
 
   docs/
-    internal-notes.md        # interne Planung und Aufraeum-Notizen
+    internal-notes.md        # interne technische Notizen
+    roadmap.md               # grobe Entwicklungsplanung
 
-  DEVELOPER_GUIDE.md         # Anleitung fuer Theme- und Plugin-Autoren
-  forge.config.js            # Electron Forge Konfiguration
+  DEVELOPER_GUIDE.md         # Anleitung für Plugins und Themes
 ```
 
-## Plugin-System
+## Dokumentation
 
-Plugins liegen im Ordner `plugins/`. Ein Plugin kann aus einem Main-Skript und optional aus einem Renderer-Skript bestehen.
+| Datei | Inhalt |
+| --- | --- |
+| [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) | Themes und Plugins erstellen |
+| [docs/roadmap.md](./docs/roadmap.md) | Meilensteine und geplante Funktionen |
+| [docs/internal-notes.md](./docs/internal-notes.md) | interne technische Planung |
 
-```txt
-plugins/mein-plugin/
-  plugin.json
-  plugin.js
-  renderer.js
-```
+## Erweiterbarkeit
 
-Beispiel fuer `plugin.json`:
+WebRadio ist nicht nur als Radio-Player gedacht, sondern als erweiterbare App:
 
-```json
-{
-  "name": "Mein Plugin",
-  "id": "meinPlugin",
-  "version": "1.0.0",
-  "main": "plugin.js",
-  "renderer": "renderer.js",
-  "author": "Dein Name",
-  "description": "Kurze Beschreibung"
-}
-```
+- Themes verändern das Aussehen der App.
+- Plugins können auf Events reagieren und eigene Renderer-Elemente einhängen.
+- Die Plugin-API wird in kommenden Versionen schrittweise stabilisiert.
 
-Plugins koennen in den Einstellungen aktiviert und deaktiviert werden. Die API ist noch im Ausbau; Details stehen im [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md).
+## Aktueller Teststand
 
-## Theme-System
-
-Themes liegen im Ordner `themes/` und bestehen aus einer `theme.json` plus CSS-Datei.
-
-```txt
-themes/mein-theme/
-  theme.json
-  style.css
-```
-
-Beispiel:
-
-```json
-{
-  "name": "Mein Theme",
-  "author": "Dein Name",
-  "version": "1.0.0",
-  "css": "style.css"
-}
-```
-
-Das Theme-System ist aktuell ein Uebergangssystem nach dem React-Umstieg. Es funktioniert, wird aber in spaeteren Versionen neu geordnet.
-
-## Enthaltene Plugins
-
-### Discord Rich Presence
-
-Zeigt Radio-Informationen in Discord an, sobald das Plugin aktiv ist und die passenden Events vom Core ausgeliefert werden.
-
-### Logger
-
-Ein kleines Debug-Plugin fuer Konsolenausgaben.
-
-## Build und Release
-
-```bash
-npm run build-react
-npm run package
-npm run make
-```
-
-Die Forge-Konfiguration packt `themes/` und `plugins/` als Extra-Ressourcen mit ein. Releases werden ueber GitHub bzw. Electron Forge vorbereitet.
-
-## Hinweise zur aktuellen Version
-
-- Die App wird aktuell vor allem unter Windows getestet.
-- Ein Test unter Arch Linux mit Wine 11 war erfolgreich, ist aber noch kein offizieller Linux-Support.
-- Einige alte Dateien aus der Zeit vor React werden noch entfernt.
-- Interne Umbauplaene stehen in [docs/internal-notes.md](./docs/internal-notes.md).
-- Die grobe Entwicklungsplanung steht in [docs/roadmap.md](./docs/roadmap.md).
+| Umgebung | Status |
+| --- | --- |
+| Windows | Haupt-Testplattform |
+| Arch Linux mit Wine 11 | erster erfolgreicher Test |
+| Linux nativ | geplant, noch nicht offiziell |
+| macOS | Idee für spätere Versionen |
 
 ## Lizenz
 
