@@ -1,0 +1,8 @@
+{
+  "version": "1.0.4",
+  "releaseNotes": "- Bugfixes\n- Neue Theme-Engine",
+  "windows": {
+    "url": "https://euer-server.de/updates/WebRadio-1.0.4-Setup.exe",
+    "sha256": "26738dfce6a041044246325d28dc25ed0876a32d4e09f35002720e961a3c3d94"
+  }
+}

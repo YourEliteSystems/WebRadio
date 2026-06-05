@@ -1,204 +1,199 @@
-# 🎵 WebRadio
+# WebRadio
 
-Eine plattformübergreifende Webradio-Desktop-App, gebaut mit **Electron**, **React** und **FFmpeg**. Durchsuche tausende Radiosender weltweit, verwalte Favoriten und passe die App mit eigenen Themes und Plugins an.
+WebRadio ist eine Desktop-App fuer Webradio, gebaut mit **Electron**, **React** und **FFmpeg**. Die App durchsucht Radiosender ueber die Radio Browser API, spielt Streams ueber die Web Audio API ab und bringt ein erstes Theme- und Plugin-System mit.
 
-> Aktuelle Version: **v1.0.3** · Entwickelt von **YourEliteSystems**
+Aktuelle Entwicklungsversion: **v1.0.4**
 
----
+> WebRadio befindet sich noch im aktiven Umbau. React ist frisch integriert, einige alte Module werden noch entfernt oder spaeter neu angebunden.
 
-## ✨ Features
+## Features
 
-- 🔍 **Sendersuche** – Live-Suche via [Radio Browser API](https://www.radio-browser.info/) mit tausenden Sendern weltweit
-- ▶️ **PCM-Streaming** – FFmpeg dekodiert den Stream direkt als Float32 PCM und gibt ihn über die Web Audio API aus
-- 🎚️ **Lautstärkeregelung** – persistente Lautstärke (gespeichert in `localStorage`)
-- ⭐ **Favoriten & Verlauf** – Sender als Favorit speichern und Wiedergabeverlauf nachverfolgen
-- 🎨 **Theme-System** – drei eingebaute Themes (Default, Dark, Neon) + eigene Themes per CSS-Variablen
-- 🔌 **Plugin-System** – erweiterbar mit Backend- und Frontend-Plugins (inkl. Lifecycle-Hooks)
-- 🎮 **Discord Rich Presence** – zeigt den aktuell spielenden Radiosender in Discord an
-- 🖥️ **System Tray** – App läuft im Hintergrund, steuerbar über das Tray-Icon
-- ⌨️ **Media-Key-Support** – Play/Pause, Stop und Next über Multimedia-Tasten der Tastatur
-- 🪟 **Custom Titlebar** – rahmenloses Fenster mit eigenen Fenstersteuerungsbuttons
+- **Sendersuche** ueber die Radio Browser API
+- **FFmpeg-basiertes Streaming** mit PCM-Ausgabe an die Web Audio API
+- **Lautstaerkeregelung** mit Speicherung im Renderer
+- **Favoriten und Verlauf** ueber lokale JSON-Persistenz
+- **Theme-System** mit `theme.json` und CSS-Dateien
+- **Plugin-System** mit Main- und optionalen Renderer-Plugins
+- **Discord Rich Presence Plugin** als Beispiel fuer ein integriertes Plugin
+- **Einstellungsfenster** fuer Plugins, Themes und Updates
+- **Update-Check** ueber `latest.json` und externen Download-Link
+- **Custom Titlebar** mit eigenen Fensterbuttons
 
----
+## Geplant oder im Umbau
 
-## 🛠️ Tech Stack
+Diese Funktionen sind im Code teilweise vorbereitet, aber noch nicht final angebunden:
+
+- System Tray und Hintergrundbetrieb
+- globale Media-Keys
+- neue Core-Struktur fuer Fenster, Tray, Audio, Plugins und Themes
+- erweiterte Plugin-API mit Versionierung, Events, Permissions und Plugin-Einstellungen
+- ueberarbeitetes Theme-System mit stabileren Metadaten und besserer Vorschau
+- Sentry-Integration mit React-Bundle und Sourcemaps
+
+## Tech Stack
 
 | Bereich | Technologie |
-|---|---|
-| App-Framework | [Electron](https://www.electronjs.org/) v40 |
-| UI | [React](https://react.dev/) v19 |
-| Build | [esbuild](https://esbuild.github.io/) + [Electron Forge](https://www.electronforge.io/) |
-| Audio | [fluent-ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) + [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) + Web Audio API |
-| Discord | [discord-rpc](https://github.com/discordjs/discord-rpc) |
-| Paketierung | Squirrel (Windows), Deb/RPM (Linux) |
+| --- | --- |
+| App-Framework | Electron |
+| UI | React |
+| Build | esbuild + Electron Forge |
+| Audio | fluent-ffmpeg, ffmpeg-static, Web Audio API |
+| Plugins | Node.js im Main-Prozess, optionales Renderer-Skript |
+| Paketierung | Electron Forge Maker fuer Windows und Linux |
 
----
-
-## 🚀 Quickstart
+## Quickstart
 
 ### Voraussetzungen
 
-- [Node.js](https://nodejs.org/) ≥ 18
-- npm ≥ 9
+- Node.js 20 oder neuer empfohlen
+- npm
 
-### Installation & Start
+### Installation
 
 ```bash
-# Repository klonen
 git clone https://github.com/YourEliteSystems/WebRadio.git
 cd WebRadio
-
-# Abhängigkeiten installieren
 npm install
-
-# App starten (baut React & startet Electron)
 npm start
 ```
 
-### Verfügbare Skripte
+`npm start` baut zuerst das React-Frontend und startet danach Electron Forge.
+
+## Skripte
 
 | Befehl | Beschreibung |
-|---|---|
-| `npm start` | React bauen & App im Dev-Modus starten |
-| `npm run build-react` | Nur das React-Frontend mit esbuild bundlen |
-| `npm run package` | App paketieren (ohne Installer) |
-| `npm run make` | Installer/Distributionspakete erstellen |
-| `npm run publish` | Release auf GitHub veröffentlichen |
+| --- | --- |
+| `npm start` | React bauen und App im Entwicklungsmodus starten |
+| `npm run build-react` | Renderer mit esbuild nach `renderer/dist/renderer.js` bauen |
+| `npm run package` | App paketieren |
+| `npm run make` | Installer bzw. Distributionspakete erstellen |
+| `npm run publish` | Release ueber Electron Forge veroeffentlichen |
+| `npm run sentry:sourcemaps` | Sentry-Sourcemaps vorbereiten und hochladen, aktuell noch im Umbau |
 
----
+## Projektstruktur
 
-## 📁 Projektstruktur
-
-```
+```txt
 WebRadio/
-├── electron/
-│   ├── main.js              # Electron Hauptprozess, IPC-Handler, FFmpeg-Streaming
-│   ├── preload.js           # Context Bridge (IPC-API für den Renderer)
-│   ├── core/
-│   │   ├── eventBus.js      # Interner Event-Bus (Main-Prozess)
-│   │   ├── ffmpeg-resolver.js
-│   │   ├── mediaKeys.js     # Multimedia-Tasten (Play/Pause/Stop/Next)
-│   │   ├── session.js       # Session-ID-Verwaltung
-│   │   ├── storage.js       # Favoriten & Verlauf (JSON-Persistenz)
-│   │   └── tray.js          # System-Tray-Icon & Kontextmenü
-│   └── plugins/
-│       ├── pluginManager.js # Plugin laden, starten, stoppen, toggling
-│       └── pluginAPI.js     # Plugin-Registrierung (Frontend)
-├── renderer/
-│   ├── index.html           # Haupt-HTML
-│   ├── settings.html        # Einstellungs-Fenster
-│   ├── App.jsx              # Root React-Komponente
-│   ├── renderer.jsx         # React-Einstiegspunkt
-│   ├── components/
-│   │   ├── PlayerBar.jsx    # Untere Playerleiste
-│   │   ├── Sidebar.jsx      # Linke Suchleiste & Navigation
-│   │   └── StationGrid.jsx  # Senderkarten-Raster
-│   ├── services/
-│   │   ├── playerService.js # Web Audio API – PCM-Wiedergabe
-│   │   └── radioService.js  # Radio Browser API
-│   ├── pluginLoader.js      # Lädt & initialisiert Plugin-Renderer-Skripte
-│   └── styles/              # CSS-Stylesheets
-├── plugins/
-│   ├── discordRPC/          # Discord Rich Presence Plugin
-│   └── logger/              # Logger Plugin
-├── themes/
-│   ├── default/             # Standard-Theme
-│   ├── dark/                # Dark-Theme
-│   └── neon/                # Neon-Theme
-├── assets/                  # Icons & statische Assets
-├── build/                   # Build-Ressourcen (Icons für Installer)
-├── forge.config.js          # Electron Forge Konfiguration
-└── DEVELOPER_GUIDE.md       # Anleitung für Plugin- & Theme-Entwicklung
+  electron/
+    main.js                  # Electron-Hauptprozess, IPC, Fenster, Streaming
+    preload.js               # sichere Bridge zwischen Renderer und Main-Prozess
+    core/
+      eventBus.js            # interner Event-Bus
+      ffmpeg-resolver.js     # FFmpeg-Pfad fuer Dev und Build
+      storage.js             # Favoriten, Verlauf und Settings
+      updater.js             # Update-Check und Download-Link
+      mediaKeys.js           # vorbereitet fuer globale Mediensteuerung
+      tray.js                # vorbereitet fuer Tray und Hintergrundbetrieb
+    plugins/
+      pluginManager.js       # Plugin-Erkennung, Aktivierung und Deaktivierung
+      pluginAPI.js           # aeltere Plugin-API, wird geprueft
+
+  renderer/
+    index.html               # Hauptfenster
+    settings.html            # Einstellungsfenster
+    renderer.jsx             # React-Einstieg
+    App.jsx                  # Root-Komponente
+    components/              # Player, Sidebar, Senderliste
+    services/playerService.js# AudioContext, Worklet und Stream-Steuerung
+    worklets/pcm-processor.js# PCM-Ausgabe im AudioWorklet
+    pluginLoader.js          # Renderer-Plugins laden
+    styles/core.css          # Basis-Design
+
+  plugins/
+    discordRPC/              # Discord Rich Presence Plugin
+    logger/                  # einfaches Debug-Plugin
+    plugins.json             # Plugin-Aktivierungsstatus
+
+  themes/
+    default/
+    dark/
+    neon/
+
+  docs/
+    internal-notes.md        # interne Planung und Aufraeum-Notizen
+
+  DEVELOPER_GUIDE.md         # Anleitung fuer Theme- und Plugin-Autoren
+  forge.config.js            # Electron Forge Konfiguration
 ```
 
----
+## Plugin-System
 
-## 🔌 Plugin-System
+Plugins liegen im Ordner `plugins/`. Ein Plugin kann aus einem Main-Skript und optional aus einem Renderer-Skript bestehen.
 
-Plugins können tief in die App integriert werden. Jedes Plugin besteht aus einem optionalen **Backend-Skript** (Node.js, läuft im Hauptprozess) und einem optionalen **Frontend-Skript** (läuft im Renderer).
-
-### Plugin-Struktur
-
-```
+```txt
 plugins/mein-plugin/
-├── plugin.json    # Metadaten (Name, ID, Version, Author)
-├── plugin.js      # Backend-Logik (Node.js)
-└── renderer.js    # Frontend-UI (optional)
+  plugin.json
+  plugin.js
+  renderer.js
 ```
 
-### Verfügbare Lifecycle-Hooks (Backend)
+Beispiel fuer `plugin.json`:
 
-```javascript
-module.exports = {
-  init()              { /* Plugin wurde aktiviert */ },
-  destroy()           { /* Plugin wurde deaktiviert */ },
-  onMetadata(meta)    { /* Neuer Song / StreamTitle */ },
-  onStationChange(s)  { /* Sender gewechselt */ },
-  onPlay()            { /* Stream gestartet */ },
-  onStop()            { /* Stream gestoppt */ },
-  onVolumeChange(v)   { /* Lautstärke geändert */ },
-  onThemeChange(t)    { /* Theme gewechselt */ }
-};
-```
-
-Plugins können in den **Einstellungen** aktiviert/deaktiviert werden – ohne Neustart der App.
-
-> Weitere Details im [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)
-
----
-
-## 🎨 Theme-System
-
-Themes basieren auf CSS-Variablen und werden aus dem `themes/`-Verzeichnis geladen. Ein Theme besteht aus:
-
-```
-themes/mein-theme/
-├── theme.json   # { "name": "Mein Theme", "css": "style.css" }
-└── style.css    # Überschreibt CSS-Custom-Properties
-```
-
-Wichtige Variablen:
-
-```css
-:root {
-  --bg-main: #0f1115;
-  --accent-color: #6366f1;
-  --text-main: #e2e8f0;
-  /* ... */
+```json
+{
+  "name": "Mein Plugin",
+  "id": "meinPlugin",
+  "version": "1.0.0",
+  "main": "plugin.js",
+  "renderer": "renderer.js",
+  "author": "Dein Name",
+  "description": "Kurze Beschreibung"
 }
 ```
 
-Themes können in den **Einstellungen** live gewechselt werden.
+Plugins koennen in den Einstellungen aktiviert und deaktiviert werden. Die API ist noch im Ausbau; Details stehen im [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md).
 
----
+## Theme-System
 
-## 🎮 Enthaltene Plugins
+Themes liegen im Ordner `themes/` und bestehen aus einer `theme.json` plus CSS-Datei.
 
-### Discord Rich Presence (`discordRPC`)
-Zeigt den aktuell spielenden Radiosender inklusive Sendername und Song direkt in Discord an. Nutzt die Discord RPC API.
-
-### Logger (`logger`)
-Einfaches Logging-Plugin für Debugging-Zwecke.
-
----
-
-## 📦 Build & Release
-
-```bash
-# Paket erstellen (ohne Installer)
-npm run package
-
-# Installer erstellen (Squirrel für Windows, Deb/RPM für Linux)
-npm run make
-
-# Release auf GitHub veröffentlichen (Draft)
-npm run publish
+```txt
+themes/mein-theme/
+  theme.json
+  style.css
 ```
 
-Releases werden automatisch als **Draft** auf GitHub erstellt. Die Paketierung schließt `themes/` und `plugins/` als `extraResources` ein, sodass sie im installierten Programm erweiterbar bleiben.
+Beispiel:
 
----
+```json
+{
+  "name": "Mein Theme",
+  "author": "Dein Name",
+  "version": "1.0.0",
+  "css": "style.css"
+}
+```
 
-## 📄 Lizenz
+Das Theme-System ist aktuell ein Uebergangssystem nach dem React-Umstieg. Es funktioniert, wird aber in spaeteren Versionen neu geordnet.
+
+## Enthaltene Plugins
+
+### Discord Rich Presence
+
+Zeigt Radio-Informationen in Discord an, sobald das Plugin aktiv ist und die passenden Events vom Core ausgeliefert werden.
+
+### Logger
+
+Ein kleines Debug-Plugin fuer Konsolenausgaben.
+
+## Build und Release
+
+```bash
+npm run build-react
+npm run package
+npm run make
+```
+
+Die Forge-Konfiguration packt `themes/` und `plugins/` als Extra-Ressourcen mit ein. Releases werden ueber GitHub bzw. Electron Forge vorbereitet.
+
+## Hinweise zur aktuellen Version
+
+- Die App wird aktuell vor allem unter Windows getestet.
+- Ein Test unter Arch Linux mit Wine 11 war erfolgreich, ist aber noch kein offizieller Linux-Support.
+- Einige alte Dateien aus der Zeit vor React werden noch entfernt.
+- Interne Umbauplaene stehen in [docs/internal-notes.md](./docs/internal-notes.md).
+- Die grobe Entwicklungsplanung steht in [docs/roadmap.md](./docs/roadmap.md).
+
+## Lizenz
 
 Dieses Projekt steht unter der Lizenz, die in der [LICENSE](./LICENSE)-Datei beschrieben ist.

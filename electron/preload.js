@@ -60,3 +60,14 @@ contextBridge.exposeInMainWorld("themeAPI", {
   getActiveTheme: () => ipcRenderer.invoke("theme:getActive"),
   setActiveTheme: (id) => ipcRenderer.invoke("theme:setActive", id)
 });
+
+// UPDATER API
+contextBridge.exposeInMainWorld("updaterAPI", {
+  check: () => ipcRenderer.invoke("updater:check"),
+  install: () => ipcRenderer.invoke("updater:install"),
+  getVersion: () => ipcRenderer.invoke("app:version"),
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.removeAllListeners("updater:available");
+    ipcRenderer.on("updater:available", (_, data) => callback(data));
+  }
+});

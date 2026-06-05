@@ -9,6 +9,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [country, setCountry] = useState('');
   const [genre, setGenre] = useState('');
+  const [updateInfo, setUpdateInfo] = useState(null);
 
   const [volume, setVolumeState] = useState(() => {
     const saved = localStorage.getItem('webradio_volume');
@@ -45,6 +46,12 @@ export default function App() {
     handleSearch('Top');
     if (window.api?.getFavorites) {
       window.api.getFavorites().then(res => setFavorites(res || []));
+    }
+    // Update-Listener registrieren
+    if (window.updaterAPI?.onUpdateAvailable) {
+      window.updaterAPI.onUpdateAvailable((info) => {
+        setUpdateInfo(info);
+      });
     }
   }, []);
 
@@ -131,6 +138,18 @@ export default function App() {
         <div className="titlebar-left">
           <div className="app-logo"></div>
           <span className="app-title">WebRadio</span>
+          {updateInfo && (
+            <button
+              className="update-badge"
+              onClick={() => window.api?.openSettings?.()}
+              title={`Update verfügbar: v${updateInfo.version}`}
+            >
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z"/>
+              </svg>
+              Update v{updateInfo.version}
+            </button>
+          )}
         </div>
         <div className="titlebar-right">
           <button className="window-btn" onClick={() => handleWindowControl('minimize')}>

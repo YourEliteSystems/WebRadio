@@ -1,142 +1,222 @@
-# WebRadio Entwicklerhandbuch
+# WebRadio Developer Guide
 
-Willkommen beim Entwicklerhandbuch! Hier erfährst du, wie du eigene Plugins und Themes für die WebRadio-App erstellst und diese ohne Neustart der Anwendung direkt testen kannst.
+Dieser Guide richtet sich an alle, die eigene **Themes** oder **Plugins** fuer WebRadio erstellen moechten. Interne Architektur- und Roadmap-Notizen stehen getrennt in `docs/internal-notes.md`.
 
----
+> Stand: WebRadio v1.0.4. Theme- und Plugin-System funktionieren bereits, werden aber in den naechsten Versionen weiter ausgebaut.
 
-## 🎨 1. Eigene Themes entwickeln
+## Themes
 
-Ein Theme verändert das gesamte Erscheinungsbild der App. Die WebRadio-App nutzt ein modernes CSS-Variablen-System (Glassmorphism, Dark Mode).
+Ein Theme liegt in einem eigenen Ordner unter `themes/`.
 
-### Verzeichnisstruktur
-Erstelle einen neuen Ordner in `themes/` (z.B. `themes/my-theme/`):
-- `theme.json` (Metadaten)
-- `style.css` (Deine Styles)
+```txt
+themes/mein-theme/
+  theme.json
+  style.css
+```
 
-### Die `theme.json`
+### theme.json
+
 ```json
 {
-  "name": "Mein Custom Theme",
+  "name": "Mein Theme",
+  "author": "Dein Name",
+  "version": "1.0.0",
   "css": "style.css"
 }
 ```
 
-### Die `style.css`
-Du kannst die globalen Variablen der App überschreiben. Hier sind die wichtigsten Variablen, die du anpassen solltest:
+| Feld | Bedeutung |
+| --- | --- |
+| `name` | Anzeigename in den Einstellungen |
+| `author` | Autor des Themes |
+| `version` | Theme-Version |
+| `css` | CSS-Datei relativ zum Theme-Ordner |
+
+### style.css
+
+Themes ueberschreiben aktuell vor allem CSS-Variablen aus `renderer/styles/core.css`.
 
 ```css
 :root {
-  --bg-main: #0f1115; /* Haupt-Hintergrundfarbe */
-  --bg-sidebar: rgba(22, 25, 33, 0.7); /* Sidebar mit Transparenz */
-  --bg-card: rgba(35, 40, 52, 0.6); /* Sender-Karten */
+  --bg-main: #0f1115;
+  --bg-sidebar: rgba(22, 25, 33, 0.7);
+  --bg-card: rgba(35, 40, 52, 0.6);
   --bg-card-hover: rgba(50, 57, 73, 0.8);
-  
-  --titlebar-bg: #161921; /* Kopfzeile */
-  --text-main: #e2e8f0; /* Heller Text */
-  --text-muted: #94a3b8; /* Gedimmter Text */
-  
-  --accent-color: #6366f1; /* Primärfarbe (z.B. Buttons) */
+
+  --titlebar-bg: #161921;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+
+  --accent-color: #6366f1;
   --accent-hover: #4f46e5;
   --accent-glow: rgba(99, 102, 241, 0.4);
 }
 ```
 
-> [!TIP]
-> **Testen ohne Neustart:** Wenn du ein neues Theme erstellst oder CSS änderst, öffne die Einstellungen in der App und klicke bei "Themes" auf **Neu laden**. Dein Theme taucht sofort auf!
+Hinweise:
 
----
+- Nutze bevorzugt CSS-Variablen statt harte Selektor-Ueberschreibungen.
+- Halte Theme-CSS klein, damit es mit zukuenftigen React-Komponenten kompatibel bleibt.
+- Das Theme-System ist aktuell noch ein Uebergangssystem und kann sich in spaeteren Versionen aendern.
 
-## ⚙️ 2. Eigene Plugins entwickeln
+### Theme testen
 
-Plugins können tief in das System eingreifen. Sie bestehen optional aus einem **Backend-Skript** (`main.js`) für Hintergrund-Logik und einem **Frontend-Skript** (`renderer.js`) für UI-Erweiterungen.
+1. Theme-Ordner unter `themes/` anlegen.
+2. `theme.json` und `style.css` erstellen.
+3. App starten.
+4. Einstellungen oeffnen.
+5. Im Bereich **Themes** auf **Neu laden** klicken.
+6. Theme auswaehlen.
 
-### Verzeichnisstruktur
-Erstelle einen Ordner in `plugins/` (z.B. `plugins/my-plugin/`):
-- `plugin.json` (Metadaten)
-- `plugin.js` (Backend Node.js Code)
-- `renderer.js` (Optional: Frontend UI Code)
+## Plugins
 
-### Die `plugin.json`
+Ein Plugin liegt in einem eigenen Ordner unter `plugins/`.
+
+```txt
+plugins/mein-plugin/
+  plugin.json
+  plugin.js
+  renderer.js
+```
+
+`plugin.js` laeuft im Main-Prozess. `renderer.js` ist optional und laeuft im Renderer.
+
+### plugin.json
+
 ```json
 {
-  "name": "Mein Cooles Plugin",
-  "id": "myCoolPlugin",
+  "name": "Mein Plugin",
+  "id": "meinPlugin",
   "version": "1.0.0",
   "main": "plugin.js",
   "renderer": "renderer.js",
   "author": "Dein Name",
-  "description": "Was macht das Plugin?"
+  "description": "Kurze Beschreibung"
 }
 ```
 
-### Das Backend (`plugin.js`)
-Das Backend läuft in Node.js. Du kannst Lebenszyklus-Hooks und Events verwenden:
+| Feld | Bedeutung |
+| --- | --- |
+| `name` | Anzeigename in den Einstellungen |
+| `id` | eindeutige Plugin-ID |
+| `version` | Plugin-Version |
+| `main` | optionales Main-Prozess-Skript |
+| `renderer` | optionales Renderer-Skript |
+| `author` | Autor des Plugins |
+| `description` | kurze Beschreibung |
+
+Die `id` sollte stabil bleiben, weil sie fuer Aktivierung, Deaktivierung und Renderer-Registrierung genutzt wird.
+
+## Main-Plugin
+
+Beispiel fuer `plugin.js`:
 
 ```javascript
 module.exports = {
-  // Wird aufgerufen, wenn das Plugin aktiviert wird
   init() {
-    console.log("Mein Plugin ist gestartet!");
-  },
-  
-  // Wird aufgerufen, wenn das Plugin deaktiviert wird
-  destroy() {
-    console.log("Mein Plugin wird beendet. Zeit aufzuräumen!");
+    console.log("Plugin gestartet");
   },
 
-  // Event-Hooks
+  destroy() {
+    console.log("Plugin beendet");
+  },
+
   onMetadata(meta) {
-    console.log("Neuer Song:", meta.StreamTitle);
+    console.log("Metadaten:", meta.StreamTitle);
   },
-  onStationChange(station) {
-    console.log("Sender gewechselt:", station.name);
+
+  onPlay(data) {
+    console.log("Stream gestartet:", data);
   },
-  onPlay() { console.log("Stream gestartet"); },
-  onStop() { console.log("Stream gestoppt"); }
+
+  onStop() {
+    console.log("Stream gestoppt");
+  }
 };
 ```
 
-### Das Frontend (`renderer.js`)
-Wenn dein Plugin sichtbare Elemente braucht (z.B. ein Icon oben rechts), nutze das Renderer-Skript:
+Aktuell vorbereitet sind diese Hook-Namen:
+
+| Hook | Zweck |
+| --- | --- |
+| `init()` | Plugin wurde geladen oder aktiviert |
+| `destroy()` | Plugin wird deaktiviert oder entladen |
+| `onMetadata(meta)` | Metadaten eines Streams |
+| `onStationChange(station)` | Senderwechsel |
+| `onPlay(data)` | Wiedergabe gestartet |
+| `onStop()` | Wiedergabe gestoppt |
+| `onVolumeChange(value)` | Lautstaerke geaendert |
+| `onThemeChange(theme)` | Theme gewechselt |
+
+Einige Events werden im aktuellen Core noch vereinheitlicht. Fuer neue Plugins sollten `init()` und `destroy()` immer sauber implementiert werden; weitere Events koennen sich waehrend des Core-Umbaus noch aendern.
+
+## Renderer-Plugin
+
+Renderer-Plugins registrieren sich ueber `window.registerPluginRenderer`.
 
 ```javascript
-let myElement = null;
+let element = null;
 
-// Registriere das UI-Plugin
-window.registerPluginRenderer("myCoolPlugin", {
+window.registerPluginRenderer("meinPlugin", {
   init: () => {
-    // Finde den dedizierten Plugin-Bereich
     const area = document.getElementById("plugin-area");
-    if(area) {
-      myElement = document.createElement("div");
-      myElement.textContent = "Hallo Welt";
-      area.appendChild(myElement);
-    }
+    if (!area) return;
+
+    element = document.createElement("button");
+    element.textContent = "Mein Plugin";
+    area.appendChild(element);
   },
+
   destroy: () => {
-    // Wird aufgerufen, wenn das Plugin deaktiviert wird. Unbedingt aufräumen!
-    if (myElement && myElement.parentNode) {
-      myElement.parentNode.removeChild(myElement);
+    if (element && element.parentNode) {
+      element.parentNode.removeChild(element);
     }
-    myElement = null;
+    element = null;
   }
 });
 ```
 
----
+Wichtig:
 
-## 🎧 3. Fortgeschrittene Plugins: Spotify & YouTube Music
+- Raeume in `destroy()` alle DOM-Elemente, Timer und Listener wieder auf.
+- Nutze fuer sichtbare Elemente bevorzugt den Bereich `#plugin-area`.
+- Halte Renderer-Plugins klein, weil die Plugin-UI spaeter noch staerker in React integriert werden kann.
 
-Ein häufiger Wunsch ist die Integration von Plattformen wie **Spotify** oder **YouTube Music**.
+## Plugin testen
 
-### Geht das mit FFmpeg?
-Die App nutzt standardmäßig `fluent-ffmpeg`, um Webradio-Streams abzurufen.
-- **YouTube Music:** Ja! FFmpeg kann YouTube-Audio extrahieren, meist in Kombination mit Bibliotheken wie `ytdl-core` oder `yt-dlp`. Ein Backend-Plugin (`plugin.js`) könnte den YouTube-Link auflösen und die rohe Audio-URL an das Frontend oder direkt an `ffmpeg` weitergeben.
-- **Spotify:** Nein, nicht über FFmpeg. Spotify-Streams sind DRM-geschützt. FFmpeg kann diese nicht nativ lesen.
+1. Plugin-Ordner unter `plugins/` anlegen.
+2. `plugin.json` erstellen.
+3. Optional `plugin.js` und/oder `renderer.js` erstellen.
+4. App starten.
+5. Einstellungen oeffnen.
+6. Im Bereich **Plugins** auf **Neu laden** klicken.
+7. Plugin aktivieren oder deaktivieren.
 
-### Wie binde ich Spotify trotzdem ein?
-Anstatt das Backend (FFmpeg) zu nutzen, kannst du für Spotify ein **Frontend-Plugin** (`renderer.js`) schreiben.
-Dort kannst du das offizielle **Spotify Web Playback SDK** per `<script>` Tag laden. Das SDK übernimmt die Audio-Wiedergabe im Browser-Kontext der App. Das Plugin pausiert dann einfach das Standard-Webradio (`window.radioAPI.stopStream()`) und spielt stattdessen Musik über das Spotify SDK ab!
+## Sicherheit und Stabilitaet
 
-> [!IMPORTANT]
-> **Hot-Reloading für Entwickler:** Gehe in die Einstellungen und klicke bei "Plugins" auf **Neu laden**, sobald du einen neuen Plugin-Ordner erstellt hast. Du kannst das Plugin dann mit einem Klick aktivieren/deaktivieren, um deinen Code sofort in Aktion zu sehen!
+Plugins laufen aktuell mit viel Vertrauen in der App. Deshalb:
+
+- Keine unnoetigen Netzwerkzugriffe einbauen.
+- Keine sensiblen Daten speichern.
+- Fehler in Plugin-Code immer selbst abfangen.
+- Ressourcen bei Deaktivierung freigeben.
+- Keine grossen UI-Elemente unkontrolliert in den Renderer einhaengen.
+
+## Externe Dienste
+
+Integrationen wie Spotify oder YouTube Music brauchen eigene APIs oder SDKs.
+
+- Spotify-Streams sind DRM-geschuetzt und koennen nicht einfach per FFmpeg abgespielt werden.
+- YouTube-Integrationen sind technisch moeglich, brauchen aber eigene Aufloesung und rechtliche Pruefung.
+- Fuer Webradio bleibt die Radio Browser API der aktuelle Standardweg.
+
+## Zukunft
+
+Geplant sind unter anderem:
+
+- API-Versionen fuer Plugins
+- stabilere und besser dokumentierte Events
+- Plugin-Einstellungen
+- Plugin-Permissions
+- ueberarbeitetes Theme-System
+- spaetere Wiki-Struktur fuer groessere Dokumentation

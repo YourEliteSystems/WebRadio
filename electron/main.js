@@ -6,6 +6,7 @@ const ffmpeg = require("fluent-ffmpeg");
 const { getFFmpegPath } = require("./core/ffmpeg-resolver");
 const fs = require("fs");
 const eventBus = require("./core/eventBus");
+const updater = require("./core/updater");
 
 
 let settingsWindow;
@@ -22,8 +23,32 @@ ipcMain.handle("plugins:toggle", (_, id, enabled) => {
   pluginManager.togglePlugin(id, enabled);
 });
 
+
 ipcMain.handle("plugins:getRendererScripts", () => {
   return pluginManager.getRendererScripts();
+});
+
+// Updater IPC
+ipcMain.handle("updater:check", async () => {
+  const result = await updater.checkForUpdates();
+  // Auch ans Settings-Fenster schicken wenn offen
+  if (result.available) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("updater:available", result);
+    }
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.webContents.send("updater:available", result);
+    }
+  }
+  return result;
+});
+
+ipcMain.handle("updater:install", async () => {
+  await updater.openDownloadPage();
+});
+
+ipcMain.handle("app:version", () => {
+  return app.getVersion();
 });
 
 eventBus.on("pluginToggled", (data) => {
@@ -304,6 +329,14 @@ ipcMain.on("window:maximize", (event) => {
 app.whenReady().then(() => {
   createWindow();
   pluginManager.loadPlugins();
+
+  // Update-Check 5 Sekunden nach App-Start (im Hintergrund)
+  setTimeout(async () => {
+    const result = await updater.checkForUpdates();
+    if (result.available && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("updater:available", result);
+    }
+  }, 5000);
 });
 
 ipcMain.handle("radio:search", async (event, name) => {

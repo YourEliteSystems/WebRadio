@@ -2,53 +2,495 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src *; img-src *;">
-  <title>WebRadio Einstellungen</title>
+  <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https:; media-src *; img-src *;">
+  <title>WebRadio – Einstellungen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/core.css">
   <link rel="stylesheet" id="theme-style">
+  <style>
+    /* ── Settings-spezifische Styles ── */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 70% -10%, rgba(99, 102, 241, 0.12), transparent 55%);
+    }
+
+    .settings-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Linke Nav */
+    .settings-nav {
+      width: 200px;
+      background: var(--bg-sidebar);
+      backdrop-filter: blur(10px);
+      border-right: var(--glass-border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .settings-nav-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 8px 12px 4px;
+      font-weight: 600;
+    }
+
+    .settings-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      transition: var(--transition);
+    }
+
+    .settings-nav-item:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-main);
+    }
+
+    .settings-nav-item.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-color);
+    }
+
+    .settings-nav-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* Rechte Inhaltsbereich */
+    .settings-content {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+
+    .settings-page {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .settings-page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .settings-page-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: var(--glass-border);
+    }
+
+    .settings-page-header h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      background: linear-gradient(to right, #fff, var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .settings-page-header p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Karten */
+    .settings-card {
+      background: var(--bg-card);
+      border: var(--glass-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .settings-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .settings-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    /* Plugin Item */
+    .plugin-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border: var(--glass-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: var(--transition);
+    }
+
+    .plugin-item:hover {
+      background: rgba(0, 0, 0, 0.3);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .plugin-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .plugin-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    /* Toggle Switch */
+    .toggle-wrap {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .toggle-wrap input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 34px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .toggle-wrap input:checked + .toggle-slider {
+      background: var(--accent-color);
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+    }
+
+    .toggle-wrap input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    /* Theme Karten */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .theme-card {
+      padding: 14px;
+      background: rgba(0,0,0,0.2);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .theme-card:hover {
+      background: rgba(0,0,0,0.3);
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .theme-card.active {
+      border-color: var(--accent-color);
+      background: rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .theme-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      flex-shrink: 0;
+    }
+
+    /* Update Sektion */
+    .update-status-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.2);
+      border: var(--glass-border);
+      margin-bottom: 16px;
+    }
+
+    .update-status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .update-status-icon.current {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .update-status-icon.available {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--accent-color);
+      animation: pulseGlow 2s infinite;
+    }
+
+    .update-status-icon.checking {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+    }
+
+    .update-status-text strong {
+      font-size: 14px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .update-status-text span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .update-release-notes {
+      background: rgba(0,0,0,0.25);
+      border: var(--glass-border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      white-space: pre-line;
+      margin-bottom: 16px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .update-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-update {
+      padding: 10px 20px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-update:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Version Info am Boden */
+    .version-info {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: var(--glass-border);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
 </head>
 <body>
+
+  <!-- Titlebar -->
   <div class="titlebar">
     <div class="titlebar-left">
       <div class="app-logo"></div>
       <span class="app-title">WebRadio</span>
+      <span style="font-size:11px; color: var(--text-muted); margin-left: 4px;">· Einstellungen</span>
     </div>
     <div class="titlebar-right">
       <button class="window-btn" id="btnMinimize">
-        <svg viewbox="0 0 10 1"><rect width="10" height="1"/></svg>
+        <svg viewBox="0 0 10 1"><rect width="10" height="1"/></svg>
       </button>
       <button class="window-btn" id="btnMaximize">
-        <svg viewbox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor"/></svg>
+        <svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor"/></svg>
       </button>
       <button class="window-btn close" id="btnClose">
-        <svg viewbox="0 0 10 10">
+        <svg viewBox="0 0 10 10">
           <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor"/>
         </svg>
       </button>
     </div>
   </div>
-  <div class="settings-container">
-    <h2>Einstellungen</h2>
 
-    
-    <div class="settings">
+  <!-- Layout -->
+  <div class="settings-layout">
 
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="margin: 0;">Plugins</h2>
-        <button id="reloadPluginsBtn" class="btn-secondary" style="width: auto; padding: 4px 10px;">Neu laden</button>
+    <!-- Linke Nav -->
+    <nav class="settings-nav">
+      <span class="settings-nav-label">Allgemein</span>
+      <button class="settings-nav-item active" data-page="plugins">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        </svg>
+        Plugins
+      </button>
+      <button class="settings-nav-item" data-page="themes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        Themes
+      </button>
+      <button class="settings-nav-item" data-page="updates">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+        </svg>
+        Updates
+        <span id="nav-update-dot" style="display:none; width:7px; height:7px; border-radius:50%; background:var(--accent-color); margin-left:auto; box-shadow:0 0 6px rgba(99,102,241,0.7);"></span>
+      </button>
+    </nav>
+
+    <!-- Rechts: Inhalt -->
+    <div class="settings-content">
+
+      <!-- PLUGINS -->
+      <div class="settings-page active" id="page-plugins">
+        <div class="settings-page-header">
+          <h1>Plugins</h1>
+          <p>Erweiterungen aktivieren oder deaktivieren</p>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Installierte Plugins</span>
+            <button id="reloadPluginsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+          </div>
+          <div id="pluginList"></div>
+        </div>
       </div>
-      <div id="pluginList" style="margin-top: 10px; margin-bottom: 20px;"></div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="margin: 0;">Themes</h2>
-        <button id="reloadThemesBtn" class="btn-secondary" style="width: auto; padding: 4px 10px;">Neu laden</button>
+      <!-- THEMES -->
+      <div class="settings-page" id="page-themes">
+        <div class="settings-page-header">
+          <h1>Themes</h1>
+          <p>Aussehen der App anpassen</p>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Verfügbare Themes</span>
+            <button id="reloadThemesBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+          </div>
+          <div class="theme-grid" id="themeList"></div>
+        </div>
       </div>
-      <div id="themeList" style="margin-top: 10px;"></div>
+
+      <!-- UPDATES -->
+      <div class="settings-page" id="page-updates">
+        <div class="settings-page-header">
+          <h1>Updates</h1>
+          <p>WebRadio auf dem neuesten Stand halten</p>
+        </div>
+
+        <div class="settings-card">
+          <!-- Status Box -->
+          <div class="update-status-box" id="updateStatusBox">
+            <div class="update-status-icon checking" id="updateIcon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+              </svg>
+            </div>
+            <div class="update-status-text">
+              <strong id="updateStatusTitle">Prüfe...</strong>
+              <span id="updateStatusSub">Verbindung zum Update-Server wird hergestellt</span>
+            </div>
+          </div>
+
+          <!-- Release Notes (nur sichtbar wenn Update da) -->
+          <div id="releaseNotesWrap" style="display:none;">
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px;">Was ist neu</p>
+            <div class="update-release-notes" id="releaseNotes"></div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="update-actions">
+            <button id="checkUpdateBtn" class="btn-secondary" style="width:auto; padding:10px 18px; font-size:13px;">Jetzt prüfen</button>
+            <button id="installUpdateBtn" class="btn-update" style="display:none;">⬇ Jetzt herunterladen</button>
+          </div>
+        </div>
+
+        <div class="version-info">
+          <span>Aktuelle Version: <strong id="currentVersion">–</strong></span>
+          <span>WebRadio by YourEliteSystems</span>
+        </div>
+      </div>
 
     </div>
-
-    <button id="saveBtn">Speichern</button>
   </div>
 
   <script type="module" src="settings.js"></script>
