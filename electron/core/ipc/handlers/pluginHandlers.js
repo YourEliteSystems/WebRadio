@@ -1,6 +1,6 @@
 const { ipcMain } = require("electron");
 const pluginManager = require("../../plugins/pluginManager");
-const eventBus = require("../eventBus");
+const eventBus = require("../../eventBus");
 
 /**
  * Registriert IPC-Handler für das Plugin-System
