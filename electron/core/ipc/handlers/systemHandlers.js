@@ -1,6 +1,7 @@
 const { ipcMain } = require("electron");
-const updater = require("../updater");
-const { app } = require("electron");
+const updater = require("../../updater");
+const { app, BrowserWindow } = require("electron");
+const path = require("path");
 
 /**
  * Registriert IPC-Handler für System-Funktionen (Updater, Version, Fenster)
@@ -43,7 +44,6 @@ function registerSystemHandlers(mainWindow, settingsWindow) {
 
   // --- Window Controls ---
   ipcMain.on("window:minimize", (event) => {
-    const { BrowserWindow } = require("electron");
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
       win.minimize();
@@ -52,7 +52,6 @@ function registerSystemHandlers(mainWindow, settingsWindow) {
   });
 
   ipcMain.on("window:maximize", (event) => {
-    const { BrowserWindow } = require("electron");
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
       if (win.isMaximized()) {
@@ -65,7 +64,6 @@ function registerSystemHandlers(mainWindow, settingsWindow) {
   });
 
   ipcMain.on("window:close", (event) => {
-    const { BrowserWindow } = require("electron");
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
       win.close();
@@ -78,23 +76,22 @@ function registerSystemHandlers(mainWindow, settingsWindow) {
     if (settingsWindow) {
       settingsWindow.focus();
     } else {
-      // wird durch windowManager erstellt
-      const { BrowserWindow } = require("electron");
+      // wird durch windowManager erstellt (TODO Phase 3)
       const newSettingsWindow = new BrowserWindow({
         width: 600,
         height: 500,
         frame: false,
         resizable: false,
-        icon: require("path").join(__dirname, "../../assets/icons/tray.ico"),
+        icon: path.join(__dirname, "../../assets/icons/tray.ico"),
         webPreferences: {
-          preload: require("path").join(__dirname, "../../preload.js"),
+          preload: path.join(__dirname, "../../preload.js"),
           contextIsolation: true,
           nodeIntegration: false,
           sandbox: false,
         },
       });
       newSettingsWindow.loadFile(
-        require("path").join(__dirname, "../../renderer/settings.html")
+        path.join(__dirname, "../../renderer/settings.html")
       );
       newSettingsWindow.on("closed", () => {
         settingsWindow = null;
