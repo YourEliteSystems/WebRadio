@@ -1,5 +1,5 @@
 const { ipcMain } = require("electron");
-const storage = require("../storage");
+const storage = require("../../storage");
 
 /**
  * Registriert IPC-Handler für Storage (History & Favorites)
