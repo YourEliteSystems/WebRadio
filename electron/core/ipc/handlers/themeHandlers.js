@@ -1,5 +1,5 @@
 const { ipcMain } = require("electron");
-const storage = require("../storage");
+const storage = require("../../storage");
 const path = require("path");
 const fs = require("fs");
 const { app } = require("electron");
