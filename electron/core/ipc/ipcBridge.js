@@ -1,9 +1,9 @@
 const { ipcMain } = require("electron");
-const { registerPlayerHandlers } = require("./playerHandlers");
-const { registerStorageHandlers } = require("./storageHandlers");
-const { registerThemeHandlers } = require("./themeHandlers");
-const { registerPluginHandlers } = require("./pluginHandlers");
-const { registerSystemHandlers } = require("./systemHandlers");
+const { registerPlayerHandlers } = require("./handlers/playerHandlers");
+const { registerStorageHandlers } = require("./handlers/storageHandlers");
+const { registerThemeHandlers } = require("./handlers/themeHandlers");
+const { registerPluginHandlers } = require("./handlers/pluginHandlers");
+const { registerSystemHandlers } = require("./handlers/systemHandlers");
 const eventBus = require("../eventBus");
 
 /**
