@@ -3,8 +3,8 @@ const path = require("path");
 
 let tray = null;
 
-function createTray(mainWindow) {
-  const iconPath = path.join(__dirname, "..", "assets", "icons", "tray.png");
+function createTray(mainWindow, { openSettings, checkForUpdates }) {
+  const iconPath = path.join(__dirname, "../../assets/icons/tray.ico");
 
   tray = new Tray(iconPath);
 
@@ -17,33 +17,25 @@ function createTray(mainWindow) {
       }
     },
     {
-      label:"Play / Pause",
+      label: "Play / Pause",
       click: () => {
         mainWindow.webContents.send("media-play-pause");
       }
     },
     {
-      label:"Stop",
+      label: "Stop",
       click: () => {
         mainWindow.webContents.send("media-stop");
       }
     },
     {
       label: "Einstellungen",
-      click: () => {
-        const settingsWindow = new BrowserWindow({
-          width: 400,
-          height: 300,
-          parent: mainWindow,
-          modal: true,
-          webPreferences: {
-            preload: path.join(__dirname, "preload.js")
-          }
-        });
-        settingsWindow.loadFile(path.join(__dirname, "..", "renderer", "settings.html"));
-      }
+      click: () => openSettings()
     },
-    { label: "Update prüfen", click: () => autoUpdater.checkForUpdates() },
+    {
+      label: "Update prüfen",
+      click: () => checkForUpdates()
+    },
     { type: "separator" },
     {
       label: "Beenden",
@@ -63,4 +55,11 @@ function createTray(mainWindow) {
   });
 }
 
-module.exports = { createTray };
+function destroyTray() {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+}
+
+module.exports = { createTray, destroyTray };

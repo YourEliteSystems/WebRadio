@@ -1,12 +1,14 @@
 import React from 'react';
 
-export default function Sidebar({ 
-  searchQuery, 
-  setSearchQuery, 
-  country, 
-  setCountry, 
-  genre, 
-  setGenre, 
+export default function Sidebar({
+  searchQuery,
+  setSearchQuery,
+  country,
+  setCountry,
+  genre,
+  setGenre,
+  countries,
+  tags,
   onSearch,
   onLoadFavorites,
   onLoadHistory
@@ -24,21 +26,19 @@ export default function Sidebar({
         />
         <select value={country} onChange={(e) => setCountry(e.target.value)}>
           <option value="">Alle Länder</option>
-          <option value="DE">Deutschland</option>
-          <option value="AT">Österreich</option>
-          <option value="CH">Schweiz</option>
-          <option value="US">USA</option>
-          <option value="GB">Großbritannien</option>
+          {countries.map((c) => (
+            <option key={c.iso_3166_1} value={c.iso_3166_1}>
+              {c.name} ({c.stationcount})
+            </option>
+          ))}
         </select>
         <select value={genre} onChange={(e) => setGenre(e.target.value)}>
           <option value="">Alle Genres</option>
-          <option value="pop">Pop</option>
-          <option value="rock">Rock</option>
-          <option value="electronic">Electronic</option>
-          <option value="hiphop">Hip Hop</option>
-          <option value="jazz">Jazz</option>
-          <option value="classical">Klassik</option>
-          <option value="news">Nachrichten</option>
+          {tags.map((t) => (
+            <option key={t.name} value={t.name}>
+              {t.name} ({t.stationcount})
+            </option>
+          ))}
         </select>
         <button className="btn-primary" onClick={onSearch}>Suchen</button>
       </div>
@@ -48,7 +48,6 @@ export default function Sidebar({
         <button className="btn-secondary" onClick={onLoadFavorites}>Favoriten laden</button>
         <button className="btn-secondary" onClick={onLoadHistory}>Verlauf laden</button>
       </div>
-      
     </aside>
   );
 }

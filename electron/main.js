@@ -1,12 +1,13 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const pluginManager = require("./plugins/pluginManager");
-const ffmpeg_StaticPath = require("ffmpeg-static");
 const ffmpeg = require("fluent-ffmpeg");
 const { getFFmpegPath } = require("./core/ffmpeg-resolver");
 const fs = require("fs");
 const eventBus = require("./core/eventBus");
 const updater = require("./core/updater");
+const { createTray, destroyTray } = require("./core/system/tray");
+const { registerMediaKeys, unregisterMediaKeys } = require("./core/mediaKeys");
 
 
 let settingsWindow;
@@ -106,7 +107,10 @@ ipcMain.handle("theme:get", async () => {
 });
 
 ipcMain.handle("theme:getActive", () => storage.getSettings()?.theme || "");
-ipcMain.handle("theme:setActive", (_, themeId) => storage.updateSettings({ theme: themeId }));
+ipcMain.handle("theme:setActive", (_, themeId) => {
+  storage.updateSettings({ theme: themeId });
+  eventBus.emit("themechange", { theme: themeId });
+});
 
 function parseTitle(title) {
   if (!title || typeof title !== "string") {
@@ -158,34 +162,8 @@ function parseTitle(title) {
 
 ipcMain.handle("radio:stop", async () => {
   if (!ffmpegCommand) return;
-
-  // Listener für Error temporär anpassen
-  const originalErrorHandler = ffmpegCommand.listeners("error")[0];
-  ffmpegCommand.removeAllListeners("error");
-  ffmpegCommand.on("error", err => {
-    if (
-      err.message.includes("ffmpeg was killed with signal SIGKILL") ||
-      err.message.includes("ffmpeg was killed with signal SIGTERM")
-    ) {
-      console.log("FFmpeg Prozess sauber beendet (Stop).");
-      return;
-    }
-    if (originalErrorHandler) originalErrorHandler(err);
-  });
-
-  try {
-    ffmpegCommand.kill("SIGTERM");
-  } catch (err) {
-    console.warn("Fehler beim Stoppen des FFmpeg-Prozesses:", err);
-  }
-
-  // Stream und Command zurücksetzen
-  if (ffmpegStream) {
-    ffmpegStream.removeAllListeners();
-    ffmpegStream.destroy();
-    ffmpegStream = null;
-  }
-  ffmpegCommand = null;
+  stopAllStreams();
+  eventBus.emit("stop");
 });
 
 // FFmpeg-Stream starten
@@ -228,7 +206,10 @@ ipcMain.handle("radio:start", async (_, url) => {
             Song: song
           };
           console.log("Metadaten korrekt:", metadata);
-          mainWindow.webContents.send("radio:metadata", metadata);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send("radio:metadata", metadata);
+          }
+          eventBus.emit("metadata", metadata);
         }
       }
     })
@@ -247,7 +228,7 @@ ipcMain.handle("radio:start", async (_, url) => {
   ffmpegStream = ffmpegCommand.pipe();
 
   ffmpegStream.on("data", chunk => {
-    // 🔴 DAS IST KRITISCH
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     const pcm = new Float32Array(
       chunk.buffer,
       chunk.byteOffset,
@@ -255,6 +236,8 @@ ipcMain.handle("radio:start", async (_, url) => {
     );
     mainWindow.webContents.send("radio:pcm", pcm.buffer);
   });
+
+  eventBus.emit("play", { url });
 });
 
 function stopAllStreams() {
@@ -329,6 +312,21 @@ ipcMain.on("window:maximize", (event) => {
 app.whenReady().then(() => {
   createWindow();
   pluginManager.loadPlugins();
+  registerMediaKeys(mainWindow);
+  createTray(mainWindow, {
+    openSettings: createSettingsWindow,
+    checkForUpdates: async () => {
+      const result = await updater.checkForUpdates();
+      if (result.available) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("updater:available", result);
+        }
+        if (settingsWindow && !settingsWindow.isDestroyed()) {
+          settingsWindow.webContents.send("updater:available", result);
+        }
+      }
+    }
+  });
 
   // Update-Check 5 Sekunden nach App-Start (im Hintergrund)
   setTimeout(async () => {
@@ -339,15 +337,66 @@ app.whenReady().then(() => {
   }, 5000);
 });
 
-ipcMain.handle("radio:search", async (event, name) => {
-  const url = `https://de1.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(name)}`;
+const RADIO_API = "https://de1.api.radio-browser.info/json";
+const RADIO_HEADERS = { "User-Agent": "WebRadioApp/1.0" };
+
+async function radioFetch(path) {
+  const res = await globalThis.fetch(`${RADIO_API}${path}`, { headers: RADIO_HEADERS });
+  if (!res.ok) throw new Error(`Radio API ${res.status}`);
+  return res.json();
+}
+
+function isUsableTag(tag) {
+  const name = tag.name.trim();
+  if (tag.stationcount < 5) return false;
+  if (name.includes('"') || name.startsWith("#")) return false;
+  if (/^\d/.test(name)) return false;
+  if (name.length > 40) return false;
+  return true;
+}
+
+ipcMain.handle("radio:getCountries", async () => {
   try {
-    const res = await globalThis.fetch(url, {
-      headers: {
-        "User-Agent": "WebRadioApp/1.0"
-      }
-    });
-    return await res.json();
+    const countries = await radioFetch("/countries");
+    return countries
+      .filter(c => c.stationcount > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, "de"));
+  } catch (err) {
+    console.error("Radio countries error:", err);
+    return [];
+  }
+});
+
+ipcMain.handle("radio:getTags", async () => {
+  try {
+    const tags = await radioFetch("/tags?order=stationcount&reverse=true&limit=500");
+    return tags.filter(isUsableTag);
+  } catch (err) {
+    console.error("Radio tags error:", err);
+    return [];
+  }
+});
+
+ipcMain.handle("radio:search", async (_, params) => {
+  const opts = typeof params === "string" ? { name: params } : (params || {});
+  const name = (opts.name || "").trim();
+  const country = (opts.country || "").trim();
+  const genre = (opts.genre || "").trim();
+
+  const query = new URLSearchParams();
+  if (name) query.set("name", name);
+  if (country) query.set("countrycode", country);
+  if (genre) query.set("tag", genre);
+  query.set("limit", "50");
+  query.set("order", "votes");
+  query.set("reverse", "true");
+
+  if (!name && !country && !genre) {
+    query.set("name", "Top");
+  }
+
+  try {
+    return await radioFetch(`/stations/search?${query.toString()}`);
   } catch (err) {
     console.error("Radio fetch error:", err);
     return [];
@@ -388,6 +437,10 @@ app.on("window-all-closed", (e) => {
 });
 
 
-app.on("before-quit", async (e) => {
+app.on("before-quit", async () => {
+  const wasPlaying = !!ffmpegCommand;
   stopAllStreams();
+  if (wasPlaying) eventBus.emit("stop");
+  unregisterMediaKeys();
+  destroyTray();
 });

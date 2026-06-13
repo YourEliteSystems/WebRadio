@@ -19,6 +19,8 @@ export default function App() {
   const [nowPlayingTitle, setNowPlayingTitle] = useState('–');
   const [isPlaying, setIsPlaying] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [tags, setTags] = useState([]);
 
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
@@ -41,13 +43,18 @@ export default function App() {
     }
   }, [nowPlayingStation]);
 
-  // Load initial popular stations and favorites
+  // Load initial popular stations, filters and favorites
   useEffect(() => {
     handleSearch('Top');
     if (window.api?.getFavorites) {
       window.api.getFavorites().then(res => setFavorites(res || []));
     }
-    // Update-Listener registrieren
+    if (window.api?.getCountries) {
+      window.api.getCountries().then(res => setCountries(res || []));
+    }
+    if (window.api?.getTags) {
+      window.api.getTags().then(res => setTags(res || []));
+    }
     if (window.updaterAPI?.onUpdateAvailable) {
       window.updaterAPI.onUpdateAvailable((info) => {
         setUpdateInfo(info);
@@ -56,14 +63,18 @@ export default function App() {
   }, []);
 
   const handleSearch = async (overrideQuery) => {
-    const q = typeof overrideQuery === 'string' ? overrideQuery : searchQuery;
     if (!window.api?.searchRadio) {
       console.warn("searchRadio API not found in window.api. Running in dev without electron?");
       return;
     }
+    const useOverride = typeof overrideQuery === 'string';
+    const q = useOverride ? overrideQuery : searchQuery;
     try {
-      const results = await window.api.searchRadio(q || 'Top');
-      // Filter limits and set
+      const results = await window.api.searchRadio({
+        name: q || '',
+        country: useOverride ? '' : country,
+        genre: useOverride ? '' : genre,
+      });
       setStations(results.slice(0, 50));
     } catch (err) {
       console.error("Fehler bei der Sendersuche:", err);
@@ -172,6 +183,8 @@ export default function App() {
           setCountry={setCountry}
           genre={genre}
           setGenre={setGenre}
+          countries={countries}
+          tags={tags}
           onSearch={handleSearch}
           onLoadFavorites={() => {
             setStations(favorites);

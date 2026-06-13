@@ -1,0 +1,42 @@
+appId: de.yourelitesystems.webradio
+productName: WebRadio
+
+directories:
+  output: dist
+
+files:
+  - electron/**/*
+  - renderer/**/*
+  - plugins/**/*
+  - themes/**/*
+  - assets/**/*
+  - package.json
+
+extraResources:
+  - from: themes
+    to: themes
+
+  - from: plugins
+    to: plugins
+
+win:
+  target:
+    - nsis
+
+  icon: assets/icons/tray.ico
+
+linux:
+  target:
+    - AppImage
+
+  category: AudioVideo
+
+mac:
+  target:
+    - dmg
+
+artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
+
+asar: true
+
+compression: normal

@@ -1,201 +1,240 @@
-# WebRadio Roadmap
+# WebRadio Roadmap (überarbeitet)
 
-Diese Roadmap zeigt die grobe Richtung für kommende WebRadio-Versionen. Sie ist ein Planungsdokument: Reihenfolge, Inhalte und Versionen können sich durch Tests, Aufwand oder neue Prioritäten ändern.
+Diese Roadmap beschreibt die technische Weiterentwicklung von WebRadio mit Fokus auf stabile Architektur, klare Schnittstellen und langfristige Erweiterbarkeit. Reihenfolge und Inhalte können sich je nach Implementierungsaufwand anpassen.
 
-| Version | Status | Schwerpunkt | Zielbild |
-| --- | --- | --- | --- |
-| `v1.0.x` | 🔄 in Arbeit | Stabilisierung | React-Version sauber und schlank machen |
-| `v1.1` | 🧭 geplant | Core-Aufräumung | wartbare Modulstruktur |
-| `v1.2` | 🧭 geplant | Plugin-System | bessere API und mehr Events |
-| `v1.3` | 🧭 geplant | Theme-System | stabilere Themes und Vorschau |
-| `v1.4` | 💡 vorgesehen | App Shell | Tray, Fenster und Media-Keys |
-| `v1.5` | 💡 vorgesehen | Audio & Performance | effizientere Wiedergabe |
-| `v1.6` | 💡 vorgesehen | Sentry & Diagnose | bessere Fehlerberichte |
-| `v2.0` | 🌟 Vision | Erweiterbarer Player | klare Produktbasis mit Community-Potenzial |
+---
 
-## 🔄 v1.0.x - Stabilisierung
+## 🧭 Gesamtstrategie
 
-**Ziel:** Die aktuelle React-Version stabilisieren und Altlasten reduzieren.
+Ziel ist der schrittweise Umbau von einer funktionalen Desktop-App hin zu einer klar modularisierten Plattform mit stabiler Plugin- und Theme-Architektur.
 
-| Bereich | Geplant |
-| --- | --- |
-| Code | Relikte aus der Vor-React-Zeit entfernen |
-| Dependencies | ungenutzte Pakete reduzieren |
-| Audio | Stream-Start, Wechsel und Stop robuster machen |
-| Daten | Favoriten und Verlauf prüfen |
-| Updates | Update-Check stabil halten |
-| Erweiterungen | Plugin- und Theme-Grundsystem funktionsfähig halten |
+Kernprinzipien:
 
-Mögliche Kandidaten:
+* Strikte Trennung von Core, Plugins und Renderer
+* Keine direkte Kopplung von Plugins an interne Implementierungen
+* Audio-Pipeline als eigenständiges, isoliertes System
+* IPC nur über definierte Schnittstellen
+* Versionierte Plugin-API ab v1.2
 
-- `database.js` entfernen
-- alte DOM-basierte Renderer-Services entfernen
-- nicht genutzte Tracking-/Analytics-Pakete entfernen
-- Sentry parken, aber nicht aufgeben
+---
 
-## 🧱 v1.1 - Core-Aufräumung
+## 🔄 v1.0.x – Stabilisierung (aktueller Fokus)
 
-**Ziel:** Die interne Struktur besser wartbar machen, damit neue Features nicht direkt in `main.js` landen.
+**Ziel:** React-Integration stabilisieren und Altlasten entfernen
 
-Geplant:
+### Aufgaben
 
-- Core-Struktur neu ordnen
-- Plugin-System nach `electron/core/plugins/` verschieben
-- Audio-Logik aus `main.js` auslagern
-- Update-Logik nach `electron/core/updates/` verschieben
-- EventBus und Plugin-Events sauberer trennen
-- Window- und Settings-Window-Logik vorbereiten
+* Entfernung alter DOM-/Legacy-Module
+* Bereinigung ungenutzter Dependencies
+* Stabilisierung von Stream-Start, Wechsel und Stop
+* Sicherstellung stabiler Favoriten- und Verlaufssysteme
+* Update-System stabilisieren
+* Grundlegende Plugin- und Theme-Kompatibilität sicherstellen
 
-Mögliche Struktur:
+### Kritische Punkte
 
-```txt
+* `main.js` bleibt vorerst zentral, aber ohne neue Logik
+* keine neuen Systeme in den Core einführen
+
+---
+
+## 🧱 v1.1 – Architektur-Refactoring (Core-Struktur)
+
+**Ziel:** Einführung klarer Module und Entkopplung des Electron-Main-Prozesses
+
+### Zielstruktur
+
 electron/core/
-  app/
-  audio/
-  events/
-  plugins/
-  storage/
-  themes/
-  updates/
-```
+app/
+window/
+audio/
+ipc/
+plugins/
+themes/
+updates/
+events/
 
-## 🔌 v1.2 - Plugin-System Ausbau
+### Aufgaben
 
-**Ziel:** Plugins sollen leichter wartbar, dokumentierbar und erweiterbar werden.
+* Einführung von Manager-Strukturen:
 
-| Thema | Geplant |
-| --- | --- |
-| API | Plugin-API-Versionen einführen |
-| Events | Events vereinheitlichen |
-| Settings | Plugin-Einstellungen vorbereiten |
-| Runtime | Plugin-Konfiguration vom Laufzeitcode trennen |
-| Renderer | Renderer-Plugins klarer einbinden |
-| Doku | Developer Guide erweitern |
+  * WindowManager
+  * AudioManager
+  * PluginManager
+  * IPCManager
+  * UpdateManager
+* Entfernung von Logik aus `main.js`
+* Einführung eines zentralen EventBus (Core-intern)
+* Vorbereitung für stabile Plugin-API
 
-Mögliche Funktionen:
+### Ergebnis
 
-- Plugin-Einstellungen im Settings-Fenster
-- Plugin-Statusanzeige
-- besserer Reload ohne App-Neustart
-- einfache Beispiel-Plugins
+* `main.js` nur noch Bootstrap-Layer
 
-## 🎨 v1.3 - Theme-System Neuordnung
+---
 
-**Ziel:** Das Theme-System von der Übergangslösung zu einem stabileren System machen.
+## 🔌 v1.2 – Plugin-System (API-Fundament)
 
-Geplant:
+**Ziel:** Stabil definierte Plugin-Schnittstelle mit Versionskontrolle
 
-- Theme-Manager einführen
-- Theme-Metadaten erweitern
-- CSS-Variablen standardisieren
-- Theme-Kompatibilität zur App-Version kennzeichnen
-- Theme-Wechsel im Renderer sauberer behandeln
-- Developer Guide für Themes erweitern
+### Kernfeatures
 
-Mögliche Funktionen:
+* Einführung `apiVersion` im Plugin-Manifest
+* Standardisierte Plugin-Lifecycle-Events
+* Trennung von Core und Plugin Runtime
+* Einführung eines kontrollierten API-Layers
 
-- Theme-Vorschau
-- Live-Preview
-- Theme-Import
-- Theme-Export
-- bessere Theme-Beispiele
+### Plugin-Regeln
 
-## 🪟 v1.4 - App Shell
+* Kein direkter Zugriff auf Core-Module
+* Zugriff nur über `api.*`
+* Event-basierte Kommunikation
+* Renderer-Plugins nur über definierte Bridge
 
-**Ziel:** Desktop-Funktionen zentralisieren und wieder aktivieren.
+### Beispielstruktur
 
-| Bereich | Geplant |
-| --- | --- |
-| Fenster | WindowManager für MainWindow und SettingsWindow |
-| Tray | Tray-System neu anbinden |
-| Hintergrund | Minimieren und Wiederherstellen sauber behandeln |
-| Steuerung | Media-Keys reaktivieren |
-| Start | Autostart und Start minimiert prüfen |
+{
+"name": "DiscordRPC",
+"version": "1.0.0",
+"apiVersion": "1.0"
+}
 
-Mögliche Funktionen:
+### API-Basis
 
-- minimieren in den Tray
-- Tray-Menü mit Play, Stop, Einstellungen und Beenden
-- globale Media-Tasten
-- optionaler Autostart
-- optionaler Start minimiert
+* api.audio
+* api.stations
+* api.events
+* api.settings
 
-## 🎧 v1.5 - Audio und Performance
+---
 
-**Ziel:** Die Wiedergabe effizienter und robuster machen.
+## 🎨 v1.3 – Theme-System (Standardisierung)
 
-Geplant:
+**Ziel:** Einheitliches, stabiles Theme-System ohne Logikabhängigkeit
 
-- PCM-IPC-Verkehr reduzieren oder besser puffern
-- AudioWorklet-Buffering verbessern
-- Ringbuffer für PCM-Daten prüfen
-- Visualizer effizienter zeichnen
-- Renderer-Listener mit sauberem Cleanup versehen
-- bessere Fehlerbehandlung bei toten oder langsamen Streams
+### Aufgaben
 
-Mögliche Funktionen:
+* Einführung ThemeManager
+* Standardisierung von CSS Variables
+* Trennung Theme-Daten vs. UI-Logik
+* Versionierung von Themes
 
-- Stream-Fehleranzeige
-- automatische Wiederverbindung
-- sauberer Senderwechsel ohne Hänger
-- optionale Audio-Diagnose im Debug-Modus
+### Funktionen (optional)
 
-## 🧪 v1.6 - Sentry und Diagnose
+* Theme Preview
+* Live Switch
+* Theme Import/Export
 
-**Ziel:** Fehlerberichte für größere Testgruppen wieder sauber nutzbar machen.
+---
 
-Geplant:
+## 🪟 v1.4 – App Shell (Desktop-Integration)
 
-- Sentry mit React-Bundle neu anbinden
-- Sourcemaps für Renderer-Build erzeugen
-- Sentry-Release-Upload prüfen
-- Fehlerkontext für Streams, Plugins und App-Version erfassen
-- Datenschutz-Hinweise vorbereiten
+**Ziel:** Vollständige Desktop-Integration stabilisieren
 
-Mögliche Funktionen:
+### Aufgaben
 
-- opt-in Fehlerberichte
-- interne Diagnoseanzeige
-- bessere Crash- und Fehlerlogs
+* WindowManager finalisieren
+* Tray-System implementieren
+* Media-Key Support aktivieren
+* Background Mode stabilisieren
+* Autostart optional integrieren
 
-## 🌟 v2.0 - Erweiterbarer WebRadio-Player
+### Funktionen
 
-**Ziel:** WebRadio als klar erweiterbaren Desktop-Radio-Player positionieren.
+* Tray Controls (Play/Stop/Exit)
+* Fensterzustände synchronisiert
+* globale Mediensteuerung
 
-Mögliche große Funktionen:
+---
 
-- stabilere Plugin-API
-- Plugin-Permissions
-- Plugin-Settings
-- ausgebautes Theme-System
-- bessere Senderverwaltung
-- erweiterte Suche und Filter
-- stabiler Tray- und Media-Key-Support
-- bessere Release- und Update-Erfahrung
-- Wiki für Plugin- und Theme-Entwicklung
+## 🎧 v1.5 – Audio & Performance (kritischer Bereich)
 
-## 💡 Ideen für spätere Versionen
+**Ziel:** stabile und performante Audio-Architektur
 
-Diese Punkte sind Ideen, aber noch nicht fest geplant:
+### Aufgaben
 
-| Idee | Nutzen |
-| --- | --- |
-| Equalizer | mehr Kontrolle über Klang |
-| Aufnahmefunktion | Streams lokal mitschneiden |
-| Sleep-Timer | App automatisch stoppen |
-| Wecker | Sender zeitgesteuert starten |
-| Benachrichtigungen | neuer Song oder Senderstatus |
-| Stream-Health | Qualität und Erreichbarkeit anzeigen |
-| eigene Senderquellen | mehr Flexibilität |
-| Favoriten-Import/-Export | bessere Sicherung |
-| Plugin-/Theme-Galerie | Community-Inhalte leichter nutzen |
-| offizielle Linux-Builds | breitere Plattformunterstützung |
-| macOS-Builds | spätere Plattformoption |
+* Reduzierung von IPC-Audio-Overhead
+* Einführung eines Ringbuffers für PCM
+* Optimierung AudioWorklet
+* stabiler Stream-Wechsel ohne Unterbrechungen
+* Fehler- und Reconnect-Handling
 
-## 🧭 Prioritäten
+### Zielbild
 
-| Zeitraum | Fokus |
-| --- | --- |
-| kurzfristig | `v1.0.4` stabilisieren, Altcode entfernen, Dependencies reduzieren |
-| mittelfristig | Core-Struktur umbauen, Plugin-System erweitern, Theme-System neu ordnen |
-| langfristig | Sentry reaktivieren, Desktop-Funktionen ausbauen, Wiki und Community-Erweiterungen ermöglichen |
+* Audio läuft unabhängig vom Renderer
+* keine UI-Abhängigkeit im Audiofluss
+
+---
+
+## 🧪 v1.6 – Observability & Debugging
+
+**Ziel:** saubere Fehleranalyse und Monitoring
+
+### Aufgaben
+
+* Sentry Integration (React + Electron)
+* Sourcemap Pipeline
+* strukturierte Error Logs
+* optionaler Debug-Mode im UI
+
+### Features
+
+* Opt-in Crash Reporting
+* Kontextuelle Fehlerdaten (Stream, Plugin, Version)
+
+---
+
+## 🌟 v2.0 – Plattform-Release
+
+**Ziel:** WebRadio als erweiterbare Plattform
+
+### Kernziele
+
+* stabile Plugin-API (finalisiert)
+* erweitertes Theme-System
+* Community-Erweiterbarkeit
+* stabile Desktop Shell
+* langfristige API-Kompatibilität
+
+### Erweiterungen
+
+* Plugin Permissions System
+* Plugin Settings UI
+* Theme Gallery Konzept
+* erweiterte Senderverwaltung
+* stabile Update Pipeline
+
+---
+
+## 💡 Zukunftsideen (optional)
+
+* Equalizer
+* Sleep Timer / Wecker
+* Aufnahmefunktion
+* Stream Health Monitoring
+* Favoriten Import/Export
+* Community Plugin Store
+* Linux / macOS Builds
+
+---
+
+## 🧭 Prioritätenmodell
+
+### kurzfristig
+
+* Stabilisierung v1.0.x
+* Altcode entfernen
+* React sauber integrieren
+
+### mittelfristig
+
+* Core Refactoring (v1.1)
+* Plugin API (v1.2)
+* Theme System (v1.3)
+
+### langfristig
+
+* App Shell
+* Audio Performance
+* Observability
+* Plattform-Ausbau (v2.0)

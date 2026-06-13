@@ -7,8 +7,10 @@ contextBridge.exposeInMainWorld('api', {
   addFavorite: (fav) => ipcRenderer.invoke("favorites:add", fav),
   removeFavorite: (url) => ipcRenderer.invoke("favorites:remove", url),
 
-  // RADIO SEARCH
-  searchRadio: (name) => ipcRenderer.invoke("radio:search", name),
+  // RADIO SEARCH & FILTER
+  searchRadio: (params) => ipcRenderer.invoke("radio:search", params),
+  getCountries: () => ipcRenderer.invoke("radio:getCountries"),
+  getTags: () => ipcRenderer.invoke("radio:getTags"),
 
   // SETTINGS && PLUGINS SYSTEM
   openSettings: () => ipcRenderer.send("open-settings"),

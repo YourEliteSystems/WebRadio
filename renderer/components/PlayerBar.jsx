@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getAnalyser } from '../services/playerService';
+import { applyThemeCss, resolveActiveTheme } from '../services/themeService';
 
 export default function PlayerBar({ 
   station, 
@@ -16,60 +17,24 @@ export default function PlayerBar({
   const [themes, setThemes] = useState([]);
   const [currentTheme, setCurrentTheme] = useState('');
 
-  // Load Themes
+  // Theme-Liste für den Selector (Stylesheet wird bereits beim Bootstrap gesetzt)
   useEffect(() => {
-    if (window.themeAPI && window.themeAPI.getThemes) {
-      window.themeAPI.getThemes().then(res => {
-        setThemes(res);
-        if (res.length > 0) {
-          window.themeAPI.getActiveTheme().then(activeId => {
-            const link = document.getElementById("theme-style");
-            let targetCss = null;
+    if (!window.themeAPI?.getThemes) return;
 
-            if (activeId) {
-              const found = res.find(t => t.id === activeId);
-              if (found) targetCss = found.css;
-            }
-
-            if (!targetCss) {
-              if (link && link.getAttribute("href")) {
-                targetCss = link.getAttribute("href");
-              } else {
-                targetCss = res.length > 1 ? res[1].css : res[0].css;
-              }
-            }
-
-            setCurrentTheme(targetCss);
-            
-            if (link && targetCss && !link.getAttribute("href")) {
-              const fileUrl = targetCss.startsWith('file://') ? targetCss : 'file:///' + targetCss.replace(/\\/g, '/');
-              link.href = fileUrl;
-            } else if (link && targetCss !== link.getAttribute("href") && activeId) {
-              // If activeId was found from settings, enforce it
-              const fileUrl = targetCss.startsWith('file://') ? targetCss : 'file:///' + targetCss.replace(/\\/g, '/');
-              link.href = fileUrl;
-            }
-          });
-        }
-      });
-    }
+    Promise.all([
+      window.themeAPI.getThemes(),
+      window.themeAPI.getActiveTheme()
+    ]).then(([res, activeId]) => {
+      setThemes(res);
+      const theme = resolveActiveTheme(res, activeId);
+      if (theme) setCurrentTheme(theme.css);
+    });
   }, []);
 
   const handleThemeChange = (e) => {
     const cssPath = e.target.value;
     setCurrentTheme(cssPath);
-    let link = document.getElementById("theme-style");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.id = "theme-style";
-      document.head.appendChild(link);
-    }
-    // Convert absolute Windows path to a proper file:// URL
-    const fileUrl = cssPath.startsWith('file://')
-      ? cssPath
-      : 'file:///' + cssPath.replace(/\\/g, '/');
-    link.href = fileUrl;
+    applyThemeCss(cssPath);
 
     const foundTheme = themes.find(t => t.css === cssPath);
     if (foundTheme && window.themeAPI.setActiveTheme) {
