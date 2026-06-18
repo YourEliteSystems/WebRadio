@@ -1,9 +1,9 @@
 const { ipcMain, BrowserWindow } = require("electron");
 
-function registerWindowHandlers() {
+function registerWindowHandlers(windowManager) {
 
   ipcMain.on("open-settings", () => {
-    windowManager.createSettingsWindow();
+    windowManager.openSettings();
   });
 
   ipcMain.on("window:minimize", (event) => {

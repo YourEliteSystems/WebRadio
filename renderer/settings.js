@@ -114,9 +114,14 @@ const currentVerEl    = document.getElementById("currentVersion");
 // Aktuelle Version anzeigen
 if (window.updaterAPI?.getVersion) {
   window.updaterAPI.getVersion().then(v => {
-    if (currentVerEl) currentVerEl.textContent = `v${v}`;
+    const label = `v${v}`;
+    if (currentVerEl) currentVerEl.textContent = label;
+    const aboutVerEl = document.getElementById("currentVersionAbout");
+    if (aboutVerEl) aboutVerEl.textContent = label;
   });
 }
+ 
+console.log("Update API:", window.updaterAPI?.getVersion);
 
 function setUpdateState(state, data = {}) {
   updateIcon.className = `update-status-icon ${state}`;

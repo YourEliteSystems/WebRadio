@@ -4,7 +4,7 @@ const path = require("path");
 let tray = null;
 
 function createTray(mainWindow, { openSettings, checkForUpdates }) {
-  const iconPath = path.join(__dirname, "../../assets/icons/tray.ico");
+  const iconPath = path.join(__dirname, "../../../assets/icons/tray.ico");
 
   tray = new Tray(iconPath);
 
