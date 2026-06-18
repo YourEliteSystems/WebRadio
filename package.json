@@ -4,22 +4,18 @@
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systms",
-"scripts": {
-  "start": "npm run build-react && electron-forge start",
-  "package": "npm run build-react && electron-forge package",
-  "make": "npm run build-react && electron-forge make",
-
-  "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm",
-
-  "builder": "npm run build-react && electron-builder",
-  "builder:win": "npm run build-react && electron-builder --win",
-  "builder:linux": "npm run build-react && electron-builder --linux",
-  "builder:dir": "npm run build-react && electron-builder --dir",
-
-  "publish": "npm run build-react && electron-forge publish",
-
-  "sentry:sourcemaps": "sentry-cli sourcemaps inject --org black-beast-gaming --project electron ./renderer/dist && sentry-cli sourcemaps upload --org black-beast-gaming --project electron ./renderer/dist"
-},
+  "scripts": {
+    "start": "npm run build-react && electron-forge start",
+    "package": "npm run build-react && electron-forge package",
+    "make": "npm run build-react && electron-forge make",
+    "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm",
+    "builder": "npm run build-react && electron-builder",
+    "builder:win": "npm run build-react && electron-builder --win",
+    "builder:linux": "npm run build-react && electron-builder --linux",
+    "builder:dir": "npm run build-react && electron-builder --dir",
+    "publish": "npm run build-react && electron-forge publish",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org black-beast-gaming --project electron ./renderer/dist && sentry-cli sourcemaps upload --org black-beast-gaming --project electron ./renderer/dist"
+  },
   "config": {
     "forge": "./forge.config.js"
   },
@@ -36,13 +32,11 @@
     "@types/node": "^25.6.0",
     "electron": "^40.7.0",
     "electron-builder": "^26.15.3",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "semantic-release": "^21.0.7",
     "typescript": "^6.0.2"
   },
   "dependencies": {
-    "@sentry/cli": "^2.58.5",
-    "@sentry/electron": "^7.10.0",
     "discord-rpc": "^4.0.1",
     "electron-squirrel-startup": "^1.0.1",
     "ffmpeg-static": "^5.3.0",
