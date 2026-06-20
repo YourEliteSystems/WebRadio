@@ -5,6 +5,7 @@ const { registerAllIpc } = require("./core/ipc/registerIpcHandlers");
 const pluginManager = require("./plugins/pluginManager");
 const { createTray, destroyTray } = require("./core/system/tray");
 const { registerMediaKeys, unregisterMediaKeys } = require("./core/mediaKeys");
+const { checkForUpdates } = require("./core/updater");
 
 const isDev = !app.isPackaged;
 
@@ -22,8 +23,9 @@ app.whenReady().then(() => {
   // System Features
   registerMediaKeys(window.getMainWindow());
 
-  createTray(window.getMainWindow(),{
-    openSettings: () => window.openSettings()
+  createTray(window.getMainWindow(), {
+    openSettings: () => window.openSettings(),
+    checkForUpdates: () => checkForUpdates()
   });
 });
 

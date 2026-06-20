@@ -19,9 +19,9 @@ async function getMirrors() {
   try {
     if (fs.existsSync(cache_file)) {
       const cache = JSON.parse(fs.readFileSync(cache_file, "utf8"));
-      const age = Date.now() - cache.timestamp;
+      const age = Date.now() - cache.updated;
       if (age < 24 * 60 * 60 * 1000) {
-        return cache.mirrors;
+        return cache.servers;
       }
     }
   } catch { }
