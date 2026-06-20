@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const eventBus = require("../core/eventBus");
-
+const { createPluginContext } = require("../core/plugins/PluginContext");
 const plugins = [];
 
 function getPlugins() {
@@ -89,8 +89,10 @@ function stopPlugin(id) {
   const p = plugins[index];
   
   // Call destroy if exists
-  if (p.instance.destroy) {
-    safeExecute(p.instance.destroy);
+  if(typeof p.instance.destroy === "function") {
+    safeExecute(() => p.instance.destroy());
+  } else if(typeof p.instance.destroy === "function") {
+    safeExecute(p.instance.destroy());
   }
   
   // Remove listeners
@@ -129,6 +131,14 @@ function startPlugin(dir, meta) {
 
     plugins.push({ meta, instance, dir, listeners });
     
+    const context = createPluginContext(meta);
+
+    if(typeof instance.init === "function") {
+      safeExecute(() => instance.init(context));
+    }else if(typeof instance.init === "function") {
+      safeExecute(instance.init(context));
+    }
+
     if (instance.init) {
       safeExecute(instance.init);
     }

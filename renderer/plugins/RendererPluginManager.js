@@ -3,12 +3,33 @@ const injectedScripts = new Map();
 
 window.registerPluginRenderer = (id, hooks) => {
   activePlugins.set(id, hooks);
+
   if (hooks.init) {
-    try { hooks.init(); } catch (err) { console.error(`Plugin ${id} init error:`, err); }
+    try {
+       hooks.init();
+       } catch (err) {
+         console.error(`Plugin ${id} init error:`, err);
+    }
   }
 };
 
-export async function loadRendererPlugins() {
+window.registerPlugin = (plugin) => {
+  if(!plugin?.id){
+    console.error("[PluginLoader] Plugin registration failed: Missing 'id'", plugin);
+    return;
+  }
+  activePlugins.set(plugin.id, plugin);
+
+  if(typeof plugin.activate === "function"){
+    try {
+      plugin.activate({pluginId: plugin.id});
+    }catch (err) {
+      console.error(`Plugin ${plugin.id} activation error:`, err);
+    }
+  }
+};
+
+async function loadRendererPlugins() {
   if (window.api && window.api.getRendererScripts) {
     try {
       const scripts = await window.api.getRendererScripts();
@@ -27,6 +48,10 @@ export async function loadRendererPlugins() {
         const hooks = activePlugins.get(id);
         if (hooks && hooks.destroy) {
           try { hooks.destroy(); } catch (err) { console.error(`Plugin ${id} destroy error:`, err); }
+        }
+        const plugin = activePlugins.get(id);
+        if (plugin && typeof plugin.deactivate === "function") {
+          try { plugin.deactivate({pluginId: id}); } catch (err) { console.error(`Plugin ${id} deactivation error:`, err); }
         }
         activePlugins.delete(id);
         
@@ -68,6 +93,4 @@ function injectScript(scriptUrl, explicitId = null) {
     injectedScripts.set(id, script);
   }
 }
-
-// Automatically load on import
-loadRendererPlugins();
+export { loadRendererPlugins };

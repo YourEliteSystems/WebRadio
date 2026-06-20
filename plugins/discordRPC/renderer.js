@@ -1,8 +1,9 @@
 let toast = null;
 let timeoutId = null;
 
-window.registerPluginRenderer("discordRPC", {
-  init: () => {
+window.registerPlugin({
+  id: "discordRPC", 
+  activate: () => {
     const app = document.getElementById("app") || document.body;
     
     toast = document.createElement("div");
@@ -43,7 +44,7 @@ window.registerPluginRenderer("discordRPC", {
       }
     }, 3000);
   },
-  destroy: () => {
+  deactivate: () => {
     if (timeoutId) clearTimeout(timeoutId);
     if (toast && toast.parentNode) {
       toast.parentNode.removeChild(toast);

@@ -1,14 +1,52 @@
+const fs = require("fs");
+const path = require("path");
+const { app } = require("electron");
+
+const cache_file = path.join(app.getPath("userData"), "radiobrowser-servers.json");
+
 const RADIO_MIRRORS = [
   "https://de1.api.radio-browser.info/json",
-  "https://nl1.api.radio-browser.info/json",
-  "https://at1.api.radio-browser.info/json",
+  "https://fi1.api.radio-browser.info/json"
 ];
 const RADIO_HEADERS = { "User-Agent": "WebRadioApp/1.0" };
 
+async function fetchServerList() {
+  const res = await fetch("https://de1.api.radio-browser.info/json/servers");
+  return await res.json();
+}
+
+async function getMirrors() {
+  try {
+    if (fs.existsSync(cache_file)) {
+      const cache = JSON.parse(fs.readFileSync(cache_file, "utf8"));
+      const age = Date.now() - cache.timestamp;
+      if (age < 24 * 60 * 60 * 1000) {
+        return cache.mirrors;
+      }
+    }
+  } catch { }
+  try {
+    const servers = await fetchServerList();
+      const mirrors =
+      servers.map(
+        s => `https://${s.name}/json`
+      );
+    fs.mkdirSync(path.dirname(cache_file), { recursive: true });
+    fs.writeFileSync(cache_file, JSON.stringify({
+      updated: Date.now(),
+      servers: mirrors
+    }));
+    return mirrors;
+  }catch(err) {
+    console.warn("[RadioBrowser] Serverliste konnte nicht geladen werden. Err Message:", err.message);
+  }
+  return RADIO_MIRRORS;
+}
 async function radioFetch(path) {
   let lastError;
+  const mirrors = await getMirrors();
 
-  for (const base of RADIO_MIRRORS) {
+  for (const base of mirrors) {
     try {
       const res = await globalThis.fetch(`${base}${path}`, {
         headers: RADIO_HEADERS,
