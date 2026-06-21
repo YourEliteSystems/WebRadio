@@ -8,6 +8,7 @@ Dieser Guide richtet sich an alle, die eigene **Themes** oder **Plugins** für W
 | App-Version | `v1.0.4` in Entwicklung |
 | API-Status | nutzbar, aber noch im Ausbau |
 | Interne Planung | [docs/internal-notes.md](./docs/internal-notes.md) |
+| Plugin-Portierung | [docs/plugin-development-guide.md](./docs/plugin-development-guide.md) |
 
 > Die aktuelle Plugin- und Theme-Struktur funktioniert, ist aber noch nicht final. Baue neue Erweiterungen möglichst klein und räume Ressourcen sauber wieder auf.
 

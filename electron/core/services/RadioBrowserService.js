@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+let activeMirror = null;
+let mirrorCache = null;
 
 const cache_file = path.join(app.getPath("userData"), "radiobrowser-servers.json");
 
@@ -11,11 +13,19 @@ const RADIO_MIRRORS = [
 const RADIO_HEADERS = { "User-Agent": "WebRadioApp/1.0" };
 
 async function fetchServerList() {
-  const res = await fetch("https://de1.api.radio-browser.info/json/servers");
+  const res = await fetch("https://de1.api.radio-browser.info/json/servers",{
+    headers: RADIO_HEADERS,
+    signal: AbortSignal.timeout(8000)   // 8 s Timeout
+  });
+  if(!res.ok) throw new Error(`Radio API ${res.status}`);
   return await res.json();
 }
 
 async function getMirrors() {
+  if (mirrorCache) {
+    console.log("[RadioBrowser] Serverliste aus Cache");
+    return mirrorCache;
+  }
   try {
     if (fs.existsSync(cache_file)) {
       const cache = JSON.parse(fs.readFileSync(cache_file, "utf8"));
@@ -27,10 +37,10 @@ async function getMirrors() {
   } catch { }
   try {
     const servers = await fetchServerList();
-      const mirrors =
+      const mirrors = [ ...new Set(
       servers.map(
         s => `https://${s.name}/json`
-      );
+      ))];
     fs.mkdirSync(path.dirname(cache_file), { recursive: true });
     fs.writeFileSync(cache_file, JSON.stringify({
       updated: Date.now(),
@@ -44,20 +54,19 @@ async function getMirrors() {
 }
 async function radioFetch(path) {
   let lastError;
-  const mirrors = await getMirrors();
-
-  for (const base of mirrors) {
+  const mirror = await getMirrors();
+  for (const base of mirror) {
     try {
       const res = await globalThis.fetch(`${base}${path}`, {
         headers: RADIO_HEADERS,
         signal: AbortSignal.timeout(8000),   // 8 s Timeout pro Versuch
       });
-
       if (!res.ok) throw new Error(`Radio API ${res.status}`);
+      activeMirror = base;
       return res.json();
 
     } catch (err) {
-      console.warn(`[RadioBrowser] ${base} fehlgeschlagen:`, err.message);
+      console.warn(`[RadioBrowser] ${base} fehlgeschlagen:`, err.message, err.cause?.code);
       lastError = err;
       // kurze Pause vor dem nächsten Mirror
       await new Promise(r => setTimeout(r, 300));
@@ -128,8 +137,12 @@ async function search(params) {
   );
 }
 
+function getActiveMirror() {
+  return activeMirror;
+} 
 
 module.exports = {
+  getActiveMirror,
   getCountries,
   getTags,
   search

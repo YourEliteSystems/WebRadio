@@ -127,6 +127,7 @@ WebRadio/
 | Datei | Inhalt |
 | --- | --- |
 | [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) | Themes und Plugins erstellen |
+| [docs/plugin-development-guide.md](./docs/plugin-development-guide.md) | Plugin-System, Portierung und neue Plugin-API |
 | [docs/roadmap.md](./docs/roadmap.md) | Meilensteine und geplante Funktionen |
 | [docs/internal-notes.md](./docs/internal-notes.md) | interne technische Planung |
 

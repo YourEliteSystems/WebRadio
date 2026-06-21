@@ -13,8 +13,7 @@
     "builder:win": "npm run build-react && electron-builder --win",
     "builder:linux": "npm run build-react && electron-builder --linux",
     "builder:dir": "npm run build-react && electron-builder --dir",
-    "publish": "npm run build-react && electron-forge publish",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org black-beast-gaming --project electron ./renderer/dist && sentry-cli sourcemaps upload --org black-beast-gaming --project electron ./renderer/dist"
+    "publish": "npm run build-react && electron-forge publish"
   },
   "config": {
     "forge": "./forge.config.js"
