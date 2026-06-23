@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: WebRadio Documentation
+    url: https://github.com/YourEliteSystems/WebRadio/wiki
+    about: Bitte zuerst die Dokumentation lesen.
