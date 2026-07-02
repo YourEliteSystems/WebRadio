@@ -1,28 +1,58 @@
 class PluginManager {
 
-  constructor() {
-    this.plugins = new Map();
-  }
+    constructor() {
 
-  loadPlugins() {
+        this.plugins = new Map();
 
-  }
+    }
 
-  loadPlugin(pluginPath) {
+    loadPlugins() {
 
-  }
+        const plugins =
+            PluginLoader.discoverPlugins();
 
-  enablePlugin(id) {
+        for (const plugin of plugins) {
 
-  }
+            this.plugins.set(
+                plugin.id,
+                plugin
+            );
 
-  disablePlugin(id) {
+        }
 
-  }
+    }
 
-  getPlugins() {
-    return [...this.plugins.values()];
-  }
+    enablePlugin(id) {
+
+        const plugin =
+            this.plugins.get(id);
+
+        if (!plugin)
+            return false;
+
+        return PluginRuntime.start(plugin);
+
+    }
+
+    disablePlugin(id) {
+
+        const plugin =
+            this.plugins.get(id);
+
+        if (!plugin)
+            return false;
+
+        return PluginRuntime.stop(plugin);
+
+    }
+
+    getPlugins() {
+
+        return [
+            ...this.plugins.values()
+        ];
+
+    }
 
 }
 

@@ -1,20 +1,35 @@
+const path = require("path");
+
+const storage = require("../storage");
+const eventBus = require("../eventBus");
+
+const ThemeLoader = require("./ThemeLoader");
+
 class ThemeManager {
 
-  async getThemes() {
-    // komplette Theme-Logik
+  constructor(themesPath) {
+
+    this.loader = new ThemeLoader(
+      themesPath
+    );
+
+  }
+
+  getThemes() {
+    return this.loader.getThemes();
   }
 
   getActiveTheme() {
-    return SettingsManager.get().theme || "";
+    return storage.getSettings()?.theme || "";
   }
 
   setActiveTheme(themeId) {
 
-    SettingsManager.update({
+    storage.updateSettings({
       theme: themeId
     });
 
-    eventBus.emit("themechange", {
+    eventBus.emit("theme:changed", {
       theme: themeId
     });
 
@@ -22,4 +37,4 @@ class ThemeManager {
 
 }
 
-module.exports = new ThemeManager();
+module.exports = ThemeManager;

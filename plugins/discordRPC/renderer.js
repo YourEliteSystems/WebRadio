@@ -4,8 +4,6 @@ let timeoutId = null;
 window.registerPlugin({
   id: "discordRPC", 
   activate: () => {
-    const app = document.getElementById("app") || document.body;
-    
     toast = document.createElement("div");
     toast.textContent = "Discord verbunden";
     toast.style.position = "fixed";
@@ -23,12 +21,20 @@ window.registerPlugin({
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
     
-    app.appendChild(toast);
+    // Register the toast to the app-overlay slot
+    if (window.uiRegistry) {
+      window.uiRegistry.registerSlot("app-overlay", "discordRPC", () => toast);
+    }
     
     // Animate in
     requestAnimationFrame(() => {
-      toast.style.opacity = "1";
-      toast.style.transform = "translateY(0)";
+      // Need a slight delay to ensure it's mounted by React
+      setTimeout(() => {
+        if (toast) {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateY(0)";
+        }
+      }, 50);
     });
     
     timeoutId = setTimeout(() => {
@@ -38,8 +44,8 @@ window.registerPlugin({
         setTimeout(() => {
           if (toast && toast.parentNode) {
             toast.parentNode.removeChild(toast);
-            toast = null;
           }
+          toast = null;
         }, 300);
       }
     }, 3000);
@@ -50,5 +56,6 @@ window.registerPlugin({
       toast.parentNode.removeChild(toast);
     }
     toast = null;
+    // The uiRegistry unregisters automatically when the plugin is deactivated by PluginManager
   }
 });

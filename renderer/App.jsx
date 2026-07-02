@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
+import PluginView from './ui/PluginView.jsx';
+import PluginSlot from './ui/PluginSlot.jsx';
 import { playStream, setVolume } from './services/playerService';
 
 export default function App() {
+  const [currentView, setCurrentView] = useState('home');
   const [stations, setStations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [country, setCountry] = useState('');
@@ -89,8 +92,8 @@ export default function App() {
     setIsPlaying(true);
 
     // Track in history if api available
-    if (window.api?.addHistory) {
-      window.api.addHistory({
+    if (window.pluginAPI?.addHistory) {
+      window.pluginAPI.addHistory({
         name: station.name,
         url: url,
         favicon: station.favicon || station.logo
@@ -177,6 +180,8 @@ export default function App() {
 
       <div id="main-container">
         <Sidebar
+          currentView={currentView}
+          setCurrentView={setCurrentView}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           country={country}
@@ -190,24 +195,32 @@ export default function App() {
             setStations(favorites);
           }}
           onLoadHistory={() => {
-            if (window.api?.getHistory) {
-              window.api.getHistory().then(res => setStations(res));
+            if (window.pluginAPI?.getHistory) {
+              window.pluginAPI.getHistory().then(res => setStations(res));
             }
           }}
         />
 
         <main className="content">
-          <div className="content-header">
-            <h1>Entdecken</h1>
-          </div>
-          <StationGrid
-            stations={stations}
-            favorites={favorites}
-            onPlay={handlePlay}
-            onToggleFavorite={handleToggleFavorite}
-          />
+          {currentView === 'home' ? (
+            <>
+              <div className="content-header">
+                <h1>Entdecken</h1>
+              </div>
+              <StationGrid
+                stations={stations}
+                favorites={favorites}
+                onPlay={handlePlay}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            </>
+          ) : (
+            <PluginView viewId={currentView} />
+          )}
         </main>
       </div>
+
+      <PluginSlot id="app-overlay" />
 
       <PlayerBar
         station={nowPlayingStation}

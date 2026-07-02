@@ -6,7 +6,7 @@ Der Guide richtet sich an Theme-Entwickler und Core-Entwickler, die das Aussehen
 
 | Bereich | Stand |
 | --- | --- |
-| App-Version | `v1.0.4` (in Entwicklung für `v1.1`) |
+| App-Version | `v1.0.5` (in Entwicklung für `v1.1`) |
 | Empfohlene Struktur | `themes/<themeId>/variables.css` |
 | Legacy-Kompatibilität | Ja (Themes mit `style.css` und altem JSON-Schema laufen weiter) |
 | API-Status | Modernisiert & Abwärtskompatibel |

@@ -10,21 +10,21 @@ const { checkForUpdates } = require("./core/updater");
 const isDev = !app.isPackaged;
 
 app.whenReady().then(() => {
-  const window = new WindowManager(isDev);
+  const windowManager = new WindowManager(isDev);
 
-  window.createMainWindow();
+  windowManager.createMainWindow();
 
   // IPC komplett auslagern
-  registerAllIpc(window);
+  registerAllIpc(windowManager);
 
   // Plugins
   pluginManager.loadPlugins();
 
   // System Features
-  registerMediaKeys(window.getMainWindow());
+  registerMediaKeys(windowManager.getMainWindow());
 
-  createTray(window.getMainWindow(), {
-    openSettings: () => window.openSettings(),
+  createTray(windowManager.getMainWindow(), {
+    openSettings: () => windowManager.openSettings(),
     checkForUpdates: () => checkForUpdates()
   });
 });

@@ -3,7 +3,11 @@ const VALID_PERMISSIONS = [
     "storage",
     "settings",
     "theme",
-    "ui"
+    "ui",
+
+    "audio",
+    "notifications",
+    "network",
 ];
 
 function validatePermissions(permissions = []) {
@@ -12,6 +16,13 @@ function validatePermissions(permissions = []) {
     );
 }
 
+
+function hasPermission(permissions = [], permission) {
+    return permissions.includes(permission);
+}
+
 module.exports = {
-    validatePermissions
+    VALID_PERMISSIONS,
+    validatePermissions,
+    hasPermission
 };

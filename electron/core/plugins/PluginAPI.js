@@ -1,6 +1,7 @@
 const eventBus = require("../eventBus");
 const fs = require("fs");
 const PluginStorage = require("./PluginStorage");
+const UIMannager = require("../ui/UIManager");
 
 function create(meta) {
   return {
@@ -21,21 +22,33 @@ function create(meta) {
     },
     storage: {
       exists() {
-        return fs.existsSync(storage.getPluginFile(meta.id));
+        return fs.existsSync(PluginStorage.getPluginFile(meta.id));
       },
       get(key) {
-        const data = storage.read(meta.id);
+        const data = PluginStorage.read(meta.id);
         return data[key];
       },
       set(key, value) {
-        const data = storage.read(meta.id);
+        const data = PluginStorage.read(meta.id);
         data[key] = value;
-        storage.write(meta.id, data);
+        PluginStorage.write(meta.id, data);
       },
       remove(key) {
-        const data = storage.read(meta.id);
+        const data = PluginStorage.read(meta.id);
         delete data[key];
-        storage.write(meta.id, data);
+        PluginStorage.write(meta.id, data);
+      }
+    },
+    ui:{
+      register(item) {
+        UIMannager.register(item, {
+          pluginId: meta.id,
+          version: meta.version,
+          source: "plugin"
+        });
+      },
+      unregister(id) {
+        UIMannager.unregister(id);
       }
     }
   }

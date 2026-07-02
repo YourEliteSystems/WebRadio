@@ -10,7 +10,7 @@ Der Guide richtet sich an drei Zielgruppen:
 
 | Bereich | Stand |
 | --- | --- |
-| App-Version | `v1.0.4` in Entwicklung |
+| App-Version | `v1.0.5` |
 | empfohlene Struktur | `electron/core/plugins/` |
 | Legacy-Kompatibilitaet | `electron/plugins/pluginManager.js` laeuft weiter |
 | API-Status | nutzbar, aber noch nicht final |
@@ -278,64 +278,78 @@ module.exports = {
 
 Storage eignet sich fuer kleine JSON-kompatible Werte. Keine grossen Dateien, keine Zugangsdaten und keine Cache-Massen speichern.
 
-## Renderer-Plugin
+## Renderer-Plugin (UI-Integration)
 
-Renderer-Plugins werden aktuell noch ueber den Legacy-Manager als Skript-URL geliefert und im Renderer durch `renderer/plugins/RendererPluginManager.js` injiziert. Die Registrierung sollte aber bereits zur neuen Lifecycle-Idee passen.
+Renderer-Plugins werden in den React-Frontend-Prozess geladen und können die Benutzeroberfläche der App erweitern. Ab der neuen UI-Architektur in v1.0.5 erfolgt die UI-Integration **nicht mehr über direktes DOM-Appending**, sondern über die zentrale `window.uiRegistry`.
 
-### Aktuelle Registrierung
+Die App bietet zwei offizielle Wege, um UI zu integrieren: **Views** (ganze Plugin-Seiten) und **Slots** (Platzhalter für kleine Widgets/Overlays).
 
-```javascript
-let button = null;
+### 1. Einen Slot nutzen (z.B. Overlays, Toasts, Buttons)
 
-window.registerPluginRenderer("meinPlugin", {
-  init() {
-    const host = document.getElementById("plugin-area") || document.body;
-
-    button = document.createElement("button");
-    button.textContent = "Mein Plugin";
-    button.addEventListener("click", () => {
-      console.log("Plugin Button geklickt");
-    });
-
-    host.appendChild(button);
-  },
-
-  destroy() {
-    if (button) {
-      button.remove();
-      button = null;
-    }
-  }
-});
-```
-
-### Alternative Registrierung
-
-Der Renderer-Manager kennt auch `window.registerPlugin(plugin)`:
+Wenn dein Plugin nur ein kleines Element ist, kannst du es in einen vordefinierten Bereich (Slot) der App einklinken.
 
 ```javascript
 window.registerPlugin({
   id: "meinPlugin",
 
-  activate(context) {
-    console.log("Renderer aktiv:", context.pluginId);
+  activate() {
+    const toast = document.createElement("div");
+    toast.textContent = "Hallo vom Plugin!";
+    toast.style.position = "fixed";
+    toast.style.bottom = "20px";
+    toast.style.right = "20px";
+    toast.style.background = "red";
+    toast.style.color = "white";
+    
+    // UI in den 'app-overlay' Slot einhängen
+    if (window.uiRegistry) {
+      window.uiRegistry.registerSlot("app-overlay", "meinPlugin", () => toast);
+    }
   },
 
-  deactivate(context) {
-    console.log("Renderer deaktiviert:", context.pluginId);
+  deactivate() {
+    // Die uiRegistry räumt den Slot bei Deaktivierung automatisch auf
   }
 });
 ```
 
-Fuer neue Renderer-Plugins ist diese Form besser erweiterbar, weil sie naeher an `activate` und `deactivate` als Lifecycle-Begriffe heranrueckt.
+*Verfügbare Slots aktuell:* `app-overlay` (Rendert absolut über der ganzen App).
+
+### 2. Eine View registrieren (Ganze Plugin-Seiten)
+
+Wenn dein Plugin eine umfangreiche Einstellungsseite oder eine eigene Ansicht benötigt, kannst du eine View registrieren. Sie taucht automatisch als eigener Menüpunkt in der Sidebar Navigation auf.
+
+```javascript
+window.registerPlugin({
+  id: "meinPlugin",
+
+  activate() {
+    if (window.uiRegistry) {
+      window.uiRegistry.registerView(
+        "meinPlugin", 
+        "Mein Super Plugin", // Name, der in der Sidebar steht
+        () => {
+          const page = document.createElement("div");
+          page.innerHTML = `
+            <h2>Willkommen auf meiner Plugin-Seite</h2>
+            <p>Hier ist ganz viel Platz für Einstellungen oder Visualizer.</p>
+          `;
+          return page;
+        }
+      );
+    }
+  },
+
+  deactivate() {
+    // Wird automatisch abgemeldet
+  }
+});
+```
 
 ### Renderer-Regeln
-
 - Keine Node.js-APIs im Renderer erwarten.
-- Nur ueber `window.api`, `window.pluginAPI`, `window.radioAPI` und spaetere definierte Bridges kommunizieren.
-- DOM-Elemente, Timer und Listener in `destroy()` oder `deactivate()` entfernen.
-- Keine globalen Styles ungefragt ueberschreiben.
-- UI-Erweiterungen klein halten, bis feste Plugin-Slots fuer React existieren.
+- Nur über `window.api`, `window.pluginAPI` und `window.uiRegistry` kommunizieren.
+- **WICHTIG:** Niemals direkt `document.body.appendChild()` aufrufen, da dies zu Konflikten mit dem React Virtual DOM führt. Nutze immer `registerSlot` oder `registerView`.
 
 ## Komplettes Beispiel: Logger-Plugin
 
@@ -390,31 +404,29 @@ module.exports = {
 `renderer.js`:
 
 ```javascript
-let panel = null;
 let unsubscribe = null;
 
 window.registerPlugin({
   id: "loggerPlus",
 
   activate() {
-    panel = document.createElement("div");
+    const panel = document.createElement("div");
     panel.textContent = "Logger Plus aktiv";
+    panel.style.background = "rgba(0, 0, 0, 0.72)";
+    panel.style.color = "#fff";
+    panel.style.padding = "8px 10px";
+    panel.style.borderRadius = "6px";
     panel.style.position = "fixed";
     panel.style.right = "16px";
     panel.style.bottom = "88px";
-    panel.style.padding = "8px 10px";
-    panel.style.borderRadius = "6px";
-    panel.style.background = "rgba(0, 0, 0, 0.72)";
-    panel.style.color = "#fff";
-    panel.style.fontSize = "12px";
 
-    document.body.appendChild(panel);
+    if (window.uiRegistry) {
+      window.uiRegistry.registerSlot("app-overlay", "loggerPlus", () => panel);
+    }
 
     if (window.radioAPI?.onMetadata) {
       window.radioAPI.onMetadata((meta) => {
-        if (panel) {
-          panel.textContent = meta.StreamTitle || "Keine Metadaten";
-        }
+        panel.textContent = meta.StreamTitle || "Keine Metadaten";
       });
     }
   },
@@ -423,11 +435,6 @@ window.registerPlugin({
     if (typeof unsubscribe === "function") {
       unsubscribe();
       unsubscribe = null;
-    }
-
-    if (panel) {
-      panel.remove();
-      panel = null;
     }
   }
 });

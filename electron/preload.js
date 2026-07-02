@@ -72,4 +72,12 @@ contextBridge.exposeInMainWorld("updaterAPI", {
     ipcRenderer.removeAllListeners("updater:available");
     ipcRenderer.on("updater:available", (_, data) => callback(data));
   }
-});
+});
+
+contextBridge.exposeInMainWorld("uiAPI", {
+
+    getPages() {
+        return ipcRenderer.invoke("ui:getPages");
+    }
+
+});

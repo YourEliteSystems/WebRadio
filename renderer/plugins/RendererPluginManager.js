@@ -1,5 +1,12 @@
+import { unregisterPluginUI, registerView, registerSlot } from '../ui/componentRegistry';
+
 const activePlugins = new Map();
 const injectedScripts = new Map();
+
+window.uiRegistry = {
+  registerView,
+  registerSlot
+};
 
 window.registerPluginRenderer = (id, hooks) => {
   activePlugins.set(id, hooks);
@@ -54,6 +61,9 @@ async function loadRendererPlugins() {
           try { plugin.deactivate({pluginId: id}); } catch (err) { console.error(`Plugin ${id} deactivation error:`, err); }
         }
         activePlugins.delete(id);
+        
+        // Unregister plugin UI
+        unregisterPluginUI(id);
         
         // Remove script tag
         const scriptTag = injectedScripts.get(id);

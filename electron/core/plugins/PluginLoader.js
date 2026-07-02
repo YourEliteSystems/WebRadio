@@ -1,10 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-function loadPlugins(pluginPath) {
-    const manifestPath = path.join(pluginPath, 'manifesst.json');
+function loadManifest(pluginPath) {
+    const manifestPath = path.join(pluginPath, 'manifest.json');
     if(!fs.existsSync(manifestPath)) {
-        throw new Error('plugin.json fehlt');
+        throw new Error(`plugin.json fehlt in: ${pluginPath}`);
     }
 
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
@@ -13,5 +13,5 @@ function loadPlugins(pluginPath) {
 }
 
 module.exports = {
-    loadPlugins
+    loadManifest
 };
