@@ -29,7 +29,7 @@ class WindowManager {
       return this.settingsWindow;
     }
 
-    this.settingsWindow = createSettingsWindow();
+    this.settingsWindow = createSettingsWindow(this.isDev);
 
     this.settingsWindow.on("closed", () => {
       this.settingsWindow = null;

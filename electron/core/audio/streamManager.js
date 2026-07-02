@@ -77,7 +77,7 @@ class StreamManager {
         this.ffmpegCommand.removeAllListeners();
         this.ffmpegCommand.kill("SIGTERM");
       } catch (err) {
-        console.warn(err);
+        console.warn("Fehler: ", err);
       }
 
       this.ffmpegCommand = null;

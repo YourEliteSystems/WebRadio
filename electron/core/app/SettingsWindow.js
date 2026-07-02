@@ -1,7 +1,7 @@
 const { BrowserWindow } = require("electron");
 const path = require("path");
 
-function createSettingsWindow() {
+function createSettingsWindow(isDev) {
   const window = new BrowserWindow({
     width: 600,
     height: 500,
@@ -17,7 +17,10 @@ function createSettingsWindow() {
       sandbox: false
     }
   });
-  window.webContents.openDevTools();
+
+  if (isDev) {
+    window.webContents.openDevTools();
+  }
   window.loadFile(
     path.join(__dirname, "../../../renderer/settings.html")
   );

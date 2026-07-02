@@ -9,6 +9,10 @@ const { checkForUpdates } = require("./core/updater");
 
 const isDev = !app.isPackaged;
 
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
 app.whenReady().then(() => {
   const windowManager = new WindowManager(isDev);
 
