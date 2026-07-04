@@ -2,11 +2,12 @@ const fs = require("fs");
 const path = require("path");
 const eventBus = require("../core/eventBus");
 const { createPluginContext } = require("../core/plugins/PluginContext");
+const { app } = require("electron");
 const plugins = [];
 
 function getPlugins() {
   const config = readConfig();
-  const pluginDir = path.join(__dirname, "../../plugins");
+  const pluginDir = path.join(app.getPath("userData"), "plugins");
   const result = [];
   
   if (fs.existsSync(pluginDir)) {
@@ -29,7 +30,7 @@ function getPlugins() {
 }
 
 function readConfig(){
-  const configPath = path.join(__dirname, "../../plugins/plugins.json");
+  const configPath = path.join(app.getPath("userData"), "plugins/plugins.json");
   if(!fs.existsSync(configPath)){
     fs.writeFileSync(
       configPath,
@@ -44,7 +45,7 @@ function readConfig(){
 }
 
 function writeConfig(config){
-  const configPath = path.join(__dirname, "../../plugins/plugins.json");
+  const configPath = path.join(app.getPath("userData"), "plugins/plugins.json");
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
@@ -60,7 +61,7 @@ function togglePlugin(id, enabled) {
 
   if (enabled && !isActive) {
     // Try to start it
-    const pluginDir = path.join(__dirname, "../../plugins");
+    const pluginDir = path.join(app.getPath("userData"), "plugins");
     const dirs = fs.readdirSync(pluginDir);
     for (const dir of dirs) {
       const metaPath = path.join(pluginDir, dir, "plugin.json");
@@ -101,7 +102,7 @@ function stopPlugin(id) {
   });
   
   // Clear require cache
-  const mainFile = path.join(__dirname, "../../plugins", p.dir, p.meta.main);
+  const mainFile = path.join(app.getPath("userData"), "plugins", p.dir, p.meta.main);
   delete require.cache[require.resolve(mainFile)];
   
   plugins.splice(index, 1);
@@ -109,7 +110,7 @@ function stopPlugin(id) {
 
 function startPlugin(dir, meta) {
   try {
-    const mainFile = path.join(__dirname, "../../plugins", dir, meta.main);
+    const mainFile = path.join(app.getPath("userData"), "plugins", dir, meta.main);
     if (!fs.existsSync(mainFile)) return;
     const instance = require(mainFile);
     console.log(`Plugin geladen: ${meta.name}`);
@@ -148,7 +149,7 @@ function startPlugin(dir, meta) {
 }
 
 function loadPlugins() {
-  const pluginDir = path.join(__dirname, "../../plugins");
+  const pluginDir = path.join(app.getPath("userData"), "plugins");
   const config = readConfig();
 
   if (!fs.existsSync(pluginDir)) return;
@@ -180,7 +181,7 @@ function safeExecute(fn) {
 
 function getRendererScripts() {
   const config = readConfig();
-  const pluginDir = path.join(__dirname, "../../plugins");
+  const pluginDir = path.join(app.getPath("userData"), "plugins");
   const scripts = [];
   
   if (!fs.existsSync(pluginDir)) return scripts;

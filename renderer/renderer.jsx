@@ -4,6 +4,7 @@ import App from './App.jsx';
 
 import { initPlayer } from './services/playerService';
 import { loadAndApplySavedTheme } from './services/themeService';
+import { loadRendererPlugins } from './plugins/RendererPluginManager';
 
 // Initialize audio context and player
 async function bootstrap() {
@@ -22,6 +23,9 @@ async function bootstrap() {
     const container = document.getElementById('app');
     const root = createRoot(container);
     root.render(<App />);
+
+    // 4. Renderer-Plugins laden (nach React-Mount, damit uiRegistry bereit ist)
+    await loadRendererPlugins();
 
   } catch (err) {
     console.error("Fehler beim Initialisieren der App:", err);

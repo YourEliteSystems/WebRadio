@@ -7,7 +7,14 @@ node_modules/*
 legacy
 legacy/*
 
+out
+out/*
+
+data
+data/*
+
 *.log
-out/
+*.zip
+
 # Sentry Config File
 .sentryclirc

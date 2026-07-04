@@ -74,10 +74,12 @@ class StreamManager {
   stop() {
     if (this.ffmpegCommand) {
       try {
-        this.ffmpegCommand.removeAllListeners();
+        // WICHTIG: Erst killen, damit der Error-Handler das SIGTERM
+        // Event abfangen kann. Danach Listener entfernen.
         this.ffmpegCommand.kill("SIGTERM");
+        this.ffmpegCommand.removeAllListeners();
       } catch (err) {
-        console.warn("Fehler: ", err);
+        console.warn("Fehler beim Beenden von FFmpeg:", err);
       }
 
       this.ffmpegCommand = null;
