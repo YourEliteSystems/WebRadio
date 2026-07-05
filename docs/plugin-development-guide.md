@@ -346,9 +346,79 @@ window.registerPlugin({
 });
 ```
 
+### ReactRenderer fuer React-basierte Plugin-UI
+
+Neben reinem HTML kann die Core-UI auch React-Komponenten rendern. Dafuer existiert `electron/core/ui/ReactRenderer.js`; er verwaltet pro Container einen React Root und kuemmert sich um sauberes Unmounting.
+
+Wichtig: Plugin-Code soll den Renderer nicht direkt per `require("electron/core/ui/ReactRenderer")` importieren. Der Zugriff laeuft langfristig ueber die Plugin-UI-API, damit Plugins keine internen Core-Pfade kennen muessen.
+
+Aktueller Stand: Renderer-Plugins registrieren produktive UI weiterhin ueber `window.uiRegistry.registerView()` oder `window.uiRegistry.registerSlot()` und geben dort DOM-Nodes oder HTML-Strings zurueck. Der ReactRenderer ist Core-seitig vorhanden, aber noch nicht als stabile Renderer-Plugin-Bridge garantiert.
+
+Aktuelle Core-Methoden:
+
+| Methode | Zweck |
+| --- | --- |
+| `render(Component, container, props = {})` | rendert eine React-Komponente in einen DOM-Container |
+| `unmount(container)` | entfernt den React Root aus einem bestimmten Container |
+| `unmountAll()` | entfernt alle vom ReactRenderer verwalteten Roots |
+
+Geplante Ziel-API fuer Plugins:
+
+```javascript
+api.ui.react.render(Component, container, props);
+api.ui.react.unmount(container);
+api.ui.react.unmountAll();
+```
+
+Zielbeispiel fuer eine React-basierte View, sobald `api.ui.react` in der Renderer-Plugin-API bereitsteht:
+
+```javascript
+function LoggerView({ title }) {
+  return React.createElement(
+    "section",
+    { className: "plugin-view logger-plus-view" },
+    React.createElement("h2", null, title),
+    React.createElement("p", null, "Letzte Metadaten werden hier angezeigt.")
+  );
+}
+
+window.registerPlugin({
+  id: "loggerPlus",
+
+  activate(api) {
+    if (!window.uiRegistry) return;
+
+    window.uiRegistry.registerView(
+      "loggerPlus",
+      "Logger Plus",
+      () => {
+        const container = document.createElement("div");
+
+        if (api?.ui?.react) {
+          api.ui.react.render(LoggerView, container, {
+            title: "Logger Plus"
+          });
+        }
+
+        return container;
+      }
+    );
+  },
+
+  deactivate(api) {
+    if (api?.ui?.react) {
+      api.ui.react.unmountAll();
+    }
+  }
+});
+```
+
+React ist optional. Kleine Widgets und einfache Views duerfen weiterhin als normales HTML erzeugt werden. Sobald ein Plugin React nutzt, muss es seine Roots beim Deaktivieren ueber `unmount(container)` oder `unmountAll()` freigeben.
+
 ### Renderer-Regeln
 - Keine Node.js-APIs im Renderer erwarten.
 - Nur über `window.api`, `window.pluginAPI` und `window.uiRegistry` kommunizieren.
+- React-Komponenten nur ueber die bereitgestellte UI-API rendern; keine internen Core-Renderer direkt importieren.
 - **WICHTIG:** Niemals direkt `document.body.appendChild()` aufrufen, da dies zu Konflikten mit dem React Virtual DOM führt. Nutze immer `registerSlot` oder `registerView`.
 
 ## Komplettes Beispiel: Logger-Plugin
