@@ -7,6 +7,8 @@ const { createTray, destroyTray } = require("./core/system/tray");
 const { registerMediaKeys, unregisterMediaKeys } = require("./core/mediaKeys");
 const { checkForUpdates } = require("./core/updater");
 
+const storageManager = require("./core/storage/StorageManager");
+
 const isDev = !app.isPackaged;
 
 process.on("uncaughtException", (err) => {
@@ -17,7 +19,7 @@ app.whenReady().then(() => {
   const windowManager = new WindowManager(isDev);
 
   windowManager.createMainWindow();
-
+  storageManager.initialize();
   // IPC komplett auslagern
   registerAllIpc(windowManager);
 
