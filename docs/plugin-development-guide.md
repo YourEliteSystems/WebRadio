@@ -144,7 +144,11 @@ Ein Main-Plugin exportiert ein Objekt per CommonJS:
 ```javascript
 module.exports = {
   init(context) {
-    console.log(`${context.plugin.name} gestartet`);
+    if (context.logger) {
+      context.logger.info(`${context.plugin.name} gestartet`);
+    } else {
+      console.log(`${context.plugin.name} gestartet`);
+    }
   },
 
   destroy() {
@@ -216,10 +220,10 @@ Aktuell verfuegbar:
 ```javascript
 module.exports = {
   init(context) {
-    console.log(context.plugin.id);
+    context.logger.info(`Plugin ${context.plugin.id} wird initialisiert.`);
 
     context.events.on("metadata", (meta) => {
-      console.log(meta.StreamTitle);
+      context.logger.info(`Neuer Titel: ${meta.StreamTitle}`);
     });
 
     context.storage.set("lastStart", Date.now());
@@ -235,7 +239,7 @@ Enthaelt die Daten aus dem Manifest:
 module.exports = {
   init(context) {
     const { id, name, version } = context.plugin;
-    console.log(`Plugin ${name} (${id}) v${version}`);
+    context.logger.info(`Plugin ${name} (${id}) v${version}`);
   }
 };
 ```
@@ -271,9 +275,32 @@ module.exports = {
     const count = context.storage.get("starts") || 0;
     context.storage.set("starts", count + 1);
 
-    console.log(`Dieses Plugin wurde ${count + 1} mal gestartet.`);
+    context.logger.info(`Dieses Plugin wurde ${count + 1} mal gestartet.`);
   }
 };
+
+### `context.logger`
+
+Das Logging erfolgt nicht mehr über `console.log()`, sondern über den strukturierten Logger des Plugins. Diese Logs landen automatisch in den globalen System-Logs unter `userData/logs/`.
+
+```javascript
+module.exports = {
+  init(context) {
+    // Info-Log
+    context.logger.info("Plugin erfolgreich geladen");
+    
+    // Warnung
+    context.logger.warn("Verbindung zum Server dauerte lange");
+    
+    // Fehler
+    try {
+      throw new Error("Irgendwas ist kaputt");
+    } catch (e) {
+      context.logger.error(`Fehler im Plugin: ${e.message}`);
+    }
+  }
+};
+```
 ```
 
 Storage eignet sich fuer kleine JSON-kompatible Werte. Keine grossen Dateien, keine Zugangsdaten und keine Cache-Massen speichern.
@@ -451,22 +478,23 @@ plugins/loggerPlus/
 ```javascript
 module.exports = {
   init(context) {
+    this.logger = context.logger; // Logger fuer andere Hooks merken
     const starts = context.storage.get("starts") || 0;
     context.storage.set("starts", starts + 1);
 
-    console.log(`[Logger Plus] gestartet (${starts + 1})`);
+    this.logger.info(`[Logger Plus] gestartet (${starts + 1})`);
   },
 
   onMetadata(meta) {
-    console.log("[Logger Plus] Metadaten:", meta.StreamTitle || meta);
+    if(this.logger) this.logger.info(`Metadaten: ${meta.StreamTitle || meta}`);
   },
 
   onStationChange(station) {
-    console.log("[Logger Plus] Sender:", station?.name || station);
+    if(this.logger) this.logger.info(`Sender: ${station?.name || station}`);
   },
 
   destroy() {
-    console.log("[Logger Plus] beendet");
+    if(this.logger) this.logger.info("[Logger Plus] beendet");
   }
 };
 ```
@@ -492,11 +520,13 @@ window.registerPlugin({
 
     if (window.uiRegistry) {
       window.uiRegistry.registerSlot("app-overlay", "loggerPlus", () => panel);
+      window.pluginAPI?.log("info", "Plugin:loggerPlus", "Slot erfolgreich registriert.");
     }
 
     if (window.radioAPI?.onMetadata) {
       window.radioAPI.onMetadata((meta) => {
         panel.textContent = meta.StreamTitle || "Keine Metadaten";
+        window.pluginAPI?.log("info", "Plugin:loggerPlus", `Neuer Titel UI Update: ${meta.StreamTitle}`);
       });
     }
   },
@@ -534,19 +564,21 @@ module.exports = {
 
 ```javascript
 let pluginId = "unknown";
+let logger = null;
 
 module.exports = {
   init(context = {}) {
     pluginId = context.plugin?.id || pluginId;
-    console.log(`${pluginId} aktiv`);
+    logger = context.logger || console;
+    logger.info(`${pluginId} aktiv`);
   },
 
   onMetadata(meta) {
-    console.log(`[${pluginId}]`, meta.StreamTitle || meta);
+    logger.info(`[${pluginId}] ${meta.StreamTitle || meta}`);
   },
 
   destroy() {
-    console.log(`${pluginId} beendet`);
+    if(logger) logger.info(`${pluginId} beendet`);
   }
 };
 ```
@@ -789,7 +821,7 @@ module.exports = {
 4. Optional `renderer.js` registrieren.
 5. App mit `npm start` starten.
 6. Einstellungen oeffnen und Plugin toggeln.
-7. Console-Logs im Main- und Renderer-Prozess pruefen.
+7. Console-Logs im Main- und Renderer-Prozess sowie die Log-Dateien unter `userData/logs/` pruefen.
 8. Deaktivieren und erneut aktivieren.
 9. App neu starten und Persistenz pruefen.
 
