@@ -4,7 +4,7 @@ import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
 import PluginView from './ui/PluginView.jsx';
 import PluginSlot from './ui/PluginSlot.jsx';
-import { playStream, setVolume } from './services/playerService';
+import { playStream, stopPlayer, setVolume } from './services/playerService';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -108,7 +108,7 @@ export default function App() {
   };
 
   const handleStop = () => {
-    import('./services/playerService').then(({ stopPlayer }) => stopPlayer());
+    stopPlayer();
     setIsPlaying(false);
     setNowPlayingTitle('–');
   };
@@ -159,7 +159,7 @@ export default function App() {
               title={`Update verfügbar: v${updateInfo.version}`}
             >
               <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z"/>
+                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z" />
               </svg>
               Update v{updateInfo.version}
             </button>

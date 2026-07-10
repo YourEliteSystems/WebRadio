@@ -203,3 +203,130 @@ document.querySelector('[data-page="updates"]').addEventListener("click", () => 
 // Initialer Status
 setUpdateState("checking");
 setTimeout(() => runUpdateCheck(), 300);
+
+// ── Ordner öffnen ─────────────────────────────────────────────
+let _diagPaths = null;
+
+async function getDiagPaths() {
+  if (_diagPaths) return _diagPaths;
+  if (window.diagnosticsAPI?.getPaths) {
+    _diagPaths = await window.diagnosticsAPI.getPaths();
+  }
+  return _diagPaths;
+}
+
+async function openFolder(key) {
+  const paths = await getDiagPaths();
+  if (!paths || !paths[key]) return;
+  window.shellAPI?.openPath(paths[key]);
+}
+
+document.getElementById("openPluginsFolderBtn")?.addEventListener("click", () => openFolder("plugins"));
+document.getElementById("openThemesFolderBtn")?.addEventListener("click",  () => openFolder("themes"));
+
+// ── Diagnostics ───────────────────────────────────────────────
+
+// Ordner-Buttons auf der Diagnostics-Seite
+document.getElementById("openLogsFolderBtn")?.addEventListener("click",      () => openFolder("logs"));
+document.getElementById("openCrashFolderBtn")?.addEventListener("click",     () => openFolder("crash"));
+document.getElementById("openUserDataFolderBtn")?.addEventListener("click",  () => openFolder("userData"));
+
+// Health Check
+async function loadHealthCheck() {
+  if (!window.diagnosticsAPI?.getHealth) return;
+  const results = await window.diagnosticsAPI.getHealth();
+  const container = document.getElementById("healthCheckList");
+  if (!container) return;
+
+  if (!results || results.length === 0) {
+    container.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px 0;">Keine Prüfungen vorhanden</p>`;
+    return;
+  }
+
+  container.innerHTML = results.map(r => `
+    <div class="health-check-item">
+      <span class="health-dot ${r.success ? 'ok' : 'fail'}"></span>
+      <span style="flex:1; color: var(--text-main);">${r.name}</span>
+      <span style="font-size:11px; color:${r.success ? '#22c55e' : '#ef4444'};">
+        ${r.success ? '✓ OK' : '✗ ' + (r.message || 'Fehler')}
+      </span>
+    </div>
+  `).join("");
+}
+
+document.getElementById("reloadHealthBtn")?.addEventListener("click", () => loadHealthCheck());
+
+// System Info
+async function loadSystemInfo() {
+  if (!window.diagnosticsAPI?.getSystemInfo) return;
+  const info = await window.diagnosticsAPI.getSystemInfo();
+  const tbody = document.querySelector("#systemInfoTable tbody");
+  if (!tbody || !info) return;
+
+  const rows = [
+    ["Plattform",     info.system?.platform  || "–"],
+    ["Architektur",   info.system?.architecture || "–"],
+    ["Hostname",      info.system?.hostname  || "–"],
+    ["CPU",           info.cpu?.model        || "–"],
+    ["CPU-Kerne",     info.cpu?.cores        || "–"],
+    ["RAM gesamt",    info.memory?.total     || "–"],
+    ["RAM frei",      info.memory?.free      || "–"],
+    ["Node.js",       info.runtime?.node     || "–"],
+    ["Electron",      info.runtime?.electron || "–"],
+    ["Chromium",      info.runtime?.chromium || "–"],
+    ["V8",            info.runtime?.v8       || "–"],
+  ];
+
+  tbody.innerHTML = rows.map(([label, value]) => `
+    <tr>
+      <td>${label}</td>
+      <td style="color: var(--text-main); font-weight:500;">${value}</td>
+    </tr>
+  `).join("");
+}
+
+// Crash Reports
+async function loadCrashReports() {
+  if (!window.diagnosticsAPI?.getCrashReports) return;
+  const reports = await window.diagnosticsAPI.getCrashReports();
+  const container = document.getElementById("crashReportList");
+  if (!container) return;
+
+  if (!reports || reports.length === 0) {
+    container.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px 0;">Keine Crash-Reports vorhanden ✓</p>`;
+    return;
+  }
+
+  container.innerHTML = reports.map(r => {
+    const date = r.created ? new Date(r.created).toLocaleString("de-DE") : "–";
+    return `
+      <div class="crash-report-item">
+        <span class="crash-report-name" title="${r.file}">${r.file}</span>
+        <span class="crash-report-date">${date}</span>
+        <button class="btn-icon-sm" data-delete="${r.id}" title="Löschen">🗑</button>
+      </div>
+    `;
+  }).join("");
+
+  // Delete-Buttons verdrahten
+  container.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.delete;
+      await window.diagnosticsAPI.deleteCrashReport(id);
+      loadCrashReports();
+    });
+  });
+}
+
+document.getElementById("reloadCrashReportsBtn")?.addEventListener("click", () => loadCrashReports());
+document.getElementById("clearCrashReportsBtn")?.addEventListener("click", async () => {
+  await window.diagnosticsAPI?.clearCrashReports();
+  loadCrashReports();
+});
+
+// Diagnostics-Daten beim Öffnen der Seite laden
+document.querySelector('[data-page="diagnostics"]')?.addEventListener("click", () => {
+  loadHealthCheck();
+  loadSystemInfo();
+  loadCrashReports();
+});

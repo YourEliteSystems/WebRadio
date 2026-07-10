@@ -3,6 +3,9 @@ const ffmpeg = require("fluent-ffmpeg");
 const eventBus = require("../eventBus");
 const { getFFmpegPath } = require("../ffmpeg-resolver");
 const { parseTitle } = require("./metadataParser");
+const LogManager = require("../diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("StreamManager");
 
 class StreamManager {
   constructor() {
@@ -43,10 +46,10 @@ class StreamManager {
           return;
         }
 
-        console.error("FFmpeg Fehler:", err);
+        logger.error(`FFmpeg Fehler: ${err.message}`);
       })
       .on("end", () => {
-        console.log("FFmpeg Stream beendet");
+        logger.info("FFmpeg Stream beendet");
       });
 
     this.ffmpegStream = this.ffmpegCommand.pipe();
@@ -79,7 +82,7 @@ class StreamManager {
         this.ffmpegCommand.kill("SIGTERM");
         this.ffmpegCommand.removeAllListeners();
       } catch (err) {
-        console.warn("Fehler beim Beenden von FFmpeg:", err);
+        logger.warn(`Fehler beim Beenden von FFmpeg: ${err.message}`);
       }
 
       this.ffmpegCommand = null;
@@ -90,7 +93,7 @@ class StreamManager {
         this.ffmpegStream.removeAllListeners();
         this.ffmpegStream.destroy();
       } catch (err) {
-        console.warn(err);
+        logger.warn(`Stream Destroy Fehler: ${err.message}`);
       }
 
       this.ffmpegStream = null;

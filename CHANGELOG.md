@@ -4,6 +4,123 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.5] – 2026-07-09
+
+### ✨ Neue Features
+
+#### 🩺 Diagnostics-Subsystem (komplett neu)
+
+Neues Modul `electron/core/diagnostics/` als zentrales Diagnosesystem der App:
+
+- **`LogManager`** – zentraler Log-Manager mit `initialize()`, `createLogger(context)`, `getLogger()` und `getRootLogger()`
+- **`Logger`** – strukturierte Logger-Instanz mit Unterstützung für Log-Level (`debug`, `info`, `warn`, `error`, `fatal`), Child-Logger und Transports
+- **`LogEntry`** / **`LogFormatter`** – typisierte Log-Einträge mit Timestamp, Level, Kontext und Nachricht; Formatter gibt strukturierte Ausgaben aus
+- **`LogLevel`** – eigene Klasse für Log-Level-Konstanten und Vergleichsoperationen
+- **`ConsoleTransport`** – gibt Log-Einträge formatiert auf der Konsole aus
+- **`FileTransport`** – schreibt Log-Einträge in rotierte `.log`-Dateien im `userData/logs/`-Ordner
+- **`index.js`** – zentraler Export-Einstiegspunkt für das Logging-Subsystem
+- **`LogReader`** – Neue Klasse, um die gespeicherten `.log`-Dateien aus dem `userData/logs/`-Ordner strukturiert auszulesen
+- **Systemweites Logging:** Der `LogManager` wird nun systemweit (App Lifecycle, Storage, Updater, Audio/FFmpeg) verwendet
+- **Frontend-Bridge:** Das React-Frontend sendet nun Logs via IPC (`window.api.log`) sicher an den Main-Process in dieselbe Log-Datei
+- **Plugin Logging:** Backend- und Frontend-Plugins erhalten bei Initialisierung automatisch einen eigenen `logger` (`context.logger` bzw. `window.pluginAPI.log`)
+- **Diagnostics API:** Neue IPC-Handler (`diagnostics:getLogs`, `readLog`, `deleteLog`, `clearLogs`) wurden hinzugefügt und über `window.diagnosticsAPI` im Frontend exponiert
+
+#### 💥 Crash-Handling-System
+
+- **`CrashHandler`** – fängt `uncaughtException` und `unhandledRejection` global ab; ersetzt den bisherigen einfachen `process.on`-Block in `main.js`
+  - Loggt Crashes via `logger.fatal()` mit Stack-Trace und Fehlertyp
+  - Fällt auf `console.error` zurück falls Logger nicht verfügbar (Singleton-Schutz mit `initialized`-Flag)
+- **`CrashReportManager`** – erstellt strukturierte Crash-Reports mit System-Snapshot (Zeitstempel, App-Version, Runtime, CPU, RAM, Health-Status, Fehlerdetails, erweiterbare Sektionen via `registerSection()`)
+- **`CrashReportWriter`** – schreibt Crash-Reports als JSON-Dateien in den `userData`-Ordner
+- **`CrashReportReader`** – liest und listet vorhandene Crash-Report-Dateien
+
+#### 🏥 Health-Check-System
+
+- **`HealthCheck`** – führt beim App-Start eine Reihe von Standardprüfungen durch:
+  - Plugin Directory vorhanden?
+  - Theme Directory vorhanden?
+  - Plugin Data Directory vorhanden?
+  - Logs-Verzeichnis vorhanden?
+  - `storage.json` vorhanden?
+  - `registry.json` vorhanden?
+- Ergebnis wird via `logger.info()` ins Log geschrieben
+- Prüfungen sind erweiterbar per `register(name, callback)`
+
+#### ℹ️ SystemInfo
+
+- **`SystemInfo`** – liefert strukturierten Snapshot des Systems: App-Name/Version/userData, Plattform, Architektur, Hostname, Uptime, CPU-Modell/-Kerne, RAM (total/free), Node/Electron/Chromium/V8-Versionen
+- `getPretty()` gibt RAM-Werte in GB formatiert zurück
+
+#### 💾 StorageManager (neu)
+
+- **`StorageManager`** – zentrales Verwaltungsmodul für alle User-Data-Pfade:
+  - Stellt Pfade bereit: `getPluginPath()`, `getThemePath()`, `getPluginDataPath()`, `getLogsPath()`, `getStorageFile()`, `getRegistryFile()`
+  - `initialize()` legt fehlende Verzeichnisse automatisch an
+
+#### 🖼️ ReactRenderer (Plugin-System)
+
+- **`ReactRenderer`** (`electron/core/ui/ReactRenderer.js`) – ermöglicht Plugins das Rendern von React-Komponenten in dedizierte DOM-Container
+  - `render(component, container)` und `unmount(container)` als saubere API
+  - Nutzung via `PluginSlot`/`PluginView` im Renderer
+
+#### 🏗️ Erweiterte Plugin & Theme-Architektur
+
+- Neue Plugin-Kernklassen in `electron/core/plugins/`:
+  - `PluginAPI`, `PluginLoader`, `PluginManager`, `PluginPermissions`, `PluginRuntime`, `PluginValidator`
+- Neue Theme-Kernklassen in `electron/core/themes/`:
+  - `ThemeLoader`, `ThemeManager`, `ThemeProvider`, `ThemeValidator`
+- UI-Abstraktionsschicht in `electron/core/ui/`:
+  - `HtmlRenderer`, `UIManager`, `UIRegistry`, `UIRenderer`, `UIValidator`
+- Neue UI-Komponenten im Renderer: `PluginSlot.jsx`, `PluginView.jsx`, `componentRegistry.js`
+- `RendererPluginManager.js` für Plugin-Rendering im Renderer-Prozess
+
+#### 🪟 Window- & Stream-Management
+
+- `WindowManager` und `SettingsWindow.js` weiter ausgebaut (Singleton-Verhalten, FFmpeg-basiertes Audio-Stream-Processing)
+- `streamManager.js` – Audio-Stream-Verarbeitung mit FFmpeg-Integration und Metadaten-Unterstützung
+
+#### 📋 GitHub Issue Templates
+
+- 4 neue Issue-Templates: `bug_report.md`, `feature_request.md`, `plugin_api.md`, `refactoring.md`
+- `config.yml` mit Kontakt-Links für Dokumentation
+
+---
+
+### ♻️ Refactoring & Architektur
+
+#### `main.js` – Saubere Bootstrap-Struktur
+
+- Startup-Sequenz klar in Sektionen gegliedert: **Infrastruktur → Diagnose → Fenster → IPC → Plugins → System**
+- `LogManager.initialize()` und `CrashHandler.initialize(logger)` werden jetzt als erste Schritte beim App-Start aufgerufen
+- `storageManager` → `StorageManager` (konsistente Schreibweise)
+- Alter `process.on("uncaughtException")` Block durch `CrashHandler` ersetzt
+
+#### Logging verschoben
+
+- Logging-Klassen von `electron/core/logging/` nach `electron/core/diagnostics/logging/` verschoben – logisch unter dem Diagnostics-Dach gebündelt
+
+#### Dokumentation
+
+- Theme-Development-Draft entfernt, durch vollständigen **Theme-Development-Guide** (`docs/theme-development-guide.md`) ersetzt
+- **Plugin-Development-Guide** (`docs/plugin-development-guide.md`) aktualisiert mit ReactRenderer-Dokumentation
+- `DEVELOPER_GUIDE.md` und `README.md` für Plugin-Entwicklung aktualisiert
+- Community-Richtlinien: `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md` hinzugefügt / aktualisiert
+
+---
+
+### 🐛 Bugfixes
+
+- **`main.js` – doppelter Semikolon**: `require("./core/app/WindowManager");;` → einfaches `;` *(Tippfehler)*
+- **`LogManager` – fehlende `createLogger`-Methode**: `main.js` nutzte `createLogger()`, `LogManager` stellte aber nur `getLogger()` bereit → `createLogger` als Alias ergänzt
+
+---
+
+### 📦 Abhängigkeiten
+
+Keine neuen Abhängigkeiten in v1.0.5. Alle bestehenden Pakete bleiben auf denselben Versionen wie in v1.0.4.
+
+---
+
 ## [v1.0.4] – 2026-06-20
 
 ### ✨ Neue Features

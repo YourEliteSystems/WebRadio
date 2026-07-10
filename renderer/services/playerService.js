@@ -74,8 +74,8 @@ export async function initPlayer() {
 
 export async function switchStream(url) {
   if(!url) return;
-  if(url === currentStation){ console.warn("Already playing this station"); return; }
-  if(switching){ console.warn("Already switching streams"); return; }
+  if(url === currentStation){ window.api?.log("warn", "PlayerService", "Already playing this station"); return; }
+  if(switching){ window.api?.log("warn", "PlayerService", "Already switching streams"); return; }
   
   switching = true;
 
@@ -100,7 +100,7 @@ export async function switchStream(url) {
 
     activeGainNode = nextGainNode;
   } catch (err) {
-    console.error("Error switching stream:", err);
+    window.api?.log("error", "PlayerService", `Error switching stream: ${err.message}`);
   }
 
   setTimeout(() => {

@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
-  log: (msg) => console.log(msg),
+  log: (level, context, msg) => ipcRenderer.send("log", level, context, msg),
   // FAVORITES
   getFavorites: () => ipcRenderer.invoke("favorites:get"),
   addFavorite: (fav) => ipcRenderer.invoke("favorites:add", fav),
@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
 
 // PLUGIN API FOR RENDERER SCRIPTS
 contextBridge.exposeInMainWorld("pluginAPI", {
+  log: (level, context, msg) => ipcRenderer.send("log", level, context, msg),
   onPluginToggled: (callback) => {
     ipcRenderer.removeAllListeners("plugin:toggled");
     ipcRenderer.on("plugin:toggled", (_, data) => callback(data));
@@ -80,4 +81,24 @@ contextBridge.exposeInMainWorld("uiAPI", {
         return ipcRenderer.invoke("ui:getPages");
     }
 
+});
+
+// SHELL API – Ordner im Explorer öffnen
+contextBridge.exposeInMainWorld("shellAPI", {
+    openPath: (folderPath) => ipcRenderer.invoke("shell:openPath", folderPath)
+});
+
+// DIAGNOSTICS API
+contextBridge.exposeInMainWorld("diagnosticsAPI", {
+    getHealth:           ()         => ipcRenderer.invoke("diagnostics:getHealth"),
+    getSystemInfo:       ()         => ipcRenderer.invoke("diagnostics:getSystemInfo"),
+    getCrashReports:     ()         => ipcRenderer.invoke("diagnostics:getCrashReports"),
+    readCrashReport:     (fileName) => ipcRenderer.invoke("diagnostics:readCrashReport", fileName),
+    deleteCrashReport:   (fileName) => ipcRenderer.invoke("diagnostics:deleteCrashReport", fileName),
+    clearCrashReports:   ()         => ipcRenderer.invoke("diagnostics:clearCrashReports"),
+    getLogs:             ()         => ipcRenderer.invoke("diagnostics:getLogs"),
+    readLog:             (fileName) => ipcRenderer.invoke("diagnostics:readLog", fileName),
+    deleteLog:           (fileName) => ipcRenderer.invoke("diagnostics:deleteLog", fileName),
+    clearLogs:           ()         => ipcRenderer.invoke("diagnostics:clearLogs"),
+    getPaths:            ()         => ipcRenderer.invoke("diagnostics:getPaths")
 });

@@ -377,6 +377,124 @@
       display: flex;
       justify-content: space-between;
     }
+
+    /* ── Diagnostics ── */
+    .health-check-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.15);
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .health-dot.ok   { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+    .health-dot.fail { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+
+    .sysinfo-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .sysinfo-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sysinfo-table td:first-child {
+      color: var(--text-muted);
+      width: 45%;
+      font-weight: 500;
+    }
+
+    .crash-report-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.2);
+      border: var(--glass-border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      gap: 10px;
+    }
+
+    .crash-report-name {
+      font-family: monospace;
+      color: var(--text-muted);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .crash-report-date {
+      color: var(--text-muted);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon-sm {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 12px;
+      line-height: 1;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .btn-icon-sm:hover {
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+      border-color: rgba(239,68,68,0.3);
+    }
+
+    .diag-open-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .diag-open-btn:hover {
+      background: rgba(99,102,241,0.12);
+      border-color: rgba(99,102,241,0.3);
+      color: var(--accent-color);
+    }
+
+    .diag-folder-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .settings-nav-label-group {
+      margin-top: 12px;
+    }
   </style>
 </head>
 
@@ -438,7 +556,7 @@
           style="display:none; width:7px; height:7px; border-radius:50%; background:var(--accent-color); margin-left:auto; box-shadow:0 0 6px rgba(99,102,241,0.7);"></span>
       </button>
 
-      <!-- NEU: About Button -->
+      <!-- About Button -->
       <button class="settings-nav-item" data-page="about">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10" />
@@ -446,6 +564,16 @@
           <path d="M12 8h.01" />
         </svg>
         Über
+      </button>
+
+      <span class="settings-nav-label settings-nav-label-group">System</span>
+
+      <!-- Diagnostics Button -->
+      <button class="settings-nav-item" data-page="diagnostics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        Diagnostics
       </button>
     </nav>
 
@@ -461,8 +589,15 @@
         <div class="settings-card">
           <div class="settings-card-header">
             <span class="settings-card-title">Installierte Plugins</span>
-            <button id="reloadPluginsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺
-              Neu laden</button>
+            <div style="display:flex; gap:8px;">
+              <button id="openPluginsFolderBtn" class="diag-open-btn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                Ordner öffnen
+              </button>
+              <button id="reloadPluginsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+            </div>
           </div>
           <div id="pluginList"></div>
         </div>
@@ -477,8 +612,15 @@
         <div class="settings-card">
           <div class="settings-card-header">
             <span class="settings-card-title">Verfügbare Themes</span>
-            <button id="reloadThemesBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺
-              Neu laden</button>
+            <div style="display:flex; gap:8px;">
+              <button id="openThemesFolderBtn" class="diag-open-btn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                Ordner öffnen
+              </button>
+              <button id="reloadThemesBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+            </div>
           </div>
           <div class="theme-grid" id="themeList"></div>
         </div>
@@ -568,6 +710,76 @@
           <p style="font-size:12px; color:var(--text-muted); margin-top:12px;">
             © 2025 YourEliteSystems. Alle Rechte vorbehalten.
           </p>
+        </div>
+      </div>
+
+      <!-- DIAGNOSTICS -->
+      <div class="settings-page" id="page-diagnostics">
+        <div class="settings-page-header">
+          <h1>Diagnostics</h1>
+          <p>System-Gesundheit, Logs und Absturzberichte</p>
+        </div>
+
+        <!-- Ordner-Buttons -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Ordner</span>
+          </div>
+          <div class="diag-folder-row">
+            <button class="diag-open-btn" id="openLogsFolderBtn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Logs-Ordner
+            </button>
+            <button class="diag-open-btn" id="openCrashFolderBtn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Crash-Ordner
+            </button>
+            <button class="diag-open-btn" id="openUserDataFolderBtn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              App-Daten
+            </button>
+          </div>
+        </div>
+
+        <!-- Health Check -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Health Check</span>
+            <button id="reloadHealthBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu prüfen</button>
+          </div>
+          <div id="healthCheckList">
+            <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px 0;">Wird geladen...</p>
+          </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">System Info</span>
+          </div>
+          <table class="sysinfo-table" id="systemInfoTable">
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <!-- Crash Reports -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Crash Reports</span>
+            <div style="display:flex; gap:8px;">
+              <button id="clearCrashReportsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; color:#ef4444;">🗑 Alle löschen</button>
+              <button id="reloadCrashReportsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+            </div>
+          </div>
+          <div id="crashReportList">
+            <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px 0;">Wird geladen...</p>
+          </div>
         </div>
       </div>
 

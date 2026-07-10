@@ -81,6 +81,11 @@ class LogManager {
 
     }
 
+    // Alias für getLogger (Kompatibilität)
+    createLogger(context = "Application") {
+        return this.getLogger(context);
+    }
+
     getRootLogger() {
 
         if (!this.initialized) {

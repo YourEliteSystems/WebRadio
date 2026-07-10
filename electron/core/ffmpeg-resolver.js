@@ -1,11 +1,16 @@
 const fs = require("fs");
 const path = require("path");
 const ffmpegStatic = require("ffmpeg-static");
+const LogManager = require("./diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("FFmpegResolver");
 
 function getFFmpegPath() {
   let ffmpegPath = ffmpegStatic;
-    console.log("FFmpeg Path:", ffmpegPath);
-    console.log("Existiert:", fs.existsSync(ffmpegPath));
+  
+  logger.debug(`FFmpeg Path: ${ffmpegPath}`);
+  logger.debug(`Existiert: ${fs.existsSync(ffmpegPath)}`);
+
   // Wenn gepackt → app.asar Fix
   if (ffmpegPath.includes("app.asar")) {
     ffmpegPath = ffmpegPath.replace(

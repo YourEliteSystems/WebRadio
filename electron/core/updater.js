@@ -2,6 +2,9 @@ const { net, app, shell } = require("electron");
 const crypto = require("crypto");    // NEU
 const fs = require("fs");            // NEU
 const path = require("path");        // NEU
+const LogManager = require("./diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("Updater");
 
 const UPDATE_URL = "https://updates.yourelitesystems.de/webradio/latest.json";
 const FALLBACK_URL = "https://raw.githubusercontent.com/YourEliteSystems/WebRadio/master/updates/latest.json";
@@ -33,7 +36,7 @@ async function fetchLatest() {
       const data = await response.json();
       return data;
     } catch (e) {
-      console.warn(`[Updater] Fetch fehlgeschlagen (${url}):`, e.message);
+      logger.warn(`[Updater] Fetch fehlgeschlagen (${url}): ${e.message}`);
     }
   }
   return null;
@@ -55,7 +58,7 @@ async function checkForUpdates() {
 
     if (available) {
       cachedUpdateInfo = latest;
-      console.log(`[Updater] Neue Version verfügbar: ${latest.version} (aktuell: ${currentVersion})`);
+      logger.info(`[Updater] Neue Version verfügbar: ${latest.version} (aktuell: ${currentVersion})`);
       return {
         available: true,
         version: latest.version,
@@ -64,11 +67,11 @@ async function checkForUpdates() {
       };
     }
 
-    console.log(`[Updater] App ist aktuell (${currentVersion})`);
+    logger.info(`[Updater] App ist aktuell (${currentVersion})`);
     return { available: false, version: currentVersion };
 
   } catch (err) {
-    console.error("[Updater] Fehler beim Update-Check:", err);
+    logger.error(`[Updater] Fehler beim Update-Check: ${err.message}`);
     return { available: false };
   }
 }
@@ -81,7 +84,7 @@ async function checkForUpdates() {
 async function downloadAndInstall() {
   const info = cachedUpdateInfo;
   if (!info || !info.windows?.url || !info.windows?.sha256) {
-    console.error("[Updater] Keine gültigen Update-Informationen vorhanden.");
+    logger.error("[Updater] Keine gültigen Update-Informationen vorhanden.");
     return false;
   }
 
@@ -90,7 +93,7 @@ async function downloadAndInstall() {
   const tempDir = app.getPath("temp");
   const installerPath = path.join(tempDir, "WebRadio-Update.exe"); // oder .zip
 
-  console.log(`[Updater] Lade Update herunter: ${downloadUrl}`);
+  logger.info(`[Updater] Lade Update herunter: ${downloadUrl}`);
 
   return new Promise((resolve) => {
     const request = net.request(downloadUrl);
@@ -99,7 +102,7 @@ async function downloadAndInstall() {
 
     request.on("response", (response) => {
       if (response.statusCode !== 200) {
-        console.error(`[Updater] Download fehlgeschlagen (Status ${response.statusCode})`);
+        logger.error(`[Updater] Download fehlgeschlagen (Status ${response.statusCode})`);
         fileStream.close();
         fs.unlink(installerPath, () => {});
         resolve(false);
@@ -116,28 +119,28 @@ async function downloadAndInstall() {
           const actualHash = hash.digest("hex");
 
           if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) {
-            console.error("[Updater] Hash stimmt nicht! Update abgebrochen.");
-            console.error(`Erwartet: ${expectedHash}`);
-            console.error(`Berechnet: ${actualHash}`);
+            logger.error("[Updater] Hash stimmt nicht! Update abgebrochen.");
+            logger.error(`Erwartet: ${expectedHash}`);
+            logger.error(`Berechnet: ${actualHash}`);
             fs.unlink(installerPath, (err) => {
-              if (err) console.error("Konnte ungültige Datei nicht löschen:", err);
+              if (err) logger.error(`Konnte ungültige Datei nicht löschen: ${err.message}`);
               resolve(false);
             });
             return;
           }
 
-          console.log("[Updater] Hash OK. Starte Installation...");
+          logger.info("[Updater] Hash OK. Starte Installation...");
           shell.openPath(installerPath).then(() => {
             resolve(true);
           }).catch((err) => {
-            console.error("[Updater] Fehler beim Starten des Installers:", err);
+            logger.error(`[Updater] Fehler beim Starten des Installers: ${err.message}`);
             resolve(false);
           });
         });
       });
 
       response.on("error", (err) => {
-        console.error("[Updater] Fehler beim Download:", err);
+        logger.error(`[Updater] Fehler beim Download: ${err.message}`);
         fileStream.close();
         fs.unlink(installerPath, () => {});
         resolve(false);
@@ -145,7 +148,7 @@ async function downloadAndInstall() {
     });
 
     request.on("error", (err) => {
-      console.error("[Updater] Netzwerkfehler:", err);
+      logger.error(`[Updater] Netzwerkfehler: ${err.message}`);
       fileStream.close();
       fs.unlink(installerPath, () => {});
       resolve(false);

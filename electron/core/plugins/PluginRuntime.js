@@ -1,6 +1,9 @@
 const path = require("path");
 const eventBus = require("../eventBus");
 const { createPluginContext } = require("./PluginContext");
+const LogManager = require("../diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("PluginRuntime");
 
 class PluginRuntime {
 
@@ -44,9 +47,8 @@ class PluginRuntime {
 
                         } catch (err) {
 
-                            console.error(
-                                `[Plugin] Fehler in ${hook}:`,
-                                err
+                            logger.error(
+                                `[Plugin] Fehler in ${hook}: ${err.message}`
                             );
 
                         }
@@ -84,7 +86,7 @@ class PluginRuntime {
             plugin.listeners = listeners;
             plugin.loaded = true;
 
-            console.log(
+            logger.info(
                 `Plugin geladen: ${plugin.manifest.name}`
             );
 
@@ -92,9 +94,8 @@ class PluginRuntime {
 
         } catch (err) {
 
-            console.error(
-                `Plugin Start Fehler (${plugin.manifest.id})`,
-                err
+            logger.error(
+                `Plugin Start Fehler (${plugin.manifest.id}): ${err.message}`
             );
 
             return false;
@@ -142,7 +143,7 @@ class PluginRuntime {
             plugin.listeners = [];
             plugin.loaded = false;
 
-            console.log(
+            logger.info(
                 `Plugin entladen: ${plugin.manifest.name}`
             );
 
@@ -150,9 +151,8 @@ class PluginRuntime {
 
         } catch (err) {
 
-            console.error(
-                `Plugin Stop Fehler (${plugin.manifest.id})`,
-                err
+            logger.error(
+                `Plugin Stop Fehler (${plugin.manifest.id}): ${err.message}`
             );
 
             return false;

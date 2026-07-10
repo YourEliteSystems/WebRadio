@@ -3,6 +3,10 @@ const path = require("path");
 const eventBus = require("../core/eventBus");
 const { createPluginContext } = require("../core/plugins/PluginContext");
 const { app } = require("electron");
+const LogManager = require("../core/diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("PluginManager");
+
 const plugins = [];
 
 function getPlugins() {
@@ -79,7 +83,7 @@ function togglePlugin(id, enabled) {
   }
   
   const pluginMeta = plugins.find(p => p.meta.id === id)?.meta || { id, name: id };
-  console.log(`Plugin ${enabled ? "aktiviert" : "deaktiviert"}: ${pluginMeta.name}`);
+  logger.info(`Plugin ${enabled ? "aktiviert" : "deaktiviert"}: ${pluginMeta.name}`);
   
   eventBus.emit("pluginToggled", { id, enabled });
 }
@@ -113,7 +117,7 @@ function startPlugin(dir, meta) {
     const mainFile = path.join(app.getPath("userData"), "plugins", dir, meta.main);
     if (!fs.existsSync(mainFile)) return;
     const instance = require(mainFile);
-    console.log(`Plugin geladen: ${meta.name}`);
+    logger.info(`Plugin geladen: ${meta.name}`);
     
     const listeners = [];
     const events = ["onMetadata", "onStationChange", "onPlay", "onStop", "onVolumeChange", "onThemeChange"];
@@ -123,7 +127,7 @@ function startPlugin(dir, meta) {
         const busEvent = event.replace("on", "").toLowerCase();
         const handler = data => {
           try { instance[event](data); } 
-          catch (err) { console.error(`Fehler im Plugin-Event ${event}:`, err); }
+          catch (err) { logger.error(`Fehler im Plugin-Event ${event}: ${err.message}`); }
         };
         eventBus.on(busEvent, handler);
         listeners.push({ event: busEvent, handler });
@@ -144,7 +148,7 @@ function startPlugin(dir, meta) {
       safeExecute(instance.init);
     }
   } catch (e) {
-    console.error("Plugin Fehler:", dir, e);
+    logger.error(`Plugin Fehler (${dir}): ${e.message}`);
   }
 }
 
@@ -166,7 +170,7 @@ function loadPlugins() {
       }
       startPlugin(dir, meta);
     } catch (e) {
-      console.error("Plugin Init Fehler:", dir, e);
+      logger.error(`Plugin Init Fehler (${dir}): ${e.message}`);
     }
   });
 }
@@ -175,7 +179,7 @@ function safeExecute(fn) {
   try {
     fn();
   } catch (err) {
-    console.error("Plugin Crash abgefangen:", err);
+    logger.warn(`Plugin Crash abgefangen: ${err.message}`);
   }
 }
 

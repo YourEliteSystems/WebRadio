@@ -1,4 +1,4 @@
-const { ipcMain, BrowserWindow } = require("electron");
+const { ipcMain, BrowserWindow, shell } = require("electron");
 
 function registerWindowHandlers(windowManager) {
 
@@ -19,6 +19,11 @@ function registerWindowHandlers(windowManager) {
     if (!win) return;
 
     win.isMaximized() ? win.unmaximize() : win.maximize();
+  });
+
+  // ── Shell / Filesystem ────────────────────────────────────
+  ipcMain.handle("shell:openPath", (_, folderPath) => {
+    return shell.openPath(folderPath);
   });
 }
 

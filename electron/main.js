@@ -1,5 +1,7 @@
 const { app } = require("electron");
 
+const Application = require("./core/Application");
+
 const WindowManager = require("./core/app/WindowManager");
 const { registerAllIpc } = require("./core/ipc/registerIpcHandlers");
 
@@ -20,6 +22,8 @@ const HealthCheck = require("./core/diagnostics/health/HealthCheck");
 const isDev = !app.isPackaged;
 
 app.whenReady().then(() => {
+
+    Application.start();
 
     //
     // Infrastruktur
@@ -80,7 +84,7 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", () => {
-
+    Application.shutdown();
     unregisterMediaKeys();
 
     destroyTray();

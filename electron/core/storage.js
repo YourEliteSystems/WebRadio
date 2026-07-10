@@ -1,6 +1,9 @@
 const { app } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const LogManager = require("./diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("Storage");
 
 function getStoragePath() {
   return path.join(app.getPath("userData"), "storage.json");
@@ -17,7 +20,7 @@ function readData() {
     if (!parsed.settings) parsed.settings = {};
     return parsed;
   } catch (err) {
-    console.error("Error reading storage:", err);
+    logger.error(`Error reading storage: ${err.message}`);
     return { history: [], favorites: [], settings: {} };
   }
 }
@@ -27,7 +30,7 @@ function writeData(data) {
   try {
     fs.writeFileSync(file, JSON.stringify(data, null, 2));
   } catch (err) {
-    console.error("Error writing storage:", err);
+    logger.error(`Error writing storage: ${err.message}`);
   }
 }
 
