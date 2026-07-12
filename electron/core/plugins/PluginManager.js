@@ -1,3 +1,6 @@
+const PluginLoader = require("./PluginLoader");
+const PluginRuntime = require("./PluginRuntime");
+
 class PluginManager {
 
     constructor() {

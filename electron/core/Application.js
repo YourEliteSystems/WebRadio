@@ -21,7 +21,7 @@ const { registerAllIpc } = require("./ipc/registerIpcHandlers");
 // Plugins
 // ─────────────────────────────────────────────
 
-const PluginManager = require("../plugins/pluginManager");
+const PluginManager = require("./plugins/PluginManager");
 
 // ─────────────────────────────────────────────
 // Themes
