@@ -5,42 +5,60 @@ class CrashHandler {
     constructor() {
         this.initialized = false;
         this.logger = null;
+        this.uncaughtExceptionHandler = null;
+        this.unhandledRejectionHandler = null;
     }
 
     initialize(logger) {
-
         if (this.initialized) {
             return;
         }
 
         this.logger = logger;
 
-        process.on("uncaughtException", (error) => {
+        this.uncaughtExceptionHandler = (error) => {
             this.handleCrash("uncaughtException", error);
-        });
+        };
 
-        process.on("unhandledRejection", (reason) => {
-
+        this.unhandledRejectionHandler = (reason) => {
             const error = reason instanceof Error
                 ? reason
                 : new Error(String(reason));
-
             this.handleCrash("unhandledRejection", error);
+        };
 
-        });
+        process.on("uncaughtException", this.uncaughtExceptionHandler);
+        process.on("unhandledRejection", this.unhandledRejectionHandler);
 
         this.initialized = true;
 
         console.log("[CrashHandler] Initialized.");
+    }
 
+    shutdown() {
+        if (!this.initialized) {
+            return;
+        }
+
+        if (this.uncaughtExceptionHandler) {
+            process.removeListener("uncaughtException", this.uncaughtExceptionHandler);
+            this.uncaughtExceptionHandler = null;
+        }
+
+        if (this.unhandledRejectionHandler) {
+            process.removeListener("unhandledRejection", this.unhandledRejectionHandler);
+            this.unhandledRejectionHandler = null;
+        }
+
+        this.logger = null;
+        this.initialized = false;
+
+        console.log("[CrashHandler] Shutdown.");
     }
 
     handleCrash(type, error) {
-
         try {
-
             if (this.logger) {
-
                 this.logger.fatal(
                     `${type}: ${error.message}`,
                     {
@@ -48,19 +66,12 @@ class CrashHandler {
                         type
                     }
                 );
-
             } else {
-
                 console.error(`[${type}]`, error);
-
             }
-
         } catch (err) {
-
             console.error("CrashHandler konnte Fehler nicht loggen:", err);
-
         }
-
     }
 
 }

@@ -48,7 +48,17 @@ class StorageManager {
     // ---------------------------------------------------------
 
     ensureDirectory(dir) {
+        console.log(
+            "[Storage] ensureDirectory:",
+            dir,
+            typeof dir
+        );
 
+        if (typeof dir !== "string") {
+            throw new TypeError(
+                `Invalid directory path: ${dir}`
+            );
+        }
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, {
                 recursive: true

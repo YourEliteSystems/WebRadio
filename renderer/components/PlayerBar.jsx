@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getAnalyser } from '../services/playerService';
 import { applyThemeCss, resolveActiveTheme } from '../services/themeService';
 
-export default function PlayerBar({ 
-  station, 
-  title, 
-  volume, 
-  onVolumeChange, 
-  onPlay, 
+export default function PlayerBar({
+  station,
+  title,
+  volume,
+  onVolumeChange,
+  onPlay,
   onStop,
   isPlaying,
   isFavorite,
@@ -47,7 +47,7 @@ export default function PlayerBar({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const analyser = getAnalyser();
     if (!analyser) return;
 
@@ -58,27 +58,27 @@ export default function PlayerBar({
     const draw = () => {
       animationId = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
-      
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
+
       const barWidth = (canvas.width / dataArray.length) * 2.5;
       let x = 0;
-      
+
       for (let i = 0; i < dataArray.length; i++) {
         const barHeight = (dataArray[i] / 255) * canvas.height;
-        
+
         // Brighter Gradient color for visualizer
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
         gradient.addColorStop(0, '#00f2fe'); // Bright Cyan
         gradient.addColorStop(1, '#4facfe'); // Bright Blue
-        
+
         ctx.fillStyle = gradient;
         ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-        
+
         x += barWidth + 1;
       }
     };
-    
+
     draw();
     return () => cancelAnimationFrame(animationId);
   }, []);
@@ -92,20 +92,20 @@ export default function PlayerBar({
   return (
     <footer className="player">
       <div className="now-playing">
-        <img 
-          className="np-logo" 
-          src={station?.favicon || station?.logo || '../assets/default-logo.png'} 
+        <img
+          className="np-logo"
+          src={station?.favicon || station?.logo || '../assets/default-logo.png'}
           onError={(e) => { e.target.src = '../assets/default-logo.png'; }}
-          alt="logo" 
+          alt="logo"
         />
         <div className="np-info">
           <div className="np-station">{station?.name || 'Kein Sender'}</div>
           <div className="np-title">{title || '–'}</div>
         </div>
         {station && (
-          <button 
-            className="player-btn" 
-            onClick={onToggleFavorite} 
+          <button
+            className="player-btn"
+            onClick={onToggleFavorite}
             title="Favorit"
             style={{ color: isFavorite ? '#ef4444' : 'var(--text-muted)', marginLeft: '8px', width: '32px', height: '32px' }}
           >
@@ -117,8 +117,8 @@ export default function PlayerBar({
       </div>
 
       <div className="player-center">
-        <button 
-          className="player-btn play" 
+        <button
+          className="player-btn play"
           onClick={() => onPlay()}
           title="Play / Retry"
         >
@@ -126,8 +126,8 @@ export default function PlayerBar({
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
         </button>
-        <button 
-          className="player-btn" 
+        <button
+          className="player-btn"
           onClick={onStop}
           title="Stop"
         >
@@ -138,27 +138,18 @@ export default function PlayerBar({
       </div>
 
       <div className="player-right">
-        {themes.length > 0 && (
-          <select 
-            value={currentTheme} 
-            onChange={handleThemeChange} 
-            style={{width: "110px", padding: "6px", fontSize: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", color: "var(--text-main)", cursor: "pointer"}}
-          >
-            {themes.map(t => <option key={t.id || t.css} value={t.css} style={{background: "#161921"}}>{t.name}</option>)}
-          </select>
-        )}
         <div className="volume-container">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
           </svg>
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.01" 
-            value={volume} 
-            onChange={(e) => onVolumeChange(parseFloat(e.target.value))} 
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
           />
         </div>
         <canvas ref={canvasRef} id="vu" width="100" height="30"></canvas>

@@ -1,92 +1,19 @@
 const { app } = require("electron");
-
 const Application = require("./core/Application");
 
-const WindowManager = require("./core/app/WindowManager");
-const { registerAllIpc } = require("./core/ipc/registerIpcHandlers");
-
-const pluginManager = require("./plugins/pluginManager");
-
-const { createTray, destroyTray } = require("./core/system/tray");
-const { registerMediaKeys, unregisterMediaKeys } = require("./core/mediaKeys");
-const { checkForUpdates } = require("./core/updater");
-
-// Storage
-const StorageManager = require("./core/storage/StorageManager");
-
-// Diagnostics
-const LogManager = require("./core/diagnostics/logging/LogManager");
-const CrashHandler = require("./core/diagnostics/crash/CrashHandler");
-const HealthCheck = require("./core/diagnostics/health/HealthCheck");
-
-const isDev = !app.isPackaged;
-
-app.whenReady().then(() => {
-
-    Application.start();
-
-    //
-    // Infrastruktur
-    //
-
-    StorageManager.initialize();
-
-    LogManager.initialize();
-
-    const logger = LogManager.createLogger("Main");
-
-    CrashHandler.initialize(logger);
-
-    //
-    // Diagnose
-    //
-
-    const health = HealthCheck.run();
-
-    logger.info("HealthCheck abgeschlossen.", health);
-
-    //
-    // Fenster
-    //
-
-    const windowManager = new WindowManager(isDev);
-
-    windowManager.createMainWindow();
-
-    //
-    // IPC
-    //
-
-    registerAllIpc(windowManager);
-
-    //
-    // Plugins
-    //
-
-    pluginManager.loadPlugins();
-
-    //
-    // System
-    //
-
-    registerMediaKeys(
-        windowManager.getMainWindow()
-    );
-
-    createTray(
-        windowManager.getMainWindow(),
-        {
-            openSettings: () => windowManager.openSettings(),
-            checkForUpdates: () => checkForUpdates()
-        }
-    );
-
+process.on("uncaughtException", (error) => {
+    console.error("Uncaught Exception:", error);
 });
 
-app.on("before-quit", () => {
-    Application.shutdown();
-    unregisterMediaKeys();
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
 
-    destroyTray();
 
+app.whenReady().then(async () => {
+    await Application.start();
+});
+
+app.on("before-quit", async () => {
+    await Application.shutdown();
 });

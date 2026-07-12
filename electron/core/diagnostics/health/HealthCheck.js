@@ -4,104 +4,98 @@ const StorageManager = require("../../storage/StorageManager");
 class HealthCheck {
 
     constructor() {
+        this.initialized = false;
         this.checks = [];
     }
 
-    register(name, callback) {
+    initialize() {
+        if (this.initialized) {
+            return;
+        }
 
+        // Standardprüfungen
+        this.register("Plugin Directory", () => {
+            if (!fs.existsSync(StorageManager.getPluginPath())) {
+                throw new Error("Plugin directory missing.");
+            }
+        });
+
+        this.register("Theme Directory", () => {
+            if (!fs.existsSync(StorageManager.getThemePath())) {
+                throw new Error("Theme directory missing.");
+            }
+        });
+
+        this.register("Plugin Data", () => {
+            if (!fs.existsSync(StorageManager.getPluginDataPath())) {
+                throw new Error("Plugin data directory missing.");
+            }
+        });
+
+        this.register("Logs", () => {
+            if (!fs.existsSync(StorageManager.getLogsPath())) {
+                throw new Error("Logs directory missing.");
+            }
+        });
+
+        this.register("Storage File", () => {
+            if (!fs.existsSync(StorageManager.getStorageFile())) {
+                throw new Error("storage.json missing.");
+            }
+        });
+
+        this.register("Registry File", () => {
+            if (!fs.existsSync(StorageManager.getRegistryFile())) {
+                throw new Error("registry.json missing.");
+            }
+        });
+
+        this.initialized = true;
+    }
+
+    shutdown() {
+        if (!this.initialized) {
+            return;
+        }
+
+        this.checks = [];
+        this.initialized = false;
+    }
+
+    register(name, callback) {
         this.checks.push({
             name,
             callback
         });
-
     }
 
     run() {
+        if (!this.initialized) {
+            this.initialize();
+        }
 
         const results = [];
 
         for (const check of this.checks) {
-
             try {
-
                 const result = check.callback();
-
                 results.push({
                     name: check.name,
                     success: true,
                     message: result || "OK"
                 });
-
             } catch (err) {
-
                 results.push({
                     name: check.name,
                     success: false,
                     message: err.message
                 });
-
             }
-
         }
 
         return results;
-
     }
 
 }
 
-const healthCheck = new HealthCheck();
-
-//
-// Standardprüfungen
-//
-
-healthCheck.register("Plugin Directory", () => {
-
-    if (!fs.existsSync(StorageManager.getPluginPath())) {
-        throw new Error("Plugin directory missing.");
-    }
-
-});
-
-healthCheck.register("Theme Directory", () => {
-
-    if (!fs.existsSync(StorageManager.getThemePath())) {
-        throw new Error("Theme directory missing.");
-    }
-
-});
-
-healthCheck.register("Plugin Data", () => {
-
-    if (!fs.existsSync(StorageManager.getPluginDataPath())) {
-        throw new Error("Plugin data directory missing.");
-    }
-
-});
-
-healthCheck.register("Logs", () => {
-
-    if (!fs.existsSync(StorageManager.getLogsPath())) {
-        throw new Error("Logs directory missing.");
-    }
-
-});
-
-healthCheck.register("Storage File", () => {
-
-    if (!fs.existsSync(StorageManager.getStorageFile())) {
-        throw new Error("storage.json missing.");
-    }
-
-});
-
-healthCheck.register("Registry File", () => {
-
-    if (!fs.existsSync(StorageManager.getRegistryFile())) {
-        throw new Error("registry.json missing.");
-    }
-
-});
-
-module.exports = healthCheck;
+module.exports = new HealthCheck();

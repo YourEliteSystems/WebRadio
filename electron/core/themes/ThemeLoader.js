@@ -11,7 +11,7 @@ class ThemeLoader {
     this.validator = new ThemeValidator();
   }
 
-  getThemes() {
+  discoverThemes() {
 
     if (!fs.existsSync(this.themesPath)) {
       return [];
@@ -39,6 +39,11 @@ class ThemeLoader {
       if (!fs.existsSync(manifestPath)) {
         continue;
       }
+
+      const manifest = JSON.parse(
+        fs.readFileSync(manifestPath, "utf8")
+      );
+
       const validation = this.validator.validate(manifest);
       if(!validation.valid) {
         console.error(
@@ -88,4 +93,4 @@ class ThemeLoader {
 
 }
 
-module.exports = ThemeLoader;
+module.exports = new ThemeLoader();
