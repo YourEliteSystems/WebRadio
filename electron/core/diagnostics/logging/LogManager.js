@@ -96,6 +96,24 @@ class LogManager {
 
     }
 
+    shutdown() {
+
+        if (!this.initialized) {
+            return;
+        }
+
+        this.rootLogger.separator();
+        this.rootLogger.info("Logging wird beendet.");
+        this.rootLogger.separator();
+
+        this.rootLogger      = null;
+        this.formatter       = null;
+        this.consoleTransport = null;
+        this.fileTransport   = null;
+        this.initialized     = false;
+
+    }
+
 }
 
 module.exports = new LogManager();

@@ -4,6 +4,134 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.5 RC3] – 2026-07-16
+
+> Release Candidate 3 für v1.0.5 – Architektur-Refactoring, stabilisiertes Diagnostics-System und vollständige Entwickler-Dokumentation.
+
+### ✨ Neue Features & Verbesserungen
+
+#### 🏗️ `Application.js` – Neue zentrale Bootstrap-Klasse
+
+- Neue Klasse `Application` in `electron/core/Application.js` bündelt den gesamten App-Lifecycle:
+  - Klar gegliederte Startup-Sequenz: **Storage → Diagnostics → Window → IPC → Plugins → Themes → MediaKeys → Tray → Updater**
+  - `start()` und `shutdown()` als saubere Lifecycle-Methoden
+  - Singleton-Export (`module.exports = new Application()`) – `main.js` ist damit auf wenige Zeilen reduziert
+- `initializeDiagnostics()` initialisiert `LogManager`, `CrashHandler`, `CrashReportManager` und `HealthCheck` in der richtigen Reihenfolge
+- `shutdown()` fährt alle Subsysteme in umgekehrter Reihenfolge sauber herunter
+
+#### 🎨 `ThemeManager` – Lifecycle & API ausgebaut
+
+- `ThemeManager` erhält vollständige Lifecycle-Methoden: `initialize()`, `shutdown()`
+- `initialize()`-Guard verhindert Doppel-Initialisierung
+- Neue Methoden: `enableTheme(id)`, `disableTheme(id)`, `reloadTheme(id)`, `getTheme(id)`, `getThemes()`, `hasTheme(id)`, `isInitialized()`
+- Themes werden intern in einer `Map` gehalten für O(1)-Zugriff
+- `shutdown()` räumt alle geladenen Themes sauber auf
+
+#### 🔌 `PluginLoader` – Manifest-Discovery stabilisiert
+
+- `discoverPlugins()` liest alle Plugin-Ordner aus dem `userData`-Plugins-Verzeichnis
+- `loadManifest(pluginPath)` liest und validiert `manifest.json` pro Plugin
+- Fehlerhafte Plugins werden übersprungen und geloggt – kein App-Crash bei defekten Plugins
+
+#### 🩺 Diagnostics – Shutdown-Lifecycle ergänzt
+
+- `CrashHandler`, `CrashReportManager` und `HealthCheck` erhalten saubere `shutdown()`-Methoden
+- `SystemInfo` überarbeitet: kompaktere Ausgabe, bessere Typisierung
+- `StorageManager` um weitere Hilfsmethoden erweitert
+
+#### 🖥️ `main.js` – Reduziert auf reinen Einstiegspunkt
+
+- `electron/main.js` delegiert vollständig an `Application` – keine Geschäftslogik mehr im Einstiegspunkt
+- Startup und Shutdown werden ausschließlich über `Application.start()` / `Application.shutdown()` gesteuert
+
+#### 🎵 `PlayerBar.jsx` – Überarbeitet
+
+- Vollständige Überarbeitung der PlayerBar-Komponente für bessere Stabilität und UX
+- Robustere Event-Handler und sauberere State-Verwaltung
+
+---
+
+### 📚 Dokumentation (komplett neu)
+
+Die gesamte Entwickler-Dokumentation wurde von Grund auf neu erstellt und strukturiert:
+
+#### 🏛️ Architecture Docs (`docs/architecture/`)
+
+| Datei | Inhalt |
+|---|---|
+| `01-Application.md` | Application-Klasse, Bootstrap-Lifecycle |
+| `02-StorageManager.md` | Pfad-Verwaltung, userData-Struktur |
+| `03-WindowManager.md` | Fenster-Verwaltung, Singleton-Pattern |
+| `04-Diagnostics.md` | Logging, Crash-Handling, HealthCheck |
+| `05-IPC.md` | IPC-Handler-Architektur, Channel-Übersicht |
+| `06-ThemeManager.md` | Theme-Lifecycle, Loader, Validator |
+| `07-PluginManager.md` | Plugin-Lifecycle, API, Permissions |
+| `08-MediaKeys.md` | Globale Tastaturshortcuts |
+| `09-Tray.md` | System-Tray, Kontextmenü |
+| `10-Updater.md` | Update-Check, SHA-256-Verifikation |
+
+#### 🔌 Plugin SDK (`docs/plugin-sdk/`)
+
+Vollständiger Leitfaden für Plugin-Entwickler:
+
+- `01-GettingStarted.md` – Einstieg und erstes Plugin
+- `02-Manifest.md` – `manifest.json` vollständig dokumentiert
+- `03-ProjectStructure.md` – Empfohlene Ordnerstruktur
+- `04-Lifecycle.md` – `init()`, `onEnable()`, `onDisable()`, `destroy()`
+- `05-Context.md` – `PluginContext`-API erklärt
+- `06-Storage.md` – Persistente Plugin-Daten
+- `07-Events.md` – Events abonnieren und auslösen
+- `08-Hooks.md` – App-Hooks erweitern
+- `09-UI.md` – Views und Slots registrieren
+- `10-BestPractices.md` – Do's & Don'ts
+- `11-HelloWorld.md` – Vollständiges Beispiel-Plugin
+- `12-FAQ.md` – Häufige Fragen
+
+#### 🎨 Theme SDK (`docs/theme-sdk/`)
+
+Vollständiger Leitfaden für Theme-Entwickler:
+
+- `01-GettingStarted.md` – Einstieg und erstes Theme
+- `02-ThemeManifest.md` – `theme.json` vollständig dokumentiert
+- `03-DirectoryStructure.md` – Ordnerstruktur für Themes
+- `04-CSSVariables.md` – Alle CSS-Variablen der App dokumentiert
+- `05-Components.md` – UI-Komponenten und ihre Klassen
+- `06-Assets.md` – Icons, Schriften und Bilder einbinden
+- `07-BestPractices.md` – Performance und Kompatibilität
+- `08-HelloTheme.md` – Vollständiges Beispiel-Theme
+- `09-FAQ.md` – Häufige Fragen
+
+#### 📖 API Reference (`docs/api-referance/`)
+
+Vollständige Referenz aller öffentlichen APIs:
+
+`Application`, `Plugin`, `PluginContext`, `PluginManager`, `Commands`, `Events`, `Hooks`, `Logger`, `Settings`, `Storage`, `Theme`, `ThemeManager`, `Windows`, `Menus`, `Notifications`, `Permissions`
+
+---
+
+### ♻️ Refactoring
+
+- Alte Dokumentation nach `docs_legecy/` verschoben (nicht gelöscht)
+- `electron/main.js` vereinfacht – vollständige Delegation an `Application`
+- `PluginRuntime` und `PluginManager` weiter konsolidiert
+- `diagnosticsHandlers.js` für IPC-Anbindung der Diagnostics-API hinzugefügt
+- `windowHandlers.js` aktualisiert
+
+---
+
+### 🐛 Bugfixes
+
+- **`StreamManager` – `uncaughtException: ffmpeg was killed with signal SIGTERM`**: Beim Stoppen eines Streams wurde `kill('SIGTERM')` aufgerufen, bevor alle Listener entfernt wurden. `fluent-ffmpeg`'s interner `endCB` (in `processor.js`) ruft nach dem Kill noch asynchron `self.emit('error')` auf – war kein `'error'`-Listener mehr registriert, landete der Fehler als `uncaughtException`. Fix: `removeAllListeners()` → stummen No-op Error-Listener einhängen → `kill()`. Damit ist immer ein Listener vorhanden, wenn `endCB` async feuert.
+- **`LogManager` – fehlende `shutdown()`-Methode**: `Application.shutdown()` rief `LogManager.shutdown()` auf, die Methode existierte jedoch nicht → `TypeError` beim Beenden der App. `shutdown()` ergänzt: loggt einen abschließenden Separator, setzt alle internen Referenzen zurück und markiert den Manager als nicht mehr initialisiert.
+
+---
+
+### 📦 Abhängigkeiten
+
+Keine neuen Abhängigkeiten. Alle Pakete auf demselben Stand wie v1.0.5.
+
+---
+
 ## [v1.0.5] – 2026-07-09
 
 ### ✨ Neue Features
@@ -265,4 +393,4 @@ Keine neuen Abhängigkeiten in v1.0.5. Alle bestehenden Pakete bleiben auf dense
 
 ---
 
-*Changelog erstellt von Antigravity · WebRadio by YourEliteSystems*
+*Changelog zuletzt aktualisiert: 2026-07-16 · Erstellt von Antigravity · WebRadio by YourEliteSystems*

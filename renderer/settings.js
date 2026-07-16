@@ -121,7 +121,7 @@ if (window.updaterAPI?.getVersion) {
   });
 }
  
-console.log("Update API:", window.updaterAPI?.getVersion);
+//console.log("Update API:", window.updaterAPI?.getVersion);
 
 function setUpdateState(state, data = {}) {
   updateIcon.className = `update-status-icon ${state}`;

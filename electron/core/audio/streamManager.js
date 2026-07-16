@@ -77,10 +77,15 @@ class StreamManager {
   stop() {
     if (this.ffmpegCommand) {
       try {
-        // WICHTIG: Erst killen, damit der Error-Handler das SIGTERM
-        // Event abfangen kann. Danach Listener entfernen.
-        this.ffmpegCommand.kill("SIGTERM");
+        // Reihenfolge ist entscheidend:
+        // 1. Alle eigenen Listener entfernen
+        // 2. No-op Error-Handler einhängen – verhindert uncaughtException,
+        //    weil fluent-ffmpeg's endCB async nach dem Kill noch
+        //    self.emit('error') aufruft (Zeile 543 in processor.js)
+        // 3. Erst dann killen
         this.ffmpegCommand.removeAllListeners();
+        this.ffmpegCommand.on('error', () => {});
+        this.ffmpegCommand.kill('SIGTERM');
       } catch (err) {
         logger.warn(`Fehler beim Beenden von FFmpeg: ${err.message}`);
       }

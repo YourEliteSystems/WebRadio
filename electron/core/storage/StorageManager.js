@@ -48,11 +48,11 @@ class StorageManager {
     // ---------------------------------------------------------
 
     ensureDirectory(dir) {
-        console.log(
-            "[Storage] ensureDirectory:",
-            dir,
-            typeof dir
-        );
+        //console.log(
+        //    "[Storage] ensureDirectory:",
+        //    dir,
+        //    typeof dir
+        //);
 
         if (typeof dir !== "string") {
             throw new TypeError(

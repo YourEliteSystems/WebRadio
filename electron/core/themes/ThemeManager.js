@@ -43,8 +43,8 @@ class ThemeManager {
     async loadThemes() {
 
         const themes = ThemeLoader.discoverThemes(StorageManager.getThemePath());
-        console.log("Themes geladen:", themes);
-        console.log("Ist Array:", Array.isArray(themes));
+        //console.log("Themes geladen:", themes);
+        //console.log("Ist Array:", Array.isArray(themes));
         for (const theme of themes) {
 
             this.themes.set(

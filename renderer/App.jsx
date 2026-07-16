@@ -31,7 +31,7 @@ export default function App() {
   useEffect(() => {
     if (window.radioAPI?.onMetadata) {
       window.radioAPI.onMetadata((meta) => {
-        console.log("Metadaten empfangen:", meta);
+        //console.log("Metadaten empfangen:", meta);
         if (meta.StreamTitle) {
           const display = meta.Artist && meta.Song ? `${meta.Artist} - ${meta.Song}` : meta.StreamTitle;
           setNowPlayingTitle(display);
