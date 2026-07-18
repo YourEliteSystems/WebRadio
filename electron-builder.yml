@@ -21,7 +21,7 @@ extraResources:
 
 win:
   target:
-    - nsis
+    - portable
 
   icon: assets/icons/tray.ico
 
