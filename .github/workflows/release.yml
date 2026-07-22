@@ -54,7 +54,12 @@ jobs:
         with:
           generate_release_notes: false
           body_path: release-notes.md
-          files: |
-            dist/**
+          files:
+          dist/*.exe
+          dist/*.AppImage
+          dist/*.deb
+          dist/*.rpm
+          dist/*.zip
+          dist/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
