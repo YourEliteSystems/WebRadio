@@ -49,17 +49,20 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const releaseNotes=require('./scripts/release/release-notes'); const pkg=require('./package.json'); fs.writeFileSync('release-notes.md', releaseNotes.generate(pkg.version));"
 
+      - name: Prepare Release Artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-artifacts
+
+          Get-ChildItem -Path dist -File |
+            Copy-Item -Destination release-artifacts
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: false
           body_path: release-notes.md
           files:
-          dist/*.exe
-          dist/*.AppImage
-          dist/*.deb
-          dist/*.rpm
-          dist/*.zip
-          dist/SHA256SUMS.txt
+            - release-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
