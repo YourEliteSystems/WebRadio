@@ -5,28 +5,20 @@
   "main": "electron/main.js",
   "author": "Your Elite Systms",
   "scripts": {
-    "start": "npm run build-react && electron-forge start",
-    "package": "npm run build-react && electron-forge package",
-    "make": "npm run build-react && electron-forge make",
+    "dev": "npm run build-react && electron .",
+    "build": "npm run build-react",
     "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm",
-    "builder": "npm run build-react && electron-builder",
-    "builder:win": "npm run build-react && electron-builder --win",
-    "builder:linux": "npm run build-react && electron-builder --linux",
-    "builder:dir": "npm run build-react && electron-builder --dir",
-    "publish": "npm run build-react && electron-forge publish"
-  },
-  "config": {
-    "forge": "./forge.config.js"
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:dir": "electron-builder --dir",
+    "release": "node scripts/release",
+    "release:validate": "node scripts/release/validate.js",
+    "release:notes": "node scripts/release/release-notes.js",
+    "release:checksums": "node scripts/release/checksums.js",
+    "release:detect": "node scripts/release/detect-release.js"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.11.1",
-    "@electron-forge/maker-deb": "^7.11.1",
-    "@electron-forge/maker-rpm": "^7.11.1",
-    "@electron-forge/maker-squirrel": "^7.11.1",
-    "@electron-forge/maker-zip": "^7.11.1",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
-    "@electron-forge/plugin-fuses": "^7.11.1",
-    "@electron-forge/publisher-github": "^7.11.1",
     "@electron/fuses": "^1.8.0",
     "@types/node": "^25.6.0",
     "electron": "^40.7.0",
@@ -37,7 +29,6 @@
   },
   "dependencies": {
     "discord-rpc": "^4.0.1",
-    "electron-squirrel-startup": "^1.0.1",
     "ffmpeg-static": "^5.3.0",
     "fluent-ffmpeg": "^2.1.3",
     "fs-extra": "^11.3.4",

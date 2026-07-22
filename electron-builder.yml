@@ -21,13 +21,19 @@ extraResources:
 
 win:
   target:
-    - portable
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
 
   icon: assets/icons/tray.ico
 
 linux:
   target:
     - AppImage
+    - deb
 
   category: AudioVideo
 
