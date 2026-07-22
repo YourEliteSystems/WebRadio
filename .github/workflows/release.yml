@@ -9,17 +9,12 @@ permissions:
   contents: write
 
 jobs:
-
   release:
-
     name: Build & Release
-
     runs-on: windows-latest
-
     timeout-minutes: 45
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v5
 
@@ -62,7 +57,7 @@ jobs:
         with:
           generate_release_notes: false
           body_path: release-notes.md
-          files:
-            - release-artifacts/*
+          files: |
+            release-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
