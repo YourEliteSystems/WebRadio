@@ -91,4 +91,4 @@ module.exports = Object.freeze({
 
     PackageError
 
-});s
+});
