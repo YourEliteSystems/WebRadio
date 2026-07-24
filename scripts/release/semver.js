@@ -22,3 +22,22 @@
  */
 const SEMVER_REGEX =
     /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>[0-9A-Za-z.-]+))?(?:\+(?<build>[0-9A-Za-z.-]+))?$/;
+
+/**
+ * Returns true if the given string is a valid Semantic Version.
+ *
+ * @param {string} version
+ * @returns {boolean}
+ */
+function isValid(version) {
+
+    return SEMVER_REGEX.test(version);
+
+}
+
+module.exports = {
+
+    SEMVER_REGEX,
+    isValid
+
+};
