@@ -1,65 +1,248 @@
 name: Release
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Trigger
+#
+#   Automatisch: Jeder Git-Tag der Form v* startet die Pipeline.
+#   Manuell:     workflow_dispatch als Backup-/Notfall-Trigger.
+# ─────────────────────────────────────────────────────────────────────────────
 on:
   push:
     tags:
       - 'v*'
 
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release-Version (optional, z.B. v1.0.5-rc.4). Muss mit package.json uebereinstimmen.'
+        required: false
+        default: ''
+      draft:
+        description: 'Release als Entwurf veroeffentlichen?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Berechtigungen
+# ─────────────────────────────────────────────────────────────────────────────
 permissions:
   contents: write
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Jobs
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
   release:
     name: Build & Release
+
     runs-on: windows-latest
+
     timeout-minutes: 45
 
     steps:
+      # ───────────────────────────────────────────────────────────────────────
+      # 1. Repository auschecken
+      # ───────────────────────────────────────────────────────────────────────
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      # ───────────────────────────────────────────────────────────────────────
+      # 2. Node.js einrichten
+      # ───────────────────────────────────────────────────────────────────────
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
+      # ───────────────────────────────────────────────────────────────────────
+      # 3. Abhaengigkeiten installieren
+      # ───────────────────────────────────────────────────────────────────────
       - name: Install Dependencies
         run: npm ci
 
-      - name: Validate Release
-        run: node scripts/release
+      # ───────────────────────────────────────────────────────────────────────
+      # 4. Release-Kontext ermitteln
+      #
+      #    Legt RELEASE_VERSION, RELEASE_TAG und IS_PRERELEASE als
+      #    Umgebungsvariablen fest, die in allen nachfolgenden Steps
+      #    verfuegbar sind.
+      #
+      #    Prioritaet:
+      #      a) Bei Tag-Push:        Tag-Name (z.B. v1.0.5-rc.4)
+      #      b) Bei workflow_dispatch mit Version-Input: eingegebener Wert
+      #      c) Fallback:            Version aus package.json
+      # ───────────────────────────────────────────────────────────────────────
+      - name: Resolve Release Context
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $pkgVersion = $pkg.version
 
+          # Ermittle den Tag
+          $tag = $null
+
+          if ($env:GITHUB_REF -match '^refs/tags/(.+)$') {
+            $tag = $Matches[1]
+            Write-Host "Trigger: Tag-Push -> $tag"
+          } elseif ('${{ inputs.version }}' -ne '') {
+            $tag = '${{ inputs.version }}'.Trim()
+            Write-Host "Trigger: workflow_dispatch mit Version -> $tag"
+          } else {
+            $tag = "v$pkgVersion"
+            Write-Host "Trigger: workflow_dispatch ohne Version -> Fallback auf package.json -> $tag"
+          }
+
+          # Version ohne fuehrendes "v"
+          $version = $tag.TrimStart('v')
+
+          Write-Host "RELEASE_TAG     = $tag"
+          Write-Host "RELEASE_VERSION = $version"
+          Write-Host "PACKAGE_VERSION = $pkgVersion"
+
+          # Warnung falls Tag und package.json nicht uebereinstimmen
+          if ($version -ne $pkgVersion) {
+            Write-Host "::warning::Release-Tag '$tag' stimmt nicht mit package.json '$pkgVersion' ueberein."
+            Write-Host "::warning::validate.js prueft NUR package.json, nicht den Tag."
+            Write-Host "::warning::Der Build wird trotzdem fortgesetzt."
+          }
+
+          # Pre-release erkennen (alpha, beta, rc, nightly)
+          $isPrerelease = $version -match '-(alpha|beta|rc|nightly)(\.\d+)?$'
+          Write-Host "IS_PRERELEASE   = $isPrerelease"
+
+          # In GITHUB_ENV schreiben
+          "RELEASE_TAG=$tag"       | Add-Content -Path $env:GITHUB_ENV
+          "RELEASE_VERSION=$version" | Add-Content -Path $env:GITHUB_ENV
+          "IS_PRERELEASE=$($isPrerelease.ToString().ToLower())" | Add-Content -Path $env:GITHUB_ENV
+
+      # ───────────────────────────────────────────────────────────────────────
+      # 5. Release-Validierung
+      #
+      #    validate.js prueft:
+      #      - package.json vorhanden und enthaelt gueltige SemVer-Version
+      #      - CHANGELOG.md vorhanden und enthaelt die aktuelle Version
+      #
+      #    HINWEIS: validate.js vergleicht NICHT Tag vs. package.json.
+      #    Es liest nur package.json. Der manuelle Trigger ist daher
+      #    kompatibel, solange package.json korrekt gesetzt ist.
+      # ───────────────────────────────────────────────────────────────────────
+      - name: Validate Release
+        run: node -e "const validate = require('./scripts/release/validate'); validate();"
+
+      # ───────────────────────────────────────────────────────────────────────
+      # 6. Renderer bauen (esbuild via npm run build)
+      # ───────────────────────────────────────────────────────────────────────
       - name: Build Renderer
         run: npm run build
 
+      # ───────────────────────────────────────────────────────────────────────
+      # 7. Electron-Applikation paketieren (electron-builder)
+      # ───────────────────────────────────────────────────────────────────────
       - name: Build Electron Application
-        run: npm run dist
+        run: npm run dist -- --publish=never
 
+      # ───────────────────────────────────────────────────────────────────────
+      # 8. SHA256-Checksums erzeugen
+      #
+      #    checksums.js schreibt SHA256SUMS.txt in das dist-Verzeichnis.
+      # ───────────────────────────────────────────────────────────────────────
       - name: Generate Checksums
         run: node scripts/release/checksums.js
 
+      # ───────────────────────────────────────────────────────────────────────
+      # 9. Release Notes erzeugen
+      #
+      #    release-notes.js liest CHANGELOG.md und schreibt release-notes.md.
+      # ───────────────────────────────────────────────────────────────────────
       - name: Generate Release Notes
         shell: pwsh
         run: |
-          node -e "const fs=require('fs'); const releaseNotes=require('./scripts/release/release-notes'); const pkg=require('./package.json'); fs.writeFileSync('release-notes.md', releaseNotes.generate(pkg.version));"
+          $version = $env:RELEASE_VERSION
+          node -e "
+            const fs = require('fs');
+            const releaseNotes = require('./scripts/release/release-notes');
+            const notes = releaseNotes.generate(process.env.RELEASE_VERSION);
+            fs.writeFileSync('release-notes.md', notes, 'utf8');
+            console.log('Release Notes erzeugt fuer Version ' + process.env.RELEASE_VERSION);
+          "
 
+      # ───────────────────────────────────────────────────────────────────────
+      # 10. Release-Artefakte sammeln
+      #
+      #     Alle relevanten Dateien aus dist/ werden in release-artifacts/
+      #     kopiert. Entpackte Build-Verzeichnisse (z.B. win-unpacked/) werden
+      #     explizit ausgeschlossen.
+      #
+      #     Eingeschlossen:
+      #       .exe, .zip, .7z, .AppImage, .deb, .rpm, .tar.gz, .dmg
+      #       .blockmap (electron-builder Delta-Update-Metadaten)
+      #       SHA256SUMS.txt
+      #       latest*.yml / latest*.json (Auto-Update-Manifeste)
+      #
+      #     Ausgeschlossen:
+      #       builder-debug.json, builder-effective-config.yaml
+      # ───────────────────────────────────────────────────────────────────────
       - name: Prepare Release Artifacts
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path release-artifacts
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
 
-          Get-ChildItem -Path dist -File |
-            Copy-Item -Destination release-artifacts
+          $include = @(
+            '.exe', '.zip', '.7z', '.AppImage',
+            '.deb', '.rpm', '.dmg', '.blockmap',
+            '.txt', '.yml', '.yaml', '.json'
+          )
 
+          $exclude = @(
+            'builder-debug.json',
+            'builder-effective-config.yaml'
+          )
+
+          Get-ChildItem -Path dist -File | Where-Object {
+            if ($exclude -contains $_.Name) { return $false }
+            foreach ($ext in $include) {
+              if ($_.Name.EndsWith($ext)) { return $true }
+            }
+            return $false
+          } | ForEach-Object {
+            Copy-Item $_.FullName -Destination release-artifacts
+            Write-Host "  Kopiert: $($_.Name)"
+          }
+
+          Write-Host ""
+          Write-Host "Gesammelte Artefakte in release-artifacts/:"
+          Get-ChildItem release-artifacts | ForEach-Object {
+            Write-Host "  $($_.Name)"
+          }
+
+      # ───────────────────────────────────────────────────────────────────────
+      # 11. GitHub Release veroeffentlichen
+      #
+      #     - tag_name:  RELEASE_TAG (ermittelt in Schritt 4)
+      #     - name:      WebRadio <VERSION>
+      #     - prerelease: true bei alpha/beta/rc/nightly, sonst false
+      #     - draft:     per workflow_dispatch steuerbar (Standard: false)
+      #     - body:      aus release-notes.md
+      #     - assets:    alle Dateien in release-artifacts/
+      # ───────────────────────────────────────────────────────────────────────
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: false
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: WebRadio ${{ env.RELEASE_VERSION }}
           body_path: release-notes.md
+          prerelease: ${{ env.IS_PRERELEASE }}
+          draft: ${{ inputs.draft || 'false' }}
+          generate_release_notes: false
+          fail_on_unmatched_files: true
           files: |
             release-artifacts/*
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
