@@ -4,6 +4,134 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.5-rc.4] – 2026-07-24
+
+> Release Candidate 4 für v1.0.5 – Vollständige Release-Infrastruktur, erweiterte Storage-Architektur, neue IPC-APIs und Diagnostics-Erweiterungen.
+
+### ✨ Neue Features & Verbesserungen
+
+#### 🚀 Release-Infrastruktur (`scripts/release/`) – vollständig neu
+
+Die gesamte Release-Pipeline wurde als eigenständiges Node.js-Modul-System implementiert, das vollständig unabhängig von GitHub Actions betrieben werden kann:
+
+| Modul | Funktion |
+|---|---|
+| `index.js` | Zentraler Einstiegspunkt – orchestriert die komplette Pipeline |
+| `validate.js` | Prüft `package.json` (Version vorhanden, gültige SemVer) und `CHANGELOG.md` (Version dokumentiert) |
+| `semver.js` | SemVer-Hilfsfunktionen: `isValid()`, `SEMVER_REGEX` – unterstützt alle gängigen Prerelease-Formate |
+| `changelog.js` | CHANGELOG-Parser: `getVersion(v)` extrahiert den Abschnitt einer Version, `hasVersion(v)` prüft Existenz |
+| `release-notes.js` | Generiert GitHub-Release-Notes aus CHANGELOG.md mit Metadaten-Header (Stage, Version, Datum) |
+| `checksums.js` | Erstellt `SHA256SUMS.txt` für alle Release-Assets in `dist/` |
+| `github.js` | Liest GitHub Actions-Kontext: `getContext()`, `getTag()`, `getCommit()`, `getRepository()`, `isGitHubActions()` |
+| `constants.js` | Gemeinsame Konstanten: `RELEASE_STAGE`, `HASH_ALGORITHM`, `PATHS`, `ASSET_EXTENSIONS` |
+| `utils.js` | Hilfsfunktionen: `fileExists()`, `readFile()`, `writeFile()`, `readJson()`, `hashFile()`, `execute()`, Plattformerkennung |
+| `errors.js` | Typisierte Fehlerklassen: `ReleaseError`, `VersionError`, `ChangelogError`, `ChecksumError`, `PackageError`, `GitHubReleaseError`, `AssetError` |
+| `detect-release.js` | Vorbereitet (noch leer) – wird in zukünftiger Version die Release-Stage automatisch erkennen |
+
+#### 🔄 GitHub Actions Release-Workflow (`.github/workflows/release.yml`) – vollständig überarbeitet
+
+- **Trigger:** Automatisch bei Git-Tags der Form `v*` sowie manuell via `workflow_dispatch` mit optionalem `version`-Input und `draft`-Toggle
+- **Release-Kontext-Ermittlung (Schritt 4):** PowerShell-Skript ermittelt `RELEASE_TAG`, `RELEASE_VERSION` und `IS_PRERELEASE` mit dreistufiger Priorität (Tag-Push → workflow_dispatch-Input → package.json-Fallback)
+- **Pre-release-Erkennung:** Automatisch für `alpha`, `beta`, `rc`, `nightly`
+- **Schritt 5 – Validierung:** `node -e "require('./scripts/release/validate')()"` – schlägt fehl wenn package.json oder CHANGELOG.md nicht korrekt sind
+- **Schritt 8 – Checksums:** `node scripts/release/checksums.js` erzeugt `SHA256SUMS.txt`
+- **Schritt 9 – Release Notes:** PowerShell ruft `release-notes.js` auf und schreibt `release-notes.md`
+- **Schritt 10 – Artefakte sammeln:** Filtert `dist/` nach Erweiterung (`.exe`, `.zip`, `.blockmap`, `.yml`, `.json` etc.), schließt `builder-debug.json` und `builder-effective-config.yaml` explizit aus
+- **Schritt 11 – GitHub Release:** `softprops/action-gh-release@v2` mit `body_path`, `prerelease`, `draft`, alle Artefakte aus `release-artifacts/`
+
+#### 🗄️ Storage-Architektur – erweitert (`electron/core/storage/`)
+
+- **`StorageManager`** um neue userData-Verzeichnisse erweitert:
+  - `getCrashPath()` → `userData/crash/`
+  - `getPackagesPath()` → `userData/packages/`
+  - `getReportsPath()` → `userData/reports/`
+  - `getSettingsFile()` → `userData/settings.json`
+  - `initialize()` legt nun alle 7 Verzeichnisse automatisch an (inkl. `crash`, `packages`, `reports`)
+- Neue Manager-Klassen als schlanke Fassade über `storage.js`:
+  - **`FavoritesManager`** – `getAll()`, `add(entry)`, `remove(url)`
+  - **`HistoryManager`** – `getAll()`, `add(entry)`
+  - **`SettingsManager`** – `get()`, `update(data)`
+
+#### 🩺 Diagnostics – IPC-API vollständig ausgebaut
+
+**`diagnosticsHandlers.js`** registriert alle Diagnostics-IPC-Handler:
+
+| IPC-Kanal | Funktion |
+|---|---|
+| `log` (send) | Frontend-Logging-Bridge: leitet `level/context/msg` an `LogManager` weiter |
+| `diagnostics:getHealth` | Führt `HealthCheck.run()` aus |
+| `diagnostics:getSystemInfo` | Gibt `SystemInfo.getPretty()` zurück |
+| `diagnostics:getCrashReports` | Listet alle Crash-Reports via `CrashReportReader` |
+| `diagnostics:readCrashReport` | Liest einzelnen Crash-Report |
+| `diagnostics:deleteCrashReport` | Löscht einzelnen Crash-Report |
+| `diagnostics:clearCrashReports` | Löscht alle Crash-Reports |
+| `diagnostics:getLogs` | Listet alle Log-Dateien via `LogReader` |
+| `diagnostics:readLog` | Liest einzelne Log-Datei |
+| `diagnostics:deleteLog` | Löscht einzelne Log-Datei |
+| `diagnostics:clearLogs` | Löscht alle Log-Dateien |
+| `diagnostics:getPaths` | Gibt alle userData-Pfade zurück (plugins, themes, logs, crash, pluginData, userData) |
+
+#### 🔌 Preload – neue Context-Bridge-APIs
+
+**`preload.js`** um zwei neue APIs erweitert:
+
+- **`uiAPI`** – `getPages()` → `ui:getPages` IPC-Aufruf für Plugin-UI-Slots
+- **`shellAPI`** – `openPath(folderPath)` → `shell:openPath` öffnet Ordner im Datei-Explorer
+- **`diagnosticsAPI`** – vollständige Diagnostics-API (alle oben genannten Kanäle) über `contextBridge` exponiert
+
+#### 🪟 Window-Handler – Shell-Integration
+
+**`windowHandlers.js`** um `shell:openPath`-Handler ergänzt:
+- `ipcMain.handle("shell:openPath", ...)` → `shell.openPath(folderPath)` öffnet Pfade nativ im OS-Explorer
+
+#### 🏗️ Application – Shutdown-Verbesserungen
+
+**`Application.js`** erhält vollständige `shutdown*`-Methoden für alle Subsysteme:
+- `shutdownDiagnostics()` – fährt HealthCheck, CrashReportManager, CrashHandler, LogManager sicher herunter (mit Existenzprüfung)
+- `shutdownThemes()` – ruft `ThemeManager.shutdown()` auf
+- `shutdownPlugins()` – ruft `PluginManager.shutdown()` auf
+- `shutdownMediaKeys()` – ruft `unregisterMediaKeys()` auf
+- `shutdownTray()` – ruft `destroyTray()` auf
+- `checkForUpdates()` – öffentliche Methode, delegiert an `updater.js`
+
+#### 🔌 Plugin-System – PluginRuntime stabilisiert
+
+**`PluginRuntime.js`** vollständig überarbeitet:
+- Hook-System über `hookMap` – verbindet Plugin-Methoden (`onMetadata`, `onStationChange`, `onPlay`, `onStop`, `onVolumeChange`, `onThemeChange`) mit EventBus-Events
+- Alle Hook-Aufrufe in `try/catch` gekapselt – kein App-Crash bei fehlerhaften Plugins
+- `stop()` entfernt alle EventBus-Listener via `eventBus.off()` und löscht den Node-Module-Cache (`delete require.cache`) für sauberes Hot-Reload
+- Logging über `LogManager.getLogger("PluginRuntime")`
+- **`PluginService.js`** – neue Fassadenklasse als Export-Einstiegspunkt
+
+#### 📋 Build-Workflow (`.github/workflows/build.yml`) – Cross-Platform-Matrix
+
+- Build-Matrix auf alle drei Plattformen erweitert: `windows-latest`, `ubuntu-latest`, `macos-latest`
+- `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` Umgebungsvariable gesetzt
+
+---
+
+### 🐛 Bugfixes
+
+- **`semver.js` – fehlende Exports**: `isValid()`-Funktion und `module.exports` fehlten komplett → `TypeError: semver.isValid is not a function` in `validate.js` (und damit im gesamten Release-Workflow). Behoben: Funktion implementiert und exportiert.
+- **`release-notes.js` – `semver.parse` nicht definiert**: `semver.js` exportierte kein `parse()`; `release-notes.js` rief es dennoch auf → würde beim Release-Lauf crashen. *(Wird in v1.0.6 vollständig implementiert.)*
+- **`detect-release.js` – leere Datei**: Das Modul ist registriert (`package.json` → `release:detect`) und im README dokumentiert, aber noch leer. *(Wird in v1.0.6 implementiert.)*
+- **`main.js` – doppelter `uncaughtException`-Handler**: `main.js` enthält noch einen eigenen `process.on("uncaughtException")`-Block obwohl `Application.js` bereits `CrashHandler` initialisiert. Beide fangen dieselben Fehler ab. *(Konsolidierung in v1.0.6 geplant.)*
+
+---
+
+### ♻️ Refactoring
+
+- `electron/core/events/EventBus.js` – neue eigenständige EventBus-Klasse unter `electron/core/events/` (zusätzlich zu `electron/core/eventBus.js`)
+- `electron/core/diagnostics/logging/transports/` – Transport-Klassen (`ConsoleTransport`, `FileTransport`) in eigenem Unterordner isoliert
+
+---
+
+### 📦 Abhängigkeiten
+
+Keine neuen Abhängigkeiten. Alle Pakete auf demselben Stand wie v1.0.5-rc.3.
+
+---
+
 ## [v1.0.5 RC3] – 2026-07-16
 
 > Release Candidate 3 für v1.0.5 – Architektur-Refactoring, stabilisiertes Diagnostics-System und vollständige Entwickler-Dokumentation.
@@ -393,4 +521,4 @@ Keine neuen Abhängigkeiten in v1.0.5. Alle bestehenden Pakete bleiben auf dense
 
 ---
 
-*Changelog zuletzt aktualisiert: 2026-07-16 · Erstellt von Antigravity · WebRadio by YourEliteSystems*
+*Changelog zuletzt aktualisiert: 2026-07-24 · Erstellt von Antigravity · WebRadio by YourEliteSystems*
