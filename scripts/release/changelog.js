@@ -18,11 +18,7 @@ ChangelogError
 
 /**
 
-* Normalizes a version string by removing an optional leading "v".
-*
-* Examples:
-* v1.0.5-rc.4 -> 1.0.5-rc.4
-* 1.0.5-rc.4  -> 1.0.5-rc.4
+* Removes an optional leading "v" from a version.
 *
 * @param {string} version
 * @returns {string}
@@ -33,28 +29,13 @@ ChangelogError
 
 /**
 
-* Returns all supported CHANGELOG headings for a version.
+* Returns the changelog section for a specific version.
 *
-* Both of the following formats are supported:
+* Supports:
 *
 * ## [1.0.5-rc.4]
 * ## [v1.0.5-rc.4]
-*
-* @param {string} version
-* @returns {string[]}
-  */
-  function getHeadings(version) {
-  const normalizedVersion = normalizeVersion(version);
-
-  return [
-  `## [${normalizedVersion}]`,
-  `## [v${normalizedVersion}]`
-  ];
-  }
-
-/**
-
-* Returns the changelog section for a specific version.
+* ## [v1.0.5-rc.4] – 2026-07-24
 *
 * @param {string} version
 * @returns {string}
@@ -64,42 +45,38 @@ ChangelogError
   constants.PATHS.CHANGELOG
   );
 
-  const headings = getHeadings(version);
+  const normalizedVersion = normalizeVersion(version);
 
-  let start = -1;
-  let matchedHeading = null;
+  const versionPattern = new RegExp(
+  '^## [v?' +
+  normalizedVersion.replace(/[.*+?^${}()|[]\]/g, '\$&') +
+  '\].*$',
+  'm'
+  );
 
-  for (const heading of headings) {
-  const index = markdown.indexOf(heading);
+  const match = versionPattern.exec(markdown);
 
-  ```
-   if (index !== -1 && (start === -1 || index < start)) {
-       start = index;
-       matchedHeading = heading;
-   }
-  ```
-
-  }
-
-  if (start === -1) {
+  if (!match) {
   throw new ChangelogError(
   `Version "${version}" was not found in CHANGELOG.md.`
   );
   }
 
-  const next = markdown.indexOf(
-  '\n## [',
-  start + matchedHeading.length
-  );
+  const start = match.index;
 
-  if (next === -1) {
+  const nextHeadingPattern = /^## \[/gm;
+  nextHeadingPattern.lastIndex = start + match[0].length;
+
+  const nextMatch = nextHeadingPattern.exec(markdown);
+
+  if (!nextMatch) {
   return markdown
   .substring(start)
   .trim();
   }
 
   return markdown
-  .substring(start, next)
+  .substring(start, nextMatch.index)
   .trim();
   }
 
@@ -115,9 +92,16 @@ ChangelogError
   constants.PATHS.CHANGELOG
   );
 
-  return getHeadings(version).some(
-  heading => markdown.includes(heading)
+  const normalizedVersion = normalizeVersion(version);
+
+  const versionPattern = new RegExp(
+  '^## [v?' +
+  normalizedVersion.replace(/[.*+?^${}()|[]\]/g, '\$&') +
+  '\].*$',
+  'm'
   );
+
+  return versionPattern.test(markdown);
   }
 
 module.exports = Object.freeze({
