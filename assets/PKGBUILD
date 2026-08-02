@@ -1,0 +1,46 @@
+# Maintainer: Your Elite Systems <contact@yourelitesystems.com>
+# Contributor: WebRadio Community
+
+pkgname=webradio
+pkgver=1.0.5
+pkgrel=1
+pkgdesc="Modern desktop radio player with plugin system"
+arch=('x86_64')
+url="https://github.com/YourEliteSystems/WebRadio"
+license=('MIT')
+depends=('electron' 'ffmpeg' 'nss')
+makedepends=('npm' 'nodejs' 'git')
+source=("git+https://github.com/YourEliteSystems/WebRadio.git#tag=v${pkgver}")
+sha256sums=('SKIP')
+
+# WebRadio nutzt systemweites FFmpeg auf Linux/MacOS, ffmpeg-static ist nur Fallback
+
+prepare() {
+  cd WebRadio
+  npm install
+}
+
+build() {
+  cd WebRadio
+  npm run build
+}
+
+package() {
+  cd WebRadio
+  
+  # Install application files
+  install -d "$pkgdir/opt/webradio"
+  cp -r electron renderer plugins themes assets package.json "$pkgdir/opt/webradio/"
+  
+  # Install desktop entry
+  install -Dm644 assets/webradio.desktop "$pkgdir/usr/share/applications/webradio.desktop"
+  
+  # Install icon
+  install -Dm644 assets/icons/tray.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/webradio.png"
+  
+  # Install launcher script
+  install -d "$pkgdir/usr/bin"
+  echo '#!/bin/bash
+electron /opt/webradio' > "$pkgdir/usr/bin/webradio"
+  chmod +x "$pkgdir/usr/bin/webradio"
+}

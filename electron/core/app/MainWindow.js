@@ -22,10 +22,6 @@ function createMainWindow(isDev) {
     path.join(__dirname, "../../../renderer/index.html")
   );
 
-  if (isDev) {
-    window.webContents.openDevTools();
-  }
-
   return window;
 }
 

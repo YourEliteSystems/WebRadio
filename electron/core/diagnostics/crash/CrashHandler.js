@@ -1,4 +1,5 @@
 const path = require("path");
+const LogManager = require("../logging/LogManager");
 
 class CrashHandler {
 
@@ -9,12 +10,12 @@ class CrashHandler {
         this.unhandledRejectionHandler = null;
     }
 
-    initialize(logger) {
+    initialize() {
         if (this.initialized) {
             return;
         }
 
-        this.logger = logger;
+        this.logger = LogManager.getLogger("CrashHandler");
 
         this.uncaughtExceptionHandler = (error) => {
             this.handleCrash("uncaughtException", error);
@@ -32,7 +33,7 @@ class CrashHandler {
 
         this.initialized = true;
 
-        console.log("[CrashHandler] Initialized.");
+        this.logger.info("[CrashHandler] Initialized.");
     }
 
     shutdown() {
@@ -52,8 +53,6 @@ class CrashHandler {
 
         this.logger = null;
         this.initialized = false;
-
-        console.log("[CrashHandler] Shutdown.");
     }
 
     handleCrash(type, error) {

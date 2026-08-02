@@ -5,6 +5,7 @@ const registerThemeHandlers = require("./themeHandlers");
 const registerRadioHandlers = require("./radioHandlers");
 const registerWindowHandlers = require("./windowHandlers");
 const registerDiagnosticsHandlers = require("./diagnosticsHandlers");
+const registerIntegrationHandlers = require("./integrationHandlers");
 
 function registerAllIpc(window) {
   registerPluginHandlers(window);
@@ -14,6 +15,7 @@ function registerAllIpc(window) {
   registerRadioHandlers(window);
   registerWindowHandlers(window);
   registerDiagnosticsHandlers();
+  registerIntegrationHandlers(window);
 }
 
 module.exports = { registerAllIpc };

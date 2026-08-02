@@ -12,12 +12,12 @@ class LogFormatter {
         const level = this.formatLevel(entry.level);
 
         const context = entry.context
-            ? `[${entry.context}]`
+            ? `${entry.context}`
             : "";
 
         const message = this.formatArguments(entry.arguments || []);
 
-        return `${timestamp} ${level} ${context}\n${message}`;
+        return `[${timestamp}] ${level} ${context ? context + " " : ""}${message}`;
 
     }
 
@@ -32,15 +32,16 @@ class LogFormatter {
             `${pad(date.getDate())} ` +
             `${pad(date.getHours())}:` +
             `${pad(date.getMinutes())}:` +
-            `${pad(date.getSeconds())}.` +
-            `${pad(date.getMilliseconds(), 3)}`
+            `${pad(date.getSeconds())}`
         );
 
     }
 
     formatLevel(level) {
 
-        return `[${LogLevel.getName(level).padEnd(5)}]`;
+        return typeof level === "number"
+            ? LogLevel.getName(level).padEnd(5)
+            : String(level).toUpperCase().padEnd(5);
 
     }
 

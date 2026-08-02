@@ -1,6 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const LogManager = require("../diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("RadioBrowser");
+
 let activeMirror = null;
 let mirrorCache = null;
 
@@ -23,7 +27,7 @@ async function fetchServerList() {
 
 async function getMirrors() {
   if (mirrorCache) {
-    console.log("[RadioBrowser] Serverliste aus Cache");
+    logger.debug("[RadioBrowser] Serverliste aus Cache");
     return mirrorCache;
   }
   try {
@@ -48,7 +52,7 @@ async function getMirrors() {
     }));
     return mirrors;
   }catch(err) {
-    console.warn("[RadioBrowser] Serverliste konnte nicht geladen werden. Err Message:", err.message);
+    logger.warn("[RadioBrowser] Serverliste konnte nicht geladen werden. Err Message:", err.message);
   }
   return RADIO_MIRRORS;
 }
@@ -66,7 +70,7 @@ async function radioFetch(path) {
       return res.json();
 
     } catch (err) {
-      console.warn(`[RadioBrowser] ${base} fehlgeschlagen:`, err.message, err.cause?.code);
+      logger.warn(`[RadioBrowser] ${base} fehlgeschlagen:`, err.message, err.cause?.code);
       lastError = err;
       // kurze Pause vor dem nächsten Mirror
       await new Promise(r => setTimeout(r, 300));

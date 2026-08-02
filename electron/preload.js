@@ -61,7 +61,11 @@ contextBridge.exposeInMainWorld("media", {
 contextBridge.exposeInMainWorld("themeAPI", {
   getThemes: () => ipcRenderer.invoke("theme:get"),
   getActiveTheme: () => ipcRenderer.invoke("theme:getActive"),
-  setActiveTheme: (id) => ipcRenderer.invoke("theme:setActive", id)
+  setActiveTheme: (id) => ipcRenderer.invoke("theme:setActive", id),
+  onThemeChanged: (callback) => {
+    ipcRenderer.removeAllListeners("theme:changed");
+    ipcRenderer.on("theme:changed", (_, data) => callback(data));
+  }
 });
 
 // UPDATER API
@@ -101,4 +105,10 @@ contextBridge.exposeInMainWorld("diagnosticsAPI", {
     deleteLog:           (fileName) => ipcRenderer.invoke("diagnostics:deleteLog", fileName),
     clearLogs:           ()         => ipcRenderer.invoke("diagnostics:clearLogs"),
     getPaths:            ()         => ipcRenderer.invoke("diagnostics:getPaths")
+});
+
+// INTEGRATIONS API
+contextBridge.exposeInMainWorld("integrationsAPI", {
+    get: () => ipcRenderer.invoke("integrations:get"),
+    update: (data) => ipcRenderer.invoke("integrations:update", data)
 });

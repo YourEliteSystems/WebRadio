@@ -1,17 +1,26 @@
-const { ipcMain } = require("electron");
+const { ipcMain, BrowserWindow, app } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
 const storage = require("../storage");
 const eventBus = require("../eventBus");
+const LogManager = require("../diagnostics/logging/LogManager");
 
-function registerThemeHandlers(isDev) {
+const logger = LogManager.getLogger("ThemeHandlers");
 
-  ipcMain.handle("theme:get", async () => {
+function registerThemeHandlers(windowManager) {
+  const isDev = typeof windowManager === "boolean"
+    ? windowManager
+    : (windowManager?.isDev ?? !app.isPackaged);
 
-    const themesPath = isDev
+  const getThemesPath = () => {
+    return isDev
       ? path.join(__dirname, "../../../themes")
       : path.join(process.resourcesPath, "themes");
+  };
+
+  ipcMain.handle("theme:get", async () => {
+    const themesPath = getThemesPath();
 
     if (!fs.existsSync(themesPath)) {
       return [];
@@ -59,7 +68,7 @@ function registerThemeHandlers(isDev) {
 
       } catch (err) {
 
-        console.error(
+        logger.error(
           `Theme konnte nicht geladen werden: ${folder.name}`,
           err
         );
@@ -82,6 +91,32 @@ function registerThemeHandlers(isDev) {
 
     eventBus.emit("themechange", {
       theme: themeId
+    });
+
+    const themesPath = getThemesPath();
+    let cssPath = "";
+
+    if (fs.existsSync(themesPath)) {
+      const themeJsonPath = path.join(themesPath, themeId, "theme.json");
+      if (fs.existsSync(themeJsonPath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+          cssPath = path.join(themesPath, themeId, data.css);
+        } catch (err) {
+          logger.error(`Theme CSS konnte nicht aufgelöst werden: ${themeId}`, err);
+        }
+      }
+    }
+
+    const payload = {
+      themeId,
+      css: cssPath
+    };
+
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (!win.isDestroyed()) {
+        win.webContents.send("theme:changed", payload);
+      }
     });
 
     return true;

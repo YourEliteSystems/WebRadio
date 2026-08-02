@@ -31,7 +31,6 @@ export default function App() {
   useEffect(() => {
     if (window.radioAPI?.onMetadata) {
       window.radioAPI.onMetadata((meta) => {
-        //console.log("Metadaten empfangen:", meta);
         if (meta.StreamTitle) {
           const display = meta.Artist && meta.Song ? `${meta.Artist} - ${meta.Song}` : meta.StreamTitle;
           setNowPlayingTitle(display);
@@ -86,7 +85,7 @@ export default function App() {
 
   const handlePlay = (url, station) => {
     if (!url) return;
-    playStream(url);
+    playStream(url, station);
     setNowPlayingStation(station);
     setNowPlayingTitle('Lädt stream...');
     setIsPlaying(true);

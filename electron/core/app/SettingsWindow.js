@@ -18,9 +18,6 @@ function createSettingsWindow(isDev) {
     }
   });
 
-  if (isDev) {
-    window.webContents.openDevTools();
-  }
   window.loadFile(
     path.join(__dirname, "../../../renderer/settings.html")
   );

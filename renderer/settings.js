@@ -3,6 +3,31 @@ document.getElementById("btnMinimize").addEventListener("click", () => window.wi
 document.getElementById("btnMaximize").addEventListener("click", () => window.windowControls.maximize());
 document.getElementById("btnClose").addEventListener("click", () => window.windowControls.close());
 
+// ── Integrationen ─────────────────────────────────────────────
+async function loadIntegrations() {
+  if (!window.integrationsAPI) return;
+
+  const integrations = await window.integrationsAPI.get();
+  const toggle = document.getElementById("discordRpcToggle");
+  if (toggle) {
+    toggle.checked = integrations.discordRichPresence === true;
+  }
+}
+
+async function saveIntegrations() {
+  if (!window.integrationsAPI) return;
+
+  const toggle = document.getElementById("discordRpcToggle");
+  const discordRichPresence = toggle ? toggle.checked : false;
+
+  await window.integrationsAPI.update({ discordRichPresence });
+}
+
+document.getElementById("discordRpcToggle")?.addEventListener("change", () => saveIntegrations());
+
+// Integrationen beim Laden initialisieren
+loadIntegrations();
+
 // ── Sidebar Navigation ───────────────────────────────────────
 const navItems = document.querySelectorAll(".settings-nav-item");
 const pages    = document.querySelectorAll(".settings-page");
@@ -120,8 +145,6 @@ if (window.updaterAPI?.getVersion) {
     if (aboutVerEl) aboutVerEl.textContent = label;
   });
 }
- 
-//console.log("Update API:", window.updaterAPI?.getVersion);
 
 function setUpdateState(state, data = {}) {
   updateIcon.className = `update-status-icon ${state}`;

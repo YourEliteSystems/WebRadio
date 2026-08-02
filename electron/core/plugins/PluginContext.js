@@ -1,11 +1,10 @@
 const PluginAPI = require("./PluginAPI");
-const LogManager = require("../diagnostics/logging/LogManager");
 
 function createPluginContext(meta) {
+  const api = PluginAPI.create(meta);
   return {
-    plugin: meta,
-    logger: LogManager.getLogger(`Plugin:${meta.name}`),
-    ...PluginAPI.create(meta)
+    ...api,
+    logger: api.logger("Main")
   };
 }
 

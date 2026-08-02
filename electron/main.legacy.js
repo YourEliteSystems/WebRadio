@@ -1,13 +1,16 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
-const pluginManager = require("./plugins/pluginManager");
+const PluginManager = require("./core/plugins/PluginManager");
 const ffmpeg = require("fluent-ffmpeg");
 const { getFFmpegPath } = require("./core/ffmpeg-resolver");
 const fs = require("fs");
 const eventBus = require("./core/eventBus");
 const updater = require("./core/updater");
 const { createTray, destroyTray } = require("./core/system/tray");
-const { registerMediaKeys, unregisterMediaKeys } = require("./core/mediaKeys");
+const ShortcutManager = require("./core/ShortcutManager");
+const LogManager = require("./core/diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("MainLegacy");
 
 
 let settingsWindow;
@@ -17,16 +20,16 @@ ipcMain.on("open-settings", () => {
 });
 
 ipcMain.handle("plugins:get", () => {
-  return pluginManager.getPlugins();
+  return PluginManager.getPlugins();
 });
 
 ipcMain.handle("plugins:toggle", (_, id, enabled) => {
-  pluginManager.togglePlugin(id, enabled);
+  PluginManager.togglePlugin(id, enabled);
 });
 
 
 ipcMain.handle("plugins:getRendererScripts", () => {
-  return pluginManager.getRendererScripts();
+  return PluginManager.getRendererScripts();
 });
 
 // Updater IPC
@@ -172,7 +175,7 @@ ipcMain.handle("radio:start", async (_, url) => {
   if (ffmpegCommand) {
     try {
     ffmpegCommand.kill("SIGKILL");
-    console.warn("FFmpeg Prozess wurde mit SIGKILL beendet.");
+    logger.warn("FFmpeg Prozess wurde mit SIGKILL beendet.");
     ffmpegCommand = null;
 
     if(ffmpegStream){
@@ -181,7 +184,7 @@ ipcMain.handle("radio:start", async (_, url) => {
       ffmpegStream = null;
     }
     } catch (err) {
-      console.warn("Fehler beim Stoppen des vorherigen FFmpeg-Prozesses:", err);
+      logger.warn("Fehler beim Stoppen des vorherigen FFmpeg-Prozesses:", err);
     }
     ffmpegCommand = null;
     ffmpegStream = null;
@@ -197,7 +200,7 @@ ipcMain.handle("radio:start", async (_, url) => {
         const match = line.match(/StreamTitle[:=]\s*(.*)/i);
         if(match){
           const rawtitle = match[1].trim();
-          console.log("Gefundener StreamTitle:", match[1]);
+          logger.debug("Gefundener StreamTitle:", match[1]);
           if(!rawtitle || rawtitle === lastTitle) return; // Verhindert unnötige Updates
           const { artist, song } = parseTitle(rawtitle);
           const metadata = {
@@ -205,7 +208,7 @@ ipcMain.handle("radio:start", async (_, url) => {
             Artist: artist,
             Song: song
           };
-          console.log("Metadaten korrekt:", metadata);
+          logger.debug("Metadaten korrekt:", metadata);
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send("radio:metadata", metadata);
           }
@@ -215,14 +218,14 @@ ipcMain.handle("radio:start", async (_, url) => {
     })
     .on("error", err =>{ 
       if(err.message.includes("ffmpeg was killed with signal SIGKILL") || err.message.includes("ffmpeg was killed with signal SIGTERM")){
-        console.log("FFmpeg Prozess wurde ordnungsgemäß beendet.");
+        logger.info("FFmpeg Prozess wurde ordnungsgemäß beendet.");
         return;
       }
-      console.error("FFmpeg Fehler:", err) 
+      logger.error("FFmpeg Fehler:", err) 
     })
 
   ffmpegCommand.on("end", () => {
-    console.log("FFmpeg-Stream beendet.");
+    logger.info("FFmpeg-Stream beendet.");
   });
 
   ffmpegStream = ffmpegCommand.pipe();
@@ -248,7 +251,7 @@ function stopAllStreams() {
       ffmpegCommand.kill("SIGTERM"); // SIGTERM ist sauberer als SIGKILL
       ffmpegCommand = null;
     } catch (err) {
-      console.warn("Fehler beim Stoppen von FFmpeg:", err);
+      logger.warn("Fehler beim Stoppen von FFmpeg:", err);
     }
   }
 
@@ -258,7 +261,7 @@ function stopAllStreams() {
       ffmpegStream.destroy();
       ffmpegStream = null;
     } catch (err) {
-      console.warn("Fehler beim Stoppen des Streams:", err);
+      logger.warn("Fehler beim Stoppen des Streams:", err);
     }
   }
 }
@@ -279,16 +282,13 @@ function createWindow() {
     }
   });
   mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
 }
 
 ipcMain.on("window:minimize", (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if(win){
     win.minimize();
-    console.log("Fenster minimiert.");
+    logger.debug("Fenster minimiert.");
   }
 });
 
@@ -296,7 +296,7 @@ ipcMain.on("window:close", (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if(win){
     win.close();
-    console.log("Fenster geschlossen.");
+    logger.debug("Fenster geschlossen.");
   }
 });
 
@@ -311,8 +311,8 @@ ipcMain.on("window:maximize", (event) => {
 
 app.whenReady().then(() => {
   createWindow();
-  pluginManager.loadPlugins();
-  registerMediaKeys(mainWindow);
+  PluginManager.initialize();
+  ShortcutManager.initialize(mainWindow);
   createTray(mainWindow, {
     openSettings: createSettingsWindow,
     checkForUpdates: async () => {
@@ -362,7 +362,7 @@ ipcMain.handle("radio:getCountries", async () => {
       .filter(c => c.stationcount > 0)
       .sort((a, b) => a.name.localeCompare(b.name, "de"));
   } catch (err) {
-    console.error("Radio countries error:", err);
+    logger.error("Radio countries error:", err);
     return [];
   }
 });
@@ -372,7 +372,7 @@ ipcMain.handle("radio:getTags", async () => {
     const tags = await radioFetch("/tags?order=stationcount&reverse=true&limit=500");
     return tags.filter(isUsableTag);
   } catch (err) {
-    console.error("Radio tags error:", err);
+    logger.error("Radio tags error:", err);
     return [];
   }
 });
@@ -398,7 +398,7 @@ ipcMain.handle("radio:search", async (_, params) => {
   try {
     return await radioFetch(`/stations/search?${query.toString()}`);
   } catch (err) {
-    console.error("Radio fetch error:", err);
+    logger.error("Radio fetch error:", err);
     return [];
   }
 });
@@ -441,6 +441,6 @@ app.on("before-quit", async () => {
   const wasPlaying = !!ffmpegCommand;
   stopAllStreams();
   if (wasPlaying) eventBus.emit("stop");
-  unregisterMediaKeys();
+  ShortcutManager.shutdown();
   destroyTray();
 });

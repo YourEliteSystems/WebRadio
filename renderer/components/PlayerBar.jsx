@@ -29,6 +29,14 @@ export default function PlayerBar({
       const theme = resolveActiveTheme(res, activeId);
       if (theme) setCurrentTheme(theme.css);
     });
+
+    if (window.themeAPI?.onThemeChanged) {
+      window.themeAPI.onThemeChanged((data) => {
+        if (data?.css) {
+          setCurrentTheme(data.css);
+        }
+      });
+    }
   }, []);
 
   const handleThemeChange = (e) => {

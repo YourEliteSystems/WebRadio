@@ -51,9 +51,11 @@ class LogManager {
         this.rootLogger =
             new Logger("Application");
 
-        this.rootLogger.addTransport(
-            this.consoleTransport
-        );
+        if (!app.isPackaged) {
+            this.rootLogger.addTransport(
+                this.consoleTransport
+            );
+        }
 
         this.rootLogger.addTransport(
             this.fileTransport

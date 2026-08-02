@@ -72,11 +72,11 @@ export async function initPlayer() {
   started = true;
 }
 
-export async function switchStream(url) {
+export async function switchStream(url, station = null) {
   if(!url) return;
   if(url === currentStation){ window.api?.log("warn", "PlayerService", "Already playing this station"); return; }
   if(switching){ window.api?.log("warn", "PlayerService", "Already switching streams"); return; }
-  
+
   switching = true;
 
   try {
@@ -96,7 +96,7 @@ export async function switchStream(url) {
     nextGainNode.gain.setValueAtTime(0, now);
     nextGainNode.gain.linearRampToValueAtTime(1.0, now + fadeTime);
 
-    window.radioAPI.startStream(url);
+    window.radioAPI.startStream(url, station);
 
     activeGainNode = nextGainNode;
   } catch (err) {
@@ -110,13 +110,13 @@ export async function switchStream(url) {
 
 let currentVolume = 1.0;
 
-export async function playStream(url) {
+export async function playStream(url, station = null) {
   if (!started) throw new Error("Player not initialized");
   if (ctx.state !== "running") {
     await ctx.resume();
   }
   gainNode.gain.setValueAtTime(currentVolume, ctx.currentTime);
-  window.radioAPI.startStream(url);
+  window.radioAPI.startStream(url, station);
 }
 
 export async function stopPlayer() {

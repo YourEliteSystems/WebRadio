@@ -1,17 +1,17 @@
 const { ipcMain } = require("electron");
-const pluginManager = require("../../plugins/pluginManager");
+const PluginManager = require("../plugins/PluginManager");
 
 function registerPluginHandlers(mainWindow) {
   ipcMain.handle("plugins:get", () => {
-    return pluginManager.getPlugins();
+    return PluginManager.getPlugins();
   });
 
   ipcMain.handle("plugins:toggle", (_, id, enabled) => {
-    pluginManager.togglePlugin(id, enabled);
+    PluginManager.togglePlugin(id, enabled);
   });
 
   ipcMain.handle("plugins:getRendererScripts", () => {
-    return pluginManager.getRendererScripts();
+    return PluginManager.getRendererScripts();
   });
 }
 

@@ -19,12 +19,13 @@ class StreamManager {
     this.mainWindow = mainWindow;
   }
 
-  async start(url) {
+  async start(url, station = null) {
     ffmpeg.setFfmpegPath(getFFmpegPath());
 
     this.stop();
 
     this.lastTitle = null;
+    this.currentStation = station;
 
     this.ffmpegCommand = ffmpeg(url)
       .inputOptions(
@@ -71,7 +72,7 @@ class StreamManager {
       );
     });
 
-    eventBus.emit("play", { url });
+    eventBus.emit("play", { url, station });
   }
 
   stop() {

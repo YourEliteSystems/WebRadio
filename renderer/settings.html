@@ -532,6 +532,12 @@
     <!-- Linke Nav -->
     <nav class="settings-nav">
       <span class="settings-nav-label">Allgemein</span>
+      <button class="settings-nav-item" data-page="integrations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        Integrationen
+      </button>
       <button class="settings-nav-item active" data-page="plugins">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path
@@ -580,8 +586,31 @@
     <!-- Rechts: Inhalt -->
     <div class="settings-content">
 
+      <!-- INTEGRATIONS -->
+      <div class="settings-page active" id="page-integrations">
+        <div class="settings-page-header">
+          <h1>Integrationen</h1>
+          <p>Externe Dienste verbinden</p>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Discord Rich Presence</span>
+          </div>
+          <div class="plugin-item">
+            <div class="plugin-item-info">
+              <span class="plugin-item-name">Discord Rich Presence aktivieren</span>
+              <span style="font-size: 11px; color: var(--text-muted);">Zeigt aktuellen Song in Discord Status</span>
+            </div>
+            <label class="toggle-wrap" title="Discord Rich Presence aktivieren">
+              <input type="checkbox" id="discordRpcToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <!-- PLUGINS -->
-      <div class="settings-page active" id="page-plugins">
+      <div class="settings-page" id="page-plugins">
         <div class="settings-page-header">
           <h1>Plugins</h1>
           <p>Erweiterungen aktivieren oder deaktivieren</p>

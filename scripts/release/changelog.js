@@ -48,18 +48,18 @@ ChangelogError
   const normalizedVersion = normalizeVersion(version);
 
   const versionPattern = new RegExp(
-  '^## [v?' +
-  normalizedVersion.replace(/[.*+?^${}()|[]\]/g, '\$&') +
-  '\].*$',
-  'm'
+    '^## \\[v?' +
+    normalizedVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+    '\\].*$',
+    'm'
   );
 
   const match = versionPattern.exec(markdown);
 
   if (!match) {
-  throw new ChangelogError(
-  `Version "${version}" was not found in CHANGELOG.md.`
-  );
+    throw new ChangelogError(
+      `Version "${version}" was not found in CHANGELOG.md.`
+    );
   }
 
   const start = match.index;
@@ -70,39 +70,38 @@ ChangelogError
   const nextMatch = nextHeadingPattern.exec(markdown);
 
   if (!nextMatch) {
-  return markdown
-  .substring(start)
-  .trim();
+    return markdown
+      .substring(start)
+      .trim();
   }
 
   return markdown
-  .substring(start, nextMatch.index)
-  .trim();
-  }
+    .substring(start, nextMatch.index)
+    .trim();
+}
 
 /**
-
-* Returns true if a version exists.
-*
-* @param {string} version
-* @returns {boolean}
-  */
-  function hasVersion(version) {
+ * Returns true if a version exists.
+ *
+ * @param {string} version
+ * @returns {boolean}
+ */
+function hasVersion(version) {
   const markdown = utils.readFile(
-  constants.PATHS.CHANGELOG
+    constants.PATHS.CHANGELOG
   );
 
   const normalizedVersion = normalizeVersion(version);
 
   const versionPattern = new RegExp(
-  '^## [v?' +
-  normalizedVersion.replace(/[.*+?^${}()|[]\]/g, '\$&') +
-  '\].*$',
-  'm'
+    '^## \\[v?' +
+    normalizedVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+    '\\].*$',
+    'm'
   );
 
   return versionPattern.test(markdown);
-  }
+}
 
 module.exports = Object.freeze({
 getVersion,

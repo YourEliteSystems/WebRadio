@@ -1,0 +1,10 @@
+{
+  "id": "youtube",
+  "name": "YouTube",
+  "type": "integration",
+  "version": "1.0.0",
+  "author": "WebRadio Team",
+  "description": "YouTube Integration für WebRadio",
+  "entry": "index.js",
+  "renderer": "renderer.js"
+}

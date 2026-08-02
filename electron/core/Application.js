@@ -24,6 +24,12 @@ const { registerAllIpc } = require("./ipc/registerIpcHandlers");
 const PluginManager = require("./plugins/PluginManager");
 
 // ─────────────────────────────────────────────
+// Integrations
+// ─────────────────────────────────────────────
+
+const IntegrationManager = require("./integrations/IntegrationManager");
+
+// ─────────────────────────────────────────────
 // Themes
 // ─────────────────────────────────────────────
 
@@ -33,9 +39,15 @@ const ThemeManager = require("./themes/ThemeManager");
 // System
 // ─────────────────────────────────────────────
 
-const { registerMediaKeys, unregisterMediaKeys } = require("./mediaKeys");
+const ShortcutManager = require("./ShortcutManager");
 const { createTray, destroyTray } = require("./system/tray");
 const { checkForUpdates } = require("./updater");
+
+// ─────────────────────────────────────────────
+// Services
+// ─────────────────────────────────────────────
+
+const DiscordRichPresence = require("./services/DiscordRichPresence");
 
 const LogManager = require("./diagnostics/logging/LogManager");
 const CrashHandler = require("./diagnostics/crash/CrashHandler");
@@ -77,13 +89,17 @@ class Application {
 
         await this.initializePlugins();
 
+        await this.initializeIntegrations();
+
         await this.initializeThemes();
 
-        await this.initializeMediaKeys();
+        await this.initializeShortcuts();
 
         await this.initializeTray();
 
         await this.initializeUpdater();
+
+        await this.initializeServices();
 
         this.initialized = true;
 
@@ -104,7 +120,10 @@ class Application {
         CrashReportManager.shutdown();
         CrashHandler.shutdown();
         LogManager.shutdown();
-        unregisterMediaKeys();
+        ShortcutManager.shutdown();
+        await this.shutdownServices();
+        await this.shutdownIntegrations();
+        await this.shutdownPlugins();
         await this.shutdownThemes();
         destroyTray();
 
@@ -151,9 +170,15 @@ class Application {
 
     }
 
-    async initializeMediaKeys() {
+    async initializeIntegrations() {
 
-        registerMediaKeys(
+        IntegrationManager.initialize();
+
+    }
+
+    async initializeShortcuts() {
+
+        ShortcutManager.initialize(
             this.windowManager.getMainWindow()
         );
 
@@ -196,6 +221,14 @@ class Application {
         HealthCheck.initialize();
 
     }
+
+    async initializeServices() {
+        DiscordRichPresence.initialize();
+    }
+
+    async shutdownServices() {
+        await DiscordRichPresence.shutdown();
+    }
     
     async checkForUpdates() {
 
@@ -209,15 +242,15 @@ class Application {
 
     }
 
-    async shutdownMediaKeys() {
-
-        unregisterMediaKeys();
-
-    }
-
     async shutdownPlugins() {
 
         PluginManager.shutdown();
+
+    }
+
+    async shutdownIntegrations() {
+
+        IntegrationManager.shutdown();
 
     }
 

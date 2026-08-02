@@ -2,6 +2,9 @@ const fs = require("fs");
 const path = require("path");
 
 const ThemeValidator = require("./ThemeValidator");
+const LogManager = require("../diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("ThemeLoader");
 
 class ThemeLoader {
 
@@ -46,7 +49,7 @@ class ThemeLoader {
 
       const validation = this.validator.validate(manifest);
       if(!validation.valid) {
-        console.error(
+        logger.error(
           `[ThemeLoader] Fehler bei ${folder.name}:`,
           validation.errors
         );
@@ -78,7 +81,7 @@ class ThemeLoader {
 
       } catch (err) {
 
-        console.error(
+        logger.error(
           `[ThemeLoader] Fehler bei ${folder.name}`,
           err
         );

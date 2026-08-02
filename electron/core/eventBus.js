@@ -1,35 +1,43 @@
-const listeners = {};
+const LogManager = require("./diagnostics/logging/LogManager");
 
-function on(event, callback) {
+const logger = LogManager.getLogger("EventBus");
 
-  if (!listeners[event]) {
-    listeners[event] = [];
-  }
+class EventBus {
 
-  listeners[event].push(callback);
-}
+    constructor() {
+        this.events = new Map();
+    }
 
-function emit(event, data) {
+    on(event, cb) {
+        if (!this.events.has(event)) {
+            this.events.set(event, []);
+        }
+        this.events.get(event).push(cb);
+    }
 
-  if (!listeners[event]) return;
-
-  for (const cb of listeners[event]) {
+    emit(event, data) {
+        if (!this.events.has(event)) return;
+        this.events.get(event).forEach(cb => {
     try {
       cb(data);
     } catch (err) {
-      console.error("EventBus Fehler:", err);
+      logger.error("EventBus Fehler:", err);
     }
-  }
+  });
+    }
 
+    off(event, cb) {
+        if (!this.events.has(event)) return;
+        this.events.set(event, this.events.get(event).filter(handler => handler !== cb));
+    }
+
+    removeAllListeners(event) {
+        if (event) {
+            this.events.delete(event);
+        } else {
+            this.events.clear();
+        }
+    }
 }
 
-function off(event, callback) {
-  if (!listeners[event]) return;
-  listeners[event] = listeners[event].filter(cb => cb !== callback);
-}
-
-module.exports = {
-  on,
-  off,
-  emit
-};
+module.exports = new EventBus();

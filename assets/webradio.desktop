@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=WebRadio
+Comment=Modern Desktop Radio Player with Plugin System
+Exec=webradio
+Icon=webradio
+Type=Application
+Categories=AudioVideo;Audio;Player;
+Terminal=false
+StartupNotify=true

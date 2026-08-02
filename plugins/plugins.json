@@ -2,6 +2,9 @@
   "plugins": {
     "discordRPC": {
       "enabled": true
+    },
+    "youtube-integration": {
+      "enabled": true
     }
   }
 }

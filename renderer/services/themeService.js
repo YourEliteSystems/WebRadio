@@ -29,8 +29,30 @@ export function resolveActiveTheme(themes, activeId) {
   return themes.find(t => t.id === 'default') || themes[0];
 }
 
+let isListeningForThemeChanges = false;
+
+export function listenToThemeChanges(callback) {
+  if (window.themeAPI?.onThemeChanged) {
+    window.themeAPI.onThemeChanged((data) => {
+      if (data?.css) {
+        applyThemeCss(data.css);
+      } else if (data?.themeId) {
+        loadAndApplySavedTheme();
+      }
+      if (typeof callback === 'function') {
+        callback(data);
+      }
+    });
+    isListeningForThemeChanges = true;
+  }
+}
+
 export async function loadAndApplySavedTheme() {
   if (!window.themeAPI?.getThemes) return null;
+
+  if (!isListeningForThemeChanges) {
+    listenToThemeChanges();
+  }
 
   const [themes, activeId] = await Promise.all([
     window.themeAPI.getThemes(),

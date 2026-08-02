@@ -9,8 +9,8 @@ function registerRadioHandlers(windowManager) {
     windowManager.getMainWindow()
   );
 
-  ipcMain.handle("radio:start", async (_, url) => {
-    await streamManager.start(url);
+  ipcMain.handle("radio:start", async (_, url, station) => {
+    await streamManager.start(url, station);
   });
 
   ipcMain.handle("radio:stop", async () => {

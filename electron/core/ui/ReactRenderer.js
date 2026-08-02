@@ -1,5 +1,8 @@
 const React = require("react");
 const { createRoot } = require("react-dom/client");
+const LogManager = require("../diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("ReactRenderer");
 
 class ReactRenderer {
     constructor() {
@@ -35,7 +38,7 @@ class ReactRenderer {
         try {
             root.unmount();
         } catch (err) {
-            console.error("ReactRenderer unmount error:", err);
+            logger.error("ReactRenderer unmount error:", err);
         }
 
         this.roots.delete(container);
@@ -46,7 +49,7 @@ class ReactRenderer {
             try {
                 root.unmount();
             } catch (err) {
-                console.error("ReactRenderer unmountAll error:", err);
+                logger.error("ReactRenderer unmountAll error:", err);
             }
         }
 

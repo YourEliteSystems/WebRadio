@@ -39,7 +39,12 @@ linux:
 
 mac:
   target:
-    - dmg
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: assets/icons/tray.icns
+  category: public.app-category.music
 
 artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 

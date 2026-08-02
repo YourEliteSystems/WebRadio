@@ -1,0 +1,9 @@
+{
+  "id": "discord-rpc",
+  "name": "Discord Rich Presence",
+  "type": "integration",
+  "version": "1.0.0",
+  "author": "WebRadio Team",
+  "description": "Discord Rich Presence Integration für WebRadio",
+  "entry": "index.js"
+}

@@ -1,12 +1,15 @@
 const { app } = require("electron");
 const Application = require("./core/Application");
+const LogManager = require("./core/diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("Main");
 
 process.on("uncaughtException", (error) => {
-    console.error("Uncaught Exception:", error);
+    logger.fatal("Uncaught Exception:", error);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+    logger.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 
