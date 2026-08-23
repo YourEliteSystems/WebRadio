@@ -33,7 +33,7 @@ class NavigationManager {
     /**
      * Registriert eine Section und broadcastet die Änderung.
      */
-    registerSection(section, ownerPluginId = "core") {
+    registerSection(section, ownerPluginId = null) {
         const result = NavigationRegistry.registerSection(section, ownerPluginId);
         this._notifyChange();
         return result;
@@ -42,7 +42,7 @@ class NavigationManager {
     /**
      * Registriert ein Item und broadcastet die Änderung.
      */
-    registerItem(item, ownerPluginId = "core") {
+    registerItem(item, ownerPluginId = null) {
         const result = NavigationRegistry.registerItem(item, ownerPluginId);
         this._notifyChange();
         return result;
@@ -51,7 +51,7 @@ class NavigationManager {
     /**
      * Aktualisiert ein Item und broadcastet die Änderung.
      */
-    updateItem(id, updates, ownerPluginId = "core") {
+    updateItem(id, updates, ownerPluginId = null) {
         const result = NavigationRegistry.updateItem(id, updates, ownerPluginId);
         this._notifyChange();
         return result;
@@ -60,7 +60,7 @@ class NavigationManager {
     /**
      * Entfernt ein Item und broadcastet die Änderung.
      */
-    removeItem(id, ownerPluginId = "core") {
+    removeItem(id, ownerPluginId = null) {
         const result = NavigationRegistry.removeItem(id, ownerPluginId);
         if (result) this._notifyChange();
         return result;
@@ -69,7 +69,7 @@ class NavigationManager {
     /**
      * Entfernt eine Section und broadcastet die Änderung.
      */
-    removeSection(id, ownerPluginId = "core") {
+    removeSection(id, ownerPluginId = null) {
         const result = NavigationRegistry.removeSection(id, ownerPluginId);
         if (result) this._notifyChange();
         return result;

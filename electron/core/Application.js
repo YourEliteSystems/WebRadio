@@ -269,6 +269,15 @@ class Application {
 
     async initializeNavigation() {
         NavigationManager.initialize();
+
+        // Core-Navigation: Radio registrieren
+        NavigationManager.registerItem({
+            id: "home",
+            label: "Radio",
+            icon: "radio",
+            route: "home",
+            order: 10
+        }, null); // null = Core-Owner
     }
 
     async shutdownNavigation() {
