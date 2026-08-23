@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 const SettingsManager = require("../storage/SettingsManager");
+const ThemeManager = require("../themes/ThemeManager");
 const eventBus = require("../eventBus");
 const LogManager = require("../diagnostics/logging/LogManager");
 
@@ -20,8 +21,18 @@ function registerThemeHandlers(windowManager) {
   };
 
   ipcMain.handle("theme:get", async () => {
-    const themesPath = getThemesPath();
+    // ThemeManager verwenden für zentrale Theme-Verwaltung
+    if (ThemeManager.isInitialized()) {
+      const themes = ThemeManager.getThemes();
+      return themes.map(t => ({
+        id: t.id,
+        name: t.name,
+        css: t.css
+      }));
+    }
 
+    // Fallback: Direkt aus Dateisystem laden (für Abwärtskompatibilität)
+    const themesPath = getThemesPath();
     if (!fs.existsSync(themesPath)) {
       return [];
     }
@@ -33,46 +44,22 @@ function registerThemeHandlers(windowManager) {
     const themes = [];
 
     for (const folder of folders) {
+      if (!folder.isDirectory()) continue;
 
-      if (!folder.isDirectory()) {
-        continue;
-      }
-
-      const themeJsonPath = path.join(
-        themesPath,
-        folder.name,
-        "theme.json"
-      );
-
-      if (!fs.existsSync(themeJsonPath)) {
-        continue;
-      }
+      const themeJsonPath = path.join(themesPath, folder.name, "theme.json");
+      if (!fs.existsSync(themeJsonPath)) continue;
 
       try {
-
-        const data = JSON.parse(
-          fs.readFileSync(themeJsonPath, "utf8")
-        );
-
-        const cssAbsPath = path.join(
-          themesPath,
-          folder.name,
-          data.css
-        );
+        const data = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+        const cssAbsPath = path.join(themesPath, folder.name, data.css);
 
         themes.push({
           id: folder.name,
           name: data.name,
           css: cssAbsPath
         });
-
       } catch (err) {
-
-        logger.error(
-          `Theme konnte nicht geladen werden: ${folder.name}`,
-          err
-        );
-
+        logger.error(`Theme konnte nicht geladen werden: ${folder.name}`, err);
       }
     }
 
@@ -84,13 +71,15 @@ function registerThemeHandlers(windowManager) {
   });
 
   ipcMain.handle("theme:setActive", (_, themeId) => {
-
+    // Theme in Settings speichern
     SettingsManager.update({ theme: themeId });
 
+    // EventBus Event für Core-Systeme
     eventBus.emit("themechange", {
       theme: themeId
     });
 
+    // CSS-Pfad ermitteln
     const themesPath = getThemesPath();
     let cssPath = "";
 
@@ -106,6 +95,7 @@ function registerThemeHandlers(windowManager) {
       }
     }
 
+    // Broadcast an alle Renderer-Fenster
     const payload = {
       themeId,
       css: cssPath

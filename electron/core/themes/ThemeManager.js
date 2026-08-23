@@ -1,13 +1,14 @@
 const ThemeLoader = require("./ThemeLoader");
 const StorageManager = require("../storage/StorageManager");
+const LogManager = require("../diagnostics/logging/LogManager");
+
+const logger = LogManager.getLogger("ThemeManager");
 
 class ThemeManager {
 
     constructor() {
-
         this.themes = new Map();
         this.initialized = false;
-
     }
 
     //
@@ -15,95 +16,34 @@ class ThemeManager {
     //
 
     initialize() {
-
         if (this.initialized) {
             return;
         }
 
         this.loadThemes();
-
         this.initialized = true;
-
+        logger.info("ThemeManager initialisiert.");
     }
 
     shutdown() {
-
-        this.unloadThemes();
-
         this.themes.clear();
-
         this.initialized = false;
-
+        logger.info("ThemeManager heruntergefahren.");
     }
 
     //
     // Theme Loading
     //
 
-    async loadThemes() {
-
-        const themes = ThemeLoader.discoverThemes(StorageManager.getThemePath());
+    loadThemes() {
+        const themesPath = StorageManager.getThemePath();
+        const themes = ThemeLoader.discoverThemes(themesPath);
+        
         for (const theme of themes) {
-
-            this.themes.set(
-                theme.id,
-                theme
-            );
-
+            this.themes.set(theme.id, theme);
         }
-
-    }
-
-    unloadThemes() {
-
-        for (const theme of this.themes.values()) {
-
-            ThemeRuntime.stop(theme);
-
-        }
-
-    }
-
-    //
-    // Theme Control
-    //
-
-    enableTheme(id) {
-
-        const theme = this.themes.get(id);
-
-        if (!theme) {
-            return false;
-        }
-
-        return ThemeRuntime.start(theme);
-
-    }
-
-    disableTheme(id) {
-
-        const theme = this.themes.get(id);
-
-        if (!theme) {
-            return false;
-        }
-
-        return ThemeRuntime.stop(theme);
-
-    }
-
-    reloadTheme(id) {
-
-        const theme = this.themes.get(id);
-
-        if (!theme) {
-            return false;
-        }
-
-        this.disableTheme(id);
-
-        return this.enableTheme(id);
-
+        
+        logger.info(`${themes.length} Themes geladen.`);
     }
 
     //
@@ -111,27 +51,19 @@ class ThemeManager {
     //
 
     getTheme(id) {
-
         return this.themes.get(id);
-
     }
 
     getThemes() {
-
         return [...this.themes.values()];
-
     }
 
     hasTheme(id) {
-
         return this.themes.has(id);
-
     }
 
     isInitialized() {
-
         return this.initialized;
-
     }
 
 }
