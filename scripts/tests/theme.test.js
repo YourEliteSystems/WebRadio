@@ -118,11 +118,30 @@ test("getThemes() gibt Array zurück", () => {
 // ─────────────────────────────────────────────────────────────
 console.log("\n[4] ThemeLoader");
 
+test("ThemeLoader.getThemesPath() gibt gültigen Pfad zurück", () => {
+    const themesPath = ThemeLoader.getThemesPath();
+    assert.ok(typeof themesPath === "string");
+    assert.ok(themesPath.length > 0);
+});
+
 test("ThemeLoader discoverThemes gibt Array zurück", () => {
-    const themesPath = StorageManager.getThemePath();
-    const themes = ThemeLoader.discoverThemes(themesPath);
+    const themes = ThemeLoader.discoverThemes();
     
     assert.ok(Array.isArray(themes));
+});
+
+test("ThemeLoader findet Core Themes im Development-Modus", () => {
+    const themes = ThemeLoader.discoverThemes();
+    
+    // Im Test-Environment (ohne Electron app) sollten Core Themes gefunden werden
+    const isTestEnv = !process.versions.electron;
+    if (isTestEnv) {
+        assert.ok(themes.length >= 3, "Mindestens 3 Core Themes sollten gefunden werden");
+        
+        const themeIds = themes.map(t => t.id);
+        assert.ok(themeIds.includes("default") || themeIds.includes("dark") || themeIds.includes("neon"), 
+            "Mindestens ein Core Theme (default, dark oder neon) sollte gefunden werden");
+    }
 });
 
 // ─────────────────────────────────────────────────────────────

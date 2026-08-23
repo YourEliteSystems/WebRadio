@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { app } = require("electron");
 
 const ThemeValidator = require("./ThemeValidator");
 const LogManager = require("../diagnostics/logging/LogManager");
@@ -8,33 +9,50 @@ const logger = LogManager.getLogger("ThemeLoader");
 
 class ThemeLoader {
 
-  constructor(themesPath) {
-    this.themesPath = themesPath;
-
+  constructor() {
     this.validator = new ThemeValidator();
   }
 
-  discoverThemes() {
+  getThemesPath() {
+    // Development: Projektverzeichnis themes/
+    // Production: resources/themes (gepackt) oder userData/themes (user themes)
+    if (!app || typeof app.isPackaged !== "boolean" || !app.isPackaged) {
+      return path.join(process.cwd(), "themes");
+    }
 
-    if (!fs.existsSync(this.themesPath)) {
+    // Production: Zuerst resources/themes prüfen, dann userData/themes
+    const resourcesPath = path.join(process.resourcesPath, "themes");
+    if (fs.existsSync(resourcesPath)) {
+      return resourcesPath;
+    }
+
+    // Fallback: userData/themes
+    const userDataPath = path.join(app.getPath("userData"), "themes");
+    return userDataPath;
+  }
+
+  discoverThemes() {
+    const themesPath = this.getThemesPath();
+
+    if (!fs.existsSync(themesPath)) {
+      logger.warn(`[ThemeLoader] Theme-Verzeichnis nicht gefunden: ${themesPath}`);
       return [];
     }
 
     const folders = fs.readdirSync(
-      this.themesPath,
+      themesPath,
       { withFileTypes: true }
     );
 
     const themes = [];
 
     for (const folder of folders) {
-
       if (!folder.isDirectory()) {
         continue;
       }
 
       const manifestPath = path.join(
-        this.themesPath,
+        themesPath,
         folder.name,
         "theme.json"
       );
@@ -43,27 +61,21 @@ class ThemeLoader {
         continue;
       }
 
-      const manifest = JSON.parse(
-        fs.readFileSync(manifestPath, "utf8")
-      );
-
-      const validation = this.validator.validate(manifest);
-      if(!validation.valid) {
-        logger.error(
-          `[ThemeLoader] Fehler bei ${folder.name}:`,
-          validation.errors
-        );
-        continue;
-      }
       try {
-
         const manifest = JSON.parse(
           fs.readFileSync(manifestPath, "utf8")
         );
 
-        const cssFile =
-          manifest.css ||
-          "variables.css";
+        const validation = this.validator.validate(manifest);
+        if (!validation.valid) {
+          logger.error(
+            `[ThemeLoader] Fehler bei ${folder.name}:`,
+            validation.errors
+          );
+          continue;
+        }
+
+        const cssFile = manifest.css || "style.css";
 
         themes.push({
           id: manifest.id || folder.name,
@@ -73,25 +85,22 @@ class ThemeLoader {
           description: manifest.description || "",
           preview: manifest.preview || "",
           css: path.join(
-            this.themesPath,
+            themesPath,
             folder.name,
             cssFile
           )
         });
 
       } catch (err) {
-
         logger.error(
           `[ThemeLoader] Fehler bei ${folder.name}`,
           err
         );
-
       }
-
     }
 
+    logger.info(`[ThemeLoader] ${themes.length} Themes gefunden in ${themesPath}`);
     return themes;
-
   }
 
 }

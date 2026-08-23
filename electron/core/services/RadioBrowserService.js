@@ -38,7 +38,9 @@ async function getMirrors() {
         return cache.servers;
       }
     }
-  } catch { }
+  } catch {
+    // Cache fehlt oder ist beschädigt – wird im Folgenden neu erzeugt.
+  }
   try {
     const servers = await fetchServerList();
       const mirrors = [ ...new Set(

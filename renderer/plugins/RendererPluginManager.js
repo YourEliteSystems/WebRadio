@@ -120,7 +120,7 @@ async function loadRendererPlugins() {
         if (window.api && window.api.getRendererScripts) {
           const scripts = await window.api.getRendererScripts();
           scripts.forEach(scriptUrl => {
-            const match = scriptUrl.match(/\/plugins\/([^\/]+)\//);
+            const match = scriptUrl.match(/\/plugins\/([^/]+)\//);
             const scriptId = match ? match[1] : null;
             if (scriptId === id && !injectedScripts.has(id)) {
               injectScript(scriptUrl, id);
@@ -140,7 +140,7 @@ function injectScript(scriptUrl, explicitId = null) {
   script.onerror = (e) => window.pluginAPI?.log("error", "RendererPluginManager", `Failed to load renderer script: ${scriptUrl}`);
   document.body.appendChild(script);
   
-  const match = scriptUrl.match(/\/plugins\/([^\/]+)\//);
+  const match = scriptUrl.match(/\/plugins\/([^/]+)\//);
   const id = explicitId || (match ? match[1] : null);
   if (id) {
     injectedScripts.set(id, script);

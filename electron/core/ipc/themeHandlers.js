@@ -4,20 +4,16 @@ const fs = require("fs");
 
 const SettingsManager = require("../storage/SettingsManager");
 const ThemeManager = require("../themes/ThemeManager");
+const ThemeLoader = require("../themes/ThemeLoader");
 const eventBus = require("../eventBus");
 const LogManager = require("../diagnostics/logging/LogManager");
 
 const logger = LogManager.getLogger("ThemeHandlers");
 
 function registerThemeHandlers(windowManager) {
-  const isDev = typeof windowManager === "boolean"
-    ? windowManager
-    : (windowManager?.isDev ?? !app.isPackaged);
-
   const getThemesPath = () => {
-    return isDev
-      ? path.join(__dirname, "../../../themes")
-      : path.join(process.resourcesPath, "themes");
+    // ThemeLoader.getThemesPath() für konsistente Pfad-Ermittlung
+    return ThemeLoader.getThemesPath();
   };
 
   ipcMain.handle("theme:get", async () => {

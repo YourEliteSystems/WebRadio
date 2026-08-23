@@ -1,13 +1,22 @@
 {
   "name": "webradio",
-  "version": "1.0.5.1",
+  "version": "1.0.5",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
-  "author": "Your Elite Systms",
+  "author": "Your Elite Systems",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "npm run build-react && electron .",
+    "dev:watch": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm --watch",
     "build": "npm run build-react",
-    "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm",
+    "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm --minify",
+    "test": "node scripts/tests/navigation.test.js && node scripts/tests/theme.test.js",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
@@ -19,13 +28,17 @@
     "release:detect": "node scripts/release/detect-release.js"
   },
   "devDependencies": {
-    "@electron/fuses": "^1.8.0",
+    "@eslint/js": "^9.39.0",
     "@types/node": "^25.6.0",
     "electron": "^40.7.0",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
-    "semantic-release": "^21.0.7",
-    "typescript": "^6.0.2"
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^6.1.0",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "semantic-release": "^24.2.9",
+    "typescript-eslint": "^8.46.0"
   },
   "dependencies": {
     "discord-rpc": "^4.0.1",

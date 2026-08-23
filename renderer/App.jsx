@@ -4,142 +4,54 @@ import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
 import PluginView from './ui/PluginView.jsx';
 import PluginSlot from './ui/PluginSlot.jsx';
-import { playStream, stopPlayer, setVolume } from './services/playerService';
+import { useRadioSearch } from './hooks/useRadioSearch';
+import { usePlayer } from './hooks/usePlayer';
+import { useFavorites } from './hooks/useFavorites';
+import { useUpdateInfo } from './hooks/useUpdateInfo';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
-  const [stations, setStations] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [country, setCountry] = useState('');
-  const [genre, setGenre] = useState('');
-  const [updateInfo, setUpdateInfo] = useState(null);
 
-  const [volume, setVolumeState] = useState(() => {
-    const saved = localStorage.getItem('webradio_volume');
-    return saved !== null ? parseFloat(saved) : 1.0;
-  });
-  const [nowPlayingStation, setNowPlayingStation] = useState(null);
-  const [nowPlayingTitle, setNowPlayingTitle] = useState('–');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [favorites, setFavorites] = useState([]);
-  const [countries, setCountries] = useState([]);
-  const [tags, setTags] = useState([]);
+  const {
+    stations, setStations,
+    searchQuery, setSearchQuery,
+    country, setCountry,
+    genre, setGenre,
+    countries, tags,
+    search
+  } = useRadioSearch();
+
+  const {
+    volume,
+    nowPlayingStation,
+    nowPlayingTitle,
+    isPlaying,
+    handlePlay,
+    handleStop,
+    handleVolumeChange
+  } = usePlayer();
+
+  const { favorites, toggleFavorite } = useFavorites();
+  const updateInfo = useUpdateInfo();
 
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
-  // Metadata Listener (IPC from Main Process)
-  // Einmalig beim Mount registrieren – nicht bei jedem Sender-Wechsel erneut!
-  // Andernfalls akkumulieren sich IPC-Listener mit jedem nowPlayingStation-Update.
+  // Media Control Listeners – nur einmalig registrieren
   useEffect(() => {
-    if (window.radioAPI?.onMetadata) {
-      window.radioAPI.onMetadata((meta) => {
-        if (meta.StreamTitle) {
-          const display = meta.Artist && meta.Song
-            ? `${meta.Artist} - ${meta.Song}`
-            : meta.StreamTitle;
-          setNowPlayingTitle(display);
-        }
-      });
-    }
-
-    // Media Control Listeners – ebenfalls nur einmalig registrieren
     if (window.media) {
       window.media.onStop(() => handleStop());
       // window.media.onPlayPause(() => ...)
     }
-  }, []); // Leeres Array: nur einmal beim Mount ausführen
+  }, [handleStop]);
 
-  // Load initial popular stations, filters and favorites
+  // Load initial popular stations
   useEffect(() => {
-    handleSearch('Top');
-    if (window.api?.getFavorites) {
-      window.api.getFavorites().then(res => setFavorites(res || []));
-    }
-    if (window.api?.getCountries) {
-      window.api.getCountries().then(res => setCountries(res || []));
-    }
-    if (window.api?.getTags) {
-      window.api.getTags().then(res => setTags(res || []));
-    }
-    if (window.updaterAPI?.onUpdateAvailable) {
-      window.updaterAPI.onUpdateAvailable((info) => {
-        setUpdateInfo(info);
-      });
-    }
-  }, []);
-
-  const handleSearch = async (overrideQuery) => {
-    if (!window.api?.searchRadio) {
-      console.warn("searchRadio API not found in window.api. Running in dev without electron?");
-      return;
-    }
-    const useOverride = typeof overrideQuery === 'string';
-    const q = useOverride ? overrideQuery : searchQuery;
-    try {
-      const results = await window.api.searchRadio({
-        name: q || '',
-        country: useOverride ? '' : country,
-        genre: useOverride ? '' : genre,
-      });
-      setStations(results.slice(0, 50));
-    } catch (err) {
-      console.error("Fehler bei der Sendersuche:", err);
-    }
-  };
-
-  const handlePlay = (url, station) => {
-    if (!url) return;
-    playStream(url, station);
-    setNowPlayingStation(station);
-    setNowPlayingTitle('Lädt stream...');
-    setIsPlaying(true);
-
-    // Track in history if api available
-    if (window.pluginAPI?.addHistory) {
-      window.pluginAPI.addHistory({
-        name: station.name,
-        url: url,
-        favicon: station.favicon || station.logo
-      }).catch(err => console.warn("History API not implemented in backend:", err));
-    }
-  };
+    search('Top');
+  }, [search]);
 
   const handlePlayCurrent = () => {
     if (nowPlayingStation) {
       handlePlay(nowPlayingStation.url_resolved || nowPlayingStation.url, nowPlayingStation);
-    }
-  };
-
-  const handleStop = () => {
-    stopPlayer();
-    setIsPlaying(false);
-    setNowPlayingTitle('–');
-  };
-
-  const handleVolumeChange = (val) => {
-    setVolumeState(val);
-    setVolume(val);
-    localStorage.setItem('webradio_volume', val.toString());
-  };
-
-  const handleToggleFavorite = async (stationOverride) => {
-    const stationToToggle = stationOverride || nowPlayingStation;
-    if (!stationToToggle) return;
-
-    const url = stationToToggle.url_resolved || stationToToggle.url;
-    const isFav = favorites.some(f => f.url === url);
-
-    if (isFav) {
-      if (window.api?.removeFavorite) await window.api.removeFavorite(url);
-      setFavorites(prev => prev.filter(f => f.url !== url));
-    } else {
-      const newFav = {
-        name: stationToToggle.name,
-        url: url,
-        favicon: stationToToggle.favicon || stationToToggle.logo
-      };
-      if (window.api?.addFavorite) await window.api.addFavorite(newFav);
-      setFavorites(prev => [...prev, newFav]);
     }
   };
 
@@ -193,7 +105,7 @@ export default function App() {
           setGenre={setGenre}
           countries={countries}
           tags={tags}
-          onSearch={handleSearch}
+          onSearch={search}
           onLoadFavorites={() => {
             setStations(favorites);
           }}
@@ -214,7 +126,7 @@ export default function App() {
                 stations={stations}
                 favorites={favorites}
                 onPlay={handlePlay}
-                onToggleFavorite={handleToggleFavorite}
+                onToggleFavorite={(station) => toggleFavorite(station, nowPlayingStation)}
               />
             </>
           ) : (
@@ -234,7 +146,7 @@ export default function App() {
         onStop={handleStop}
         isPlaying={isPlaying}
         isFavorite={isFavorite}
-        onToggleFavorite={handleToggleFavorite}
+        onToggleFavorite={() => toggleFavorite(null, nowPlayingStation)}
       />
     </>
   );

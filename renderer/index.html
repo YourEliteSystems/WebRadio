@@ -3,16 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https:; media-src *; img-src * data:;">
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src *; img-src * data:;">
   <title>WebRadio</title>
-  
-  <!-- Modern Font: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Stylesheets -->
-  <link rel="stylesheet" href="styles/core.css"> 
+
+  <!-- Stylesheets (Fonts lokal gebündelt – keine externen Requests) -->
+  <link rel="stylesheet" href="styles/fonts.css">
+  <link rel="stylesheet" href="styles/core.css">
   <link rel="stylesheet" id="theme-style">
 </head>
 <body>

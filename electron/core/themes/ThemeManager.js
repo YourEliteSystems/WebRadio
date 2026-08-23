@@ -1,5 +1,4 @@
 const ThemeLoader = require("./ThemeLoader");
-const StorageManager = require("../storage/StorageManager");
 const LogManager = require("../diagnostics/logging/LogManager");
 
 const logger = LogManager.getLogger("ThemeManager");
@@ -36,8 +35,7 @@ class ThemeManager {
     //
 
     loadThemes() {
-        const themesPath = StorageManager.getThemePath();
-        const themes = ThemeLoader.discoverThemes(themesPath);
+        const themes = ThemeLoader.discoverThemes();
         
         for (const theme of themes) {
             this.themes.set(theme.id, theme);

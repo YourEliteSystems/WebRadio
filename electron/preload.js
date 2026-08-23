@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld("navigationAPI", {
   registerItem: (item, pluginId) => ipcRenderer.invoke("navigation:registerItem", item, pluginId),
   updateItem: (id, updates, pluginId) => ipcRenderer.invoke("navigation:updateItem", id, updates, pluginId),
   removeItem: (id, pluginId) => ipcRenderer.invoke("navigation:removeItem", id, pluginId),
+  removeSection: (id, pluginId) => ipcRenderer.invoke("navigation:removeSection", id, pluginId),
   onUpdated: (callback) => {
     ipcRenderer.removeAllListeners("navigation:updated");
     ipcRenderer.on("navigation:updated", (_, tree) => callback(tree));
@@ -46,7 +47,7 @@ contextBridge.exposeInMainWorld("pluginAPI", {
   getHistory: () => ipcRenderer.invoke("history:get"),
   addHistory: (entry) => ipcRenderer.invoke("history:add", entry),
 
-  // NAVIGATION
+  // NAVIGATION – nutzt dieselben Kanäle wie window.navigationAPI
   navigation: {
     registerSection: (section, pluginId) => ipcRenderer.invoke("navigation:registerSection", section, pluginId),
     registerItem: (item, pluginId) => ipcRenderer.invoke("navigation:registerItem", item, pluginId),
