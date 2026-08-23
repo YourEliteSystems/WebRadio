@@ -4,6 +4,96 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.5.1] – 2026-08-23
+
+> Navigation-System-Korrektur und Theme-System-Konsolidierung – Plugin-gesteuerte Navigation und zentraler Theme-Wechsel.
+
+### ✨ Highlights & Hauptänderungen
+
+#### 🔌 Plugin-gesteuerte Navigation korrigiert
+
+- **Navigation vollständig plugin-gesteuert**:
+  - Core erstellt keine festen MediaHub-Sections mehr
+  - Plugins entscheiden selbst über Sections, Items, Hierarchie und Reihenfolge
+  - Navigation API erweitert: `registerSection()`, `registerItem()` mit vollständiger Kontrolle
+  - Core-Navigation (Radio) wird über API registriert, nicht hardcoded
+- **NavigationManager Default-Parameter korrigiert**:
+  - `ownerPluginId` Default von `"core"` auf `null` korrigiert
+  - Konsistente Trennung zwischen Core (null) und Plugins (pluginId)
+- **Sidebar.jsx generisch gemacht**:
+  - Entfernung von hartcodiertem Radio-Button
+  - Radio wird als Top-Level Item aus Navigation-Tree gerendert
+  - Keine MediaHub-Sonderfälle mehr
+- **Navigation Lifecycle**:
+  - `PluginRuntime.stop()` ruft `NavigationManager.clearPlugin()` auf
+  - Plugin-Navigation wird beim Stop sauber entfernt
+  - Keine verwaisten Navigationseinträge
+- **Isolation & Permissions**:
+  - Plugins können nur eigene Einträge verwalten
+  - Keine Überschreibung fremder Navigation
+  - Permission `navigation` erforderlich für API-Zugriff
+
+#### 🎨 Theme-System konsolidiert
+
+- **Geteiltes Theme-System zusammengeführt**:
+  - themeHandlers.js an ThemeManager angebunden
+  - Zentraler Theme-Wechselpfad über ThemeManager
+  - Entfernung von ThemeRuntime (nicht benötigt für CSS-Wechsel)
+- **ThemeManager vereinfacht**:
+  - Entfernung von `enableTheme()`, `disableTheme()`, `reloadTheme()` (benötigten ThemeRuntime)
+  - Fokus auf Theme-Discovery und -Verwaltung
+  - Logging mit LogManager integriert
+- **Ungenutzte Komponenten entfernt**:
+  - ThemeProvider.js entfernt (ungenutzter Wrapper)
+  - Keine parallelen Theme-Systeme mehr
+- **Nahtloser Theme-Wechsel**:
+  - CSS-Wechsel über einzelnes `<link>` Element mit href-Aktualisierung
+  - Kein App-Neustart oder Renderer-Reload
+  - Theme-Persistenz über SettingsManager
+  - Theme wird beim Start vor React-Render angewendet (kein Flashing)
+- **Plugin-Kompatibilität**:
+  - Plugins können über `onThemeChange` Hook reagieren
+  - EventBus `themechange` für Core-Systeme
+  - IPC Broadcast `theme:changed` für Renderer
+
+### 🔄 Technische Änderungen
+
+- **electron/core/navigation/NavigationManager.js**:
+  - Default-Parameter von `"core"` auf `null` korrigiert
+- **electron/core/Application.js**:
+  - Core-Navigation (Radio) über `NavigationManager.registerItem()` registriert
+- **renderer/components/Sidebar.jsx**:
+  - Hartcodierter Radio-Button entfernt
+  - Navigation vollständig aus Tree gerendert
+- **electron/core/ipc/themeHandlers.js**:
+  - Anbindung an ThemeManager für zentrale Theme-Verwaltung
+  - Fallback für Abwärtskompatibilität beibehalten
+- **electron/core/themes/ThemeManager.js**:
+  - Entfernung von ThemeRuntime-Referenzen
+  - Vereinfachung auf reine Theme-Verwaltung
+  - Logging integriert
+- **electron/core/themes/ThemeProvider.js**:
+  - ENTFERNT (ungenutzt)
+
+### 🧪 Tests
+
+- **Navigation Tests** (26/26 bestanden):
+  - Validator Tests, Core Initialisierung, Plugin-gesteuerte Navigation
+  - Isolation & Duplicate Protection, Plugin Lifecycle Cleanup
+  - Permissions & PluginAPI, Visibility & Disabled, Collapsible & Expanded
+  - Order-Sortierung
+- **Theme Tests** (12/12 bestanden):
+  - ThemeValidator Tests, ThemeManager Lifecycle, ThemeManager Getters
+  - ThemeLoader, Architecture Check (kein ThemeRuntime, kein ThemeProvider)
+
+### 🐛 Bugfixes
+
+- NavigationManager Default-Parameter-Inkonsistenz behoben
+- ThemeRuntime fehlende Referenzen entfernt
+- Theme-System Duplikation bereinigt
+
+---
+
 ## [v1.0.5] – 2026-07-30
 
 > Offizielles Release v1.0.5 – Logging-Refactoring, ShortcutManager, Cross-Platform Vorbereitungen, Plugin-Architektur-Konsolidierung, Integration-System und Release-Infrastruktur.
