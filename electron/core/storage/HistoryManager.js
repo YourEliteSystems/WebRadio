@@ -1,14 +1,14 @@
-const storage = require("../storage");
+const StorageManager = require("./StorageManager");
 
 class HistoryManager {
 
-  getAll() {
-    return storage.getHistory();
-  }
+    getAll() {
+        return StorageManager.getHistory();
+    }
 
-  add(entry) {
-    return storage.addHistory(entry);
-  }
+    add(entry) {
+        return StorageManager.addHistory(entry);
+    }
 
 }
 

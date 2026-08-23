@@ -2,7 +2,7 @@ const { ipcMain, BrowserWindow, app } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
-const storage = require("../storage");
+const SettingsManager = require("../storage/SettingsManager");
 const eventBus = require("../eventBus");
 const LogManager = require("../diagnostics/logging/LogManager");
 
@@ -80,14 +80,12 @@ function registerThemeHandlers(windowManager) {
   });
 
   ipcMain.handle("theme:getActive", () => {
-    return storage.getSettings()?.theme || "";
+    return SettingsManager.get()?.theme || "";
   });
 
   ipcMain.handle("theme:setActive", (_, themeId) => {
 
-    storage.updateSettings({
-      theme: themeId
-    });
+    SettingsManager.update({ theme: themeId });
 
     eventBus.emit("themechange", {
       theme: themeId

@@ -1,14 +1,14 @@
-const storage = require("../storage");
+const StorageManager = require("./StorageManager");
 
 class SettingsManager {
 
-  get() {
-    return storage.getSettings();
-  }
+    get() {
+        return StorageManager.getSettings();
+    }
 
-  update(data) {
-    return storage.updateSettings(data);
-  }
+    update(data) {
+        return StorageManager.updateSettings(data);
+    }
 
 }
 

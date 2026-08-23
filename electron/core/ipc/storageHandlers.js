@@ -1,31 +1,32 @@
 const { ipcMain } = require("electron");
-const storage = require("../storage");
+const FavoritesManager = require("../storage/FavoritesManager");
+const HistoryManager   = require("../storage/HistoryManager");
 
 function registerStorageHandlers() {
 
-  // Verlauf
+    // Verlauf
 
-  ipcMain.handle("history:get", () => {
-    return storage.getHistory();
-  });
+    ipcMain.handle("history:get", () => {
+        return HistoryManager.getAll();
+    });
 
-  ipcMain.handle("history:add", (_, entry) => {
-    return storage.addHistory(entry);
-  });
+    ipcMain.handle("history:add", (_, entry) => {
+        return HistoryManager.add(entry);
+    });
 
-  // Favoriten
+    // Favoriten
 
-  ipcMain.handle("favorites:get", () => {
-    return storage.getFavorites();
-  });
+    ipcMain.handle("favorites:get", () => {
+        return FavoritesManager.getAll();
+    });
 
-  ipcMain.handle("favorites:add", (_, entry) => {
-    return storage.addFavorite(entry);
-  });
+    ipcMain.handle("favorites:add", (_, entry) => {
+        return FavoritesManager.add(entry);
+    });
 
-  ipcMain.handle("favorites:remove", (_, url) => {
-    return storage.removeFavorite(url);
-  });
+    ipcMain.handle("favorites:remove", (_, url) => {
+        return FavoritesManager.remove(url);
+    });
 
 }
 

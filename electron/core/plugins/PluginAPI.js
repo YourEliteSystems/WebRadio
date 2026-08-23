@@ -1,24 +1,40 @@
+"use strict";
+
 const eventBus = require("../eventBus");
 const fs = require("fs");
 const path = require("path");
 const PluginStorage = require("./PluginStorage");
-const UIMannager = require("../ui/UIManager");
+const UIManager = require("../ui/UIManager");
+const NavigationManager = require("../navigation/NavigationManager");
+const PluginPermissions = require("./PluginPermissions");
 const LogManager = require("../diagnostics/logging/LogManager");
 const SettingsManager = require("../storage/SettingsManager");
 const { app } = require("electron");
 
-const PLUGIN_API_VERSION = "1.0.0";
+const PLUGIN_API_VERSION = "1.1.0";
 
-function create(meta) {
+function create(meta = {}) {
+  const pluginId = meta.id || "anonymous";
+  const permissions = meta.permissions || [];
+
+  function checkNavPermission() {
+    if (!PluginPermissions.hasPermission(permissions, "navigation")) {
+      const msg = `[PluginAPI] Plugin "${pluginId}" benötigt die Berechtigung "navigation", um auf die Navigation Extension API zuzugreifen.`;
+      const logger = LogManager.getLogger(`Plugin:${pluginId}`);
+      logger.error(msg);
+      throw new Error(msg);
+    }
+  }
+
   return {
     plugin: meta,
     version: {
       pluginAPI: PLUGIN_API_VERSION,
-      application: app.getVersion() || "1.0.0"
+      application: (app && typeof app.getVersion === "function") ? app.getVersion() : "1.0.5"
     },
 
     logger: (context) => {
-      return LogManager.getLogger(`Plugin:${meta.name}:${context}`);
+      return LogManager.getLogger(`Plugin:${meta.name || pluginId}:${context}`);
     },
 
     events: {
@@ -36,6 +52,45 @@ function create(meta) {
 
       emit(event, payload) {
         eventBus.emit(event, payload);
+      }
+    },
+
+    navigation: {
+      registerSection(section) {
+        checkNavPermission();
+        return NavigationManager.registerSection(section, pluginId);
+      },
+
+      registerItem(item) {
+        checkNavPermission();
+        return NavigationManager.registerItem(item, pluginId);
+      },
+
+      updateItem(id, updates) {
+        checkNavPermission();
+        return NavigationManager.updateItem(id, updates, pluginId);
+      },
+
+      removeItem(id) {
+        checkNavPermission();
+        return NavigationManager.removeItem(id, pluginId);
+      },
+
+      removeSection(id) {
+        checkNavPermission();
+        return NavigationManager.removeSection(id, pluginId);
+      },
+
+      getTree() {
+        return NavigationManager.getTree();
+      },
+
+      getSections() {
+        return NavigationManager.getSections();
+      },
+
+      getItems(sectionId) {
+        return NavigationManager.getItems(sectionId);
       }
     },
 
@@ -108,14 +163,14 @@ function create(meta) {
 
     ui: {
       register(item) {
-        UIMannager.register(item, {
+        UIManager.register(item, {
           pluginId: meta.id,
           version: meta.version,
           source: "plugin"
         });
       },
       unregister(id) {
-        UIMannager.unregister(id);
+        UIManager.unregister(id);
       }
     }
   };

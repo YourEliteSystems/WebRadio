@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const eventBus = require("../eventBus");
 const { createPluginContext } = require("./PluginContext");
+const NavigationManager = require("../navigation/NavigationManager");
 const LogManager = require("../diagnostics/logging/LogManager");
 
 const logger = LogManager.getLogger("PluginRuntime");
@@ -170,6 +171,9 @@ class PluginRuntime {
                 );
 
             }
+
+            // Navigation Lifecycle Cleanup: Alle vom Plugin registrierten Navigations-Einträge entfernen
+            NavigationManager.clearPlugin(manifest.id);
 
             const manifestForFile = plugin.manifest || plugin;
             const mainFile = path.join(

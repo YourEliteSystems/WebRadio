@@ -10,6 +10,12 @@ function registerIntegrationHandlers(mainWindow) {
     IntegrationManager.toggleIntegration(id, enabled);
   });
 
+  ipcMain.handle("integrations:update", (_, data) => {
+    if (data && data.id) {
+      IntegrationManager.toggleIntegration(data.id, data.enabled);
+    }
+  });
+
   ipcMain.handle("integrations:getRendererScripts", () => {
     return IntegrationManager.getRendererScripts();
   });

@@ -19,6 +19,21 @@ contextBridge.exposeInMainWorld('api', {
   getRendererScripts: () => ipcRenderer.invoke("plugins:getRendererScripts"),
 });
 
+// NAVIGATION API
+contextBridge.exposeInMainWorld("navigationAPI", {
+  getTree: () => ipcRenderer.invoke("navigation:getTree"),
+  getSections: () => ipcRenderer.invoke("navigation:getSections"),
+  getItems: (sectionId) => ipcRenderer.invoke("navigation:getItems", sectionId),
+  registerSection: (section, pluginId) => ipcRenderer.invoke("navigation:registerSection", section, pluginId),
+  registerItem: (item, pluginId) => ipcRenderer.invoke("navigation:registerItem", item, pluginId),
+  updateItem: (id, updates, pluginId) => ipcRenderer.invoke("navigation:updateItem", id, updates, pluginId),
+  removeItem: (id, pluginId) => ipcRenderer.invoke("navigation:removeItem", id, pluginId),
+  onUpdated: (callback) => {
+    ipcRenderer.removeAllListeners("navigation:updated");
+    ipcRenderer.on("navigation:updated", (_, tree) => callback(tree));
+  }
+});
+
 // PLUGIN API FOR RENDERER SCRIPTS
 contextBridge.exposeInMainWorld("pluginAPI", {
   log: (level, context, msg) => ipcRenderer.send("log", level, context, msg),
@@ -30,8 +45,17 @@ contextBridge.exposeInMainWorld("pluginAPI", {
   // HISTORY
   getHistory: () => ipcRenderer.invoke("history:get"),
   addHistory: (entry) => ipcRenderer.invoke("history:add", entry),
-});
 
+  // NAVIGATION
+  navigation: {
+    registerSection: (section, pluginId) => ipcRenderer.invoke("navigation:registerSection", section, pluginId),
+    registerItem: (item, pluginId) => ipcRenderer.invoke("navigation:registerItem", item, pluginId),
+    updateItem: (id, updates, pluginId) => ipcRenderer.invoke("navigation:updateItem", id, updates, pluginId),
+    removeItem: (id, pluginId) => ipcRenderer.invoke("navigation:removeItem", id, pluginId),
+    removeSection: (id, pluginId) => ipcRenderer.invoke("navigation:removeSection", id, pluginId),
+    getTree: () => ipcRenderer.invoke("navigation:getTree"),
+  }
+});
 
 // PLAYER
 contextBridge.exposeInMainWorld("radioAPI", {
@@ -44,7 +68,7 @@ contextBridge.exposeInMainWorld("radioAPI", {
   }
 });
 
-//Window Controls
+// Window Controls
 contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
   maximize: () => ipcRenderer.send("window:maximize"),
@@ -80,11 +104,9 @@ contextBridge.exposeInMainWorld("updaterAPI", {
 });
 
 contextBridge.exposeInMainWorld("uiAPI", {
-
     getPages() {
         return ipcRenderer.invoke("ui:getPages");
     }
-
 });
 
 // SHELL API – Ordner im Explorer öffnen
@@ -104,7 +126,9 @@ contextBridge.exposeInMainWorld("diagnosticsAPI", {
     readLog:             (fileName) => ipcRenderer.invoke("diagnostics:readLog", fileName),
     deleteLog:           (fileName) => ipcRenderer.invoke("diagnostics:deleteLog", fileName),
     clearLogs:           ()         => ipcRenderer.invoke("diagnostics:clearLogs"),
-    getPaths:            ()         => ipcRenderer.invoke("diagnostics:getPaths")
+    getPaths:            ()         => ipcRenderer.invoke("diagnostics:getPaths"),
+    getMemory:           ()         => ipcRenderer.invoke("diagnostics:getMemory"),
+    getEventBusStats:    ()         => ipcRenderer.invoke("diagnostics:getEventBusStats")
 });
 
 // INTEGRATIONS API

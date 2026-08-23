@@ -28,22 +28,26 @@ export default function App() {
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
   // Metadata Listener (IPC from Main Process)
+  // Einmalig beim Mount registrieren – nicht bei jedem Sender-Wechsel erneut!
+  // Andernfalls akkumulieren sich IPC-Listener mit jedem nowPlayingStation-Update.
   useEffect(() => {
     if (window.radioAPI?.onMetadata) {
       window.radioAPI.onMetadata((meta) => {
         if (meta.StreamTitle) {
-          const display = meta.Artist && meta.Song ? `${meta.Artist} - ${meta.Song}` : meta.StreamTitle;
+          const display = meta.Artist && meta.Song
+            ? `${meta.Artist} - ${meta.Song}`
+            : meta.StreamTitle;
           setNowPlayingTitle(display);
         }
       });
     }
 
-    // Add Media Control Listeners
+    // Media Control Listeners – ebenfalls nur einmalig registrieren
     if (window.media) {
       window.media.onStop(() => handleStop());
       // window.media.onPlayPause(() => ...)
     }
-  }, [nowPlayingStation]);
+  }, []); // Leeres Array: nur einmal beim Mount ausführen
 
   // Load initial popular stations, filters and favorites
   useEffect(() => {

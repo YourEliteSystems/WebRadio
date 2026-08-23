@@ -1,5 +1,8 @@
 # WebRadio Plugin SDK
 
+> 📌 **Hinweis zur Architektur:**  
+> WebRadio verwendet ausschließlich dieses modulare Plugin-System (`electron/core/plugins/`). Alle Plugins werden über diesen Plugin-Manager geladen, verwaltet und ausgeführt. Legacy-Plugin-Schnittstellen wurden vollständig entfernt.
+
 Welcome to the **WebRadio Plugin SDK**.
 
 This documentation explains everything you need to know to develop plugins for WebRadio.
@@ -161,6 +164,10 @@ Hooks
 ↓
 
 UI Integration
+
+↓
+
+Navigation (Sidebar & Sections)
 
 ↓
 

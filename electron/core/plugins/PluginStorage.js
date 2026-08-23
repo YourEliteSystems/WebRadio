@@ -3,9 +3,12 @@ const path = require("path");
 const { app } = require("electron");
 
 function getPluginFile(pluginId) {
+    const userData = (app && typeof app.getPath === "function")
+        ? app.getPath("userData")
+        : path.join(process.cwd(), "data");
 
     return path.join(
-        app.getPath("userData"),
+        userData,
         "plugins",
         `${pluginId}.json`
     );

@@ -36,22 +36,20 @@ class LogManager {
         this.consoleTransport =
             new ConsoleTransport(this.formatter);
 
+        const logsPath = (app && typeof app.getPath === "function")
+            ? path.join(app.getPath("userData"), "logs")
+            : path.join(process.cwd(), "logs");
+
         this.fileTransport =
             new FileTransport(
-
-                path.join(
-                    app.getPath("userData"),
-                    "logs"
-                ),
-
+                logsPath,
                 this.formatter
-
             );
 
         this.rootLogger =
             new Logger("Application");
 
-        if (!app.isPackaged) {
+        if (!app || !app.isPackaged) {
             this.rootLogger.addTransport(
                 this.consoleTransport
             );

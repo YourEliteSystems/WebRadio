@@ -18,6 +18,12 @@ const WindowManager = require("./app/WindowManager");
 const { registerAllIpc } = require("./ipc/registerIpcHandlers");
 
 // ─────────────────────────────────────────────
+// Navigation
+// ─────────────────────────────────────────────
+
+const NavigationManager = require("./navigation/NavigationManager");
+
+// ─────────────────────────────────────────────
 // Plugins
 // ─────────────────────────────────────────────
 
@@ -53,6 +59,7 @@ const LogManager = require("./diagnostics/logging/LogManager");
 const CrashHandler = require("./diagnostics/crash/CrashHandler");
 const CrashReportManager = require("./diagnostics/crash/CrashReportManager");
 const HealthCheck = require("./diagnostics/health/HealthCheck");
+const MemoryMonitor = require("./diagnostics/memory/MemoryMonitor");
 
 const logger = LogManager.getLogger("Application");
 
@@ -87,6 +94,8 @@ class Application {
 
         await this.initializeIPC();
 
+        await this.initializeNavigation();
+
         await this.initializePlugins();
 
         await this.initializeIntegrations();
@@ -116,6 +125,7 @@ class Application {
         logger.separator();
         logger.info("Stopping WebRadio...");
         logger.separator();
+        MemoryMonitor.shutdown();
         HealthCheck.shutdown();
         CrashReportManager.shutdown();
         CrashHandler.shutdown();
@@ -124,6 +134,7 @@ class Application {
         await this.shutdownServices();
         await this.shutdownIntegrations();
         await this.shutdownPlugins();
+        await this.shutdownNavigation();
         await this.shutdownThemes();
         destroyTray();
 
@@ -220,6 +231,8 @@ class Application {
 
         HealthCheck.initialize();
 
+        MemoryMonitor.initialize(!app.isPackaged);
+
     }
 
     async initializeServices() {
@@ -252,6 +265,14 @@ class Application {
 
         IntegrationManager.shutdown();
 
+    }
+
+    async initializeNavigation() {
+        NavigationManager.initialize();
+    }
+
+    async shutdownNavigation() {
+        NavigationManager.shutdown();
     }
 
     async initializeThemes() {

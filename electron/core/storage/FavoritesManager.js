@@ -1,18 +1,18 @@
-const storage = require("../storage");
+const StorageManager = require("./StorageManager");
 
 class FavoritesManager {
 
-  getAll() {
-    return storage.getFavorites();
-  }
+    getAll() {
+        return StorageManager.getFavorites();
+    }
 
-  add(entry) {
-    return storage.addFavorite(entry);
-  }
+    add(entry) {
+        return StorageManager.addFavorite(entry);
+    }
 
-  remove(url) {
-    return storage.removeFavorite(url);
-  }
+    remove(url) {
+        return StorageManager.removeFavorite(url);
+    }
 
 }
 

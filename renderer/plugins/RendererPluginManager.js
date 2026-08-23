@@ -1,11 +1,33 @@
 import { unregisterPluginUI, registerView, registerSlot } from '../ui/componentRegistry';
+import {
+  registerSection,
+  registerItem,
+  updateItem,
+  removeItem,
+  removeSection,
+  toggleSection,
+  isSectionExpanded,
+  unregisterPluginNavigation,
+  getNavigationTree,
+  syncWithMain
+} from '../ui/navigationRegistry';
 
 const activePlugins = new Map();
 const injectedScripts = new Map();
 
 window.uiRegistry = {
   registerView,
-  registerSlot
+  registerSlot,
+  navigation: {
+    registerSection: (sec, pluginId) => registerSection(sec, pluginId),
+    registerItem: (it, pluginId) => registerItem(it, pluginId),
+    updateItem: (id, updates, pluginId) => updateItem(id, updates, pluginId),
+    removeItem: (id, pluginId) => removeItem(id, pluginId),
+    removeSection: (id, pluginId) => removeSection(id, pluginId),
+    toggleSection,
+    isSectionExpanded,
+    getTree: getNavigationTree
+  }
 };
 
 window.registerPluginRenderer = (id, hooks) => {
@@ -13,9 +35,18 @@ window.registerPluginRenderer = (id, hooks) => {
 
   if (hooks.init) {
     try {
-       hooks.init();
-       } catch (err) {
-         window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${id} init error: ${err.message}`);
+       hooks.init({
+         id,
+         navigation: {
+           registerSection: (sec) => registerSection(sec, id),
+           registerItem: (it) => registerItem(it, id),
+           updateItem: (itemId, updates) => updateItem(itemId, updates, id),
+            removeItem: (itemId) => removeItem(itemId, id),
+            removeSection: (secId) => removeSection(secId, id)
+          }
+       });
+    } catch (err) {
+       window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${id} init error: ${err.message}`);
     }
   }
 };
@@ -29,14 +60,26 @@ window.registerPlugin = (plugin) => {
 
   if(typeof plugin.activate === "function"){
     try {
-      plugin.activate({pluginId: plugin.id});
-    }catch (err) {
+      plugin.activate({
+        pluginId: plugin.id,
+        navigation: {
+          registerSection: (sec) => registerSection(sec, plugin.id),
+          registerItem: (it) => registerItem(it, plugin.id),
+          updateItem: (itemId, updates) => updateItem(itemId, updates, plugin.id),
+          removeItem: (itemId) => removeItem(itemId, plugin.id),
+          removeSection: (secId) => removeSection(secId, plugin.id)
+        }
+      });
+    } catch (err) {
       window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${plugin.id} activation error: ${err.message}`);
     }
   }
 };
 
 async function loadRendererPlugins() {
+  // Navigation mit Main-Prozess synchronisieren
+  await syncWithMain();
+
   if (window.api && window.api.getRendererScripts) {
     try {
       const scripts = await window.api.getRendererScripts();
@@ -62,8 +105,9 @@ async function loadRendererPlugins() {
         }
         activePlugins.delete(id);
         
-        // Unregister plugin UI
+        // Unregister plugin UI & Navigation
         unregisterPluginUI(id);
+        unregisterPluginNavigation(id);
         
         // Remove script tag
         const scriptTag = injectedScripts.get(id);
@@ -102,4 +146,5 @@ function injectScript(scriptUrl, explicitId = null) {
     injectedScripts.set(id, script);
   }
 }
+
 export { loadRendererPlugins };

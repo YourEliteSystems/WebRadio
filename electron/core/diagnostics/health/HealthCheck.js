@@ -38,9 +38,21 @@ class HealthCheck {
             }
         });
 
-        this.register("Storage File", () => {
-            if (!fs.existsSync(StorageManager.getStorageFile())) {
-                throw new Error("storage.json missing.");
+        this.register("History File", () => {
+            if (!fs.existsSync(StorageManager.getHistoryFile())) {
+                throw new Error("history.json missing.");
+            }
+        });
+
+        this.register("Favorites File", () => {
+            if (!fs.existsSync(StorageManager.getFavoritesFile())) {
+                throw new Error("favorites.json missing.");
+            }
+        });
+
+        this.register("Settings File", () => {
+            if (!fs.existsSync(StorageManager.getSettingsFile())) {
+                throw new Error("settings.json missing.");
             }
         });
 

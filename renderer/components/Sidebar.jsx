@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { subscribe, views } from '../ui/componentRegistry';
+import { subscribe as subscribeViews, views } from '../ui/componentRegistry';
+import {
+  subscribe as subscribeNav,
+  getNavigationTree,
+  toggleSection
+} from '../ui/navigationRegistry';
 
 export default function Sidebar({
   currentView,
@@ -16,36 +21,136 @@ export default function Sidebar({
   onLoadFavorites,
   onLoadHistory
 }) {
+  const [navTree, setNavTree] = useState(() => getNavigationTree());
   const [pluginViews, setPluginViews] = useState(() => new Map(views));
 
   useEffect(() => {
-    const unsubscribe = subscribe(() => {
+    const unsubNav = subscribeNav(() => {
+      setNavTree(getNavigationTree());
+    });
+    const unsubViews = subscribeViews(() => {
       setPluginViews(new Map(views));
     });
-    return unsubscribe;
+    return () => {
+      unsubNav();
+      unsubViews();
+    };
   }, []);
+
+  const sections = navTree.sections || [];
+  const topLevelItems = navTree.topLevelItems || [];
+
+  // IDs aller registrierten Items sammeln, um Doppelungen mit legacy pluginViews zu vermeiden
+  const registeredItemIds = new Set();
+  topLevelItems.forEach(item => registeredItemIds.add(item.id));
+  sections.forEach(section => {
+    (section.items || []).forEach(item => registeredItemIds.add(item.id));
+  });
 
   return (
     <aside className="sidebar">
+      {/* ── Haupt-Navigation ── */}
       <div className="sidebar-section">
         <h3>Navigation</h3>
+        
+        {/* Core: Radio / Home */}
         <button 
-          className={`btn-secondary ${currentView === 'home' ? 'active' : ''}`}
+          className={`btn-nav-item ${currentView === 'home' ? 'active' : ''}`}
           onClick={() => setCurrentView('home')}
         >
-          Home
+          <svg className="nav-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+          </svg>
+          <span className="nav-label">Radio</span>
         </button>
-        {Array.from(pluginViews.entries()).map(([id, view]) => (
-          <button 
-            key={id}
-            className={`btn-secondary ${currentView === id ? 'active' : ''}`}
-            onClick={() => setCurrentView(id)}
+
+        {/* Top-Level Items (ohne Parent) von Plugins */}
+        {topLevelItems.map(item => (
+          <button
+            key={item.id}
+            className={`btn-nav-item ${currentView === item.id || currentView === item.route ? 'active' : ''}`}
+            onClick={() => setCurrentView(item.route || item.id)}
+            disabled={item.disabled}
           >
-            {view.title}
+            {item.icon ? (
+              <span className="nav-icon">{item.icon}</span>
+            ) : (
+              <span className="section-dot"></span>
+            )}
+            <span className="nav-label">{item.label}</span>
           </button>
         ))}
+
+        {/* Dynamische Sections von Plugins */}
+        {sections.map(section => {
+          const isCollapsible = section.collapsible !== false;
+          const isExpanded = section.isExpanded !== false;
+          const hasItems = Array.isArray(section.items) && section.items.length > 0;
+
+          return (
+            <div key={section.id} className="nav-section-container">
+              {/* Section Header */}
+              <div 
+                className={`nav-section-header ${isCollapsible ? 'collapsible' : ''}`}
+                onClick={() => isCollapsible && toggleSection(section.id)}
+                title={section.label}
+              >
+                <div className="nav-section-title">
+                  {section.icon ? (
+                    <span className="nav-icon">{section.icon}</span>
+                  ) : (
+                    <span className="section-dot"></span>
+                  )}
+                  <span className="section-label">{section.label}</span>
+                </div>
+                {isCollapsible && (
+                  <span className={`section-chevron ${isExpanded ? 'expanded' : ''}`}>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                      <path d="M7 10l5 5 5-5z" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+
+              {/* Section Items */}
+              {(!isCollapsible || isExpanded) && hasItems && (
+                <div className="nav-section-items">
+                  {section.items.map(item => (
+                    <button
+                      key={item.id}
+                      className={`btn-nav-subitem ${currentView === item.id || currentView === item.route ? 'active' : ''}`}
+                      onClick={() => setCurrentView(item.route || item.id)}
+                      disabled={item.disabled}
+                    >
+                      {item.icon ? (
+                        <span className="subitem-icon">{item.icon}</span>
+                      ) : (
+                        <span className="subitem-indicator"></span>
+                      )}
+                      <span className="nav-label">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Standalone Views (Backward compatibility) */}
+        {Array.from(pluginViews.entries())
+          .filter(([id]) => !registeredItemIds.has(id))
+          .map(([id, view]) => (
+            <button 
+              key={id}
+              className={`btn-nav-item ${currentView === id ? 'active' : ''}`}
+              onClick={() => setCurrentView(id)}
+            >
+              <span className="nav-label">{view.title}</span>
+            </button>
+          ))}
       </div>
 
+      {/* ── Suche & Filter (Nur in Radio-Ansicht) ── */}
       {currentView === 'home' && (
         <div className="sidebar-section">
           <h3>Suchen</h3>
@@ -76,6 +181,7 @@ export default function Sidebar({
         </div>
       )}
 
+      {/* ── Gespeicherte Sender (Nur in Radio-Ansicht) ── */}
       {currentView === 'home' && (
         <div className="sidebar-section">
           <h3>Meine Sender</h3>

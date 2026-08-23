@@ -1,6 +1,13 @@
 # Dokumentation – Übersicht
 
-Willkommen in der Dokumentation von **WebRadio**. Hier findest du alle wichtigen Informationen für Nutzer, Entwickler und Beitragende.
+> ⚠️ **HISTORISCHE / VERALTETE DOKUMENTATION**  
+> Die Dokumente in diesem Ordner (`docs_legecy/`) beschreiben die frühere, monolithische Architektur von WebRadio.  
+> **WebRadio verwendet heute ausschließlich das neue modulare Plugin-System (Plugin SDK v1).**  
+> Aktuelle Dokumentation befindet sich unter [`docs/`](../docs/) und [`docs/plugin-sdk/`](../docs/plugin-sdk/).
+
+---
+
+Willkommen in der historischen Dokumentation von **WebRadio**. Hier findest du alle archivierten Informationen für Nutzer, Entwickler und Beitragende.
 
 ---
 

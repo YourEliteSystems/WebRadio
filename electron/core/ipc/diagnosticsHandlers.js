@@ -8,6 +8,7 @@ const CrashReportReader = require("../diagnostics/crash/CrashReportReader");
 const StorageManager = require("../storage/StorageManager");
 const LogManager     = require("../diagnostics/logging/LogManager");
 const LogReader      = require("../diagnostics/logging/LogReader");
+const MemoryMonitor  = require("../diagnostics/memory/MemoryMonitor");
 
 function registerDiagnosticsHandlers() {
 
@@ -88,6 +89,15 @@ function registerDiagnosticsHandlers() {
             pluginData: StorageManager.getPluginDataPath(),
             userData:   StorageManager.getUserDataPath()
         };
+    });
+
+    // ── Memory & Leaks ────────────────────────────────────────
+    ipcMain.handle("diagnostics:getMemory", () => {
+        return MemoryMonitor.getSnapshot();
+    });
+
+    ipcMain.handle("diagnostics:getEventBusStats", () => {
+        return MemoryMonitor.getEventBusStats();
     });
 
 }
