@@ -4,13 +4,69 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
-## [v1.0.5.1] – 2026-08-23
+## [v1.0.6-beta.1] – 2026-08-23
 
-> Navigation-System-Korrektur und Theme-System-Konsolidierung – Plugin-gesteuerte Navigation und zentraler Theme-Wechsel.
+> Plugin-gesteuerte Navigation, Theme-System-Konsolidierung, Projektstruktur-Bereinigung, Quality-Tooling und Refactoring – keine neuen Features.
 
-### ✨ Highlights & Hauptänderungen
+### 🧹 Packaging & Release-Infrastruktur
 
-#### 🔌 Plugin-gesteuerte Navigation korrigiert
+- **Doppeltes Packaging-System entfernt**:
+  - `forge.config.js` gelöscht (referenzierte nicht installierte `@electron-forge/*`-Pakete)
+  - Konsolidierung auf electron-builder (`electron-builder.yml`)
+  - `@electron/fuses` aus devDependencies entfernt
+- **Version auf gültiges SemVer umgestellt**: `1.0.5.1` → `1.0.6-beta.1`
+- **semantic-release aktualisiert**: ^21 → ^24
+- **Autor-Tippfehler korrigiert** („Your Elite Systms" → „Your Elite Systems")
+- **`engines`-Feld ergänzt**: Node >= 20 erforderlich
+- **Build-Scripts erweitert**:
+  - `dev:watch` – esbuild im Watch-Modus für schnellere Entwicklung
+  - Production-Build mit `--minify`
+
+### 🧪 Testing & Linting
+
+- **Test-Runner eingerichtet**: `npm test` führt die bestehenden Testskripte aus (40/40 bestanden)
+- **ESLint eingeführt** (Flat Config, `eslint.config.js`):
+  - Inklusive react-hooks-Regeln (`rules-of-hooks`, `exhaustive-deps`)
+  - Von 21 Fehlern auf 0 Fehler bereinigt
+- **Prettier konfiguriert** (`.prettierrc.json`, `.prettierignore`)
+- **Neue Scripts**: `lint`, `lint:fix`, `format`, `test`, `test:watch`
+
+### 🐛 Bugfixes (durch Linting aufgedeckt)
+
+- **uiHandlers.js repariert**:
+  - Fehlende Imports ergänzt (`ipcMain`, `UIManager`)
+  - Handler war zuvor nie registriert – jetzt als `registerUiHandlers()` in `registerIpcHandlers.js` eingebunden
+  - Modul folgt jetzt demselben Muster wie alle anderen IPC-Handler
+- **Ungültige Regex-Escapes entfernt** (`RendererPluginManager.js`)
+- **Leerer catch-Block dokumentiert** (`RadioBrowserService.js`)
+
+### ♻️ Renderer-Refactoring
+
+- **App.jsx in Custom Hooks aufgeteilt** (God-Component reduziert):
+  - `renderer/hooks/useRadioSearch.js` – Suche, Filter, Länder/Tags
+  - `renderer/hooks/usePlayer.js` – Wiedergabe, Volume, Metadaten-Listener
+  - `renderer/hooks/useFavorites.js` – Favoriten-Verwaltung
+  - `renderer/hooks/useUpdateInfo.js` – Update-Benachrichtigungen
+- **Preload-Navigation-API vervollständigt**: `removeSection` in `navigationAPI` ergänzt (fehlte gegenüber `pluginAPI.navigation`)
+
+### 🔒 Sicherheit & Offline-Fähigkeit
+
+- **Google Fonts lokal gebündelt**:
+  - Inter-Font (28 woff2-Dateien inkl. Unicode-Ranges) unter `renderer/assets/fonts/`
+  - Neue `renderer/styles/fonts.css` mit lokalen `@font-face`-Definitionen
+  - Keine externen Requests mehr – App ist vollständig offline-fähig
+- **CSP verschärft** (in `index.html` und `settings.html`):
+  - `font-src 'self'` statt Google-Domains und Wildcard
+  - Externe Font-Requests vollständig entfernt
+
+### 📁 Projektstruktur
+
+- **Tippfehler-Ordner umbenannt**:
+  - `docs_legecy/` → `docs_legacy/`
+  - `docs/api-referance/` → `docs/api-reference/`
+  - Alle Referenzen aktualisiert
+
+### 🔌 Plugin-gesteuerte Navigation korrigiert
 
 - **Navigation vollständig plugin-gesteuert**:
   - Core erstellt keine festen MediaHub-Sections mehr
@@ -33,7 +89,7 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
   - Keine Überschreibung fremder Navigation
   - Permission `navigation` erforderlich für API-Zugriff
 
-#### 🎨 Theme-System konsolidiert
+### 🎨 Theme-System konsolidiert
 
 - **Geteiltes Theme-System zusammengeführt**:
   - themeHandlers.js an ThemeManager angebunden
@@ -56,24 +112,14 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
   - EventBus `themechange` für Core-Systeme
   - IPC Broadcast `theme:changed` für Renderer
 
-### 🔄 Technische Änderungen
+### 🔄 Technische Änderungen (Navigation & Theme)
 
-- **electron/core/navigation/NavigationManager.js**:
-  - Default-Parameter von `"core"` auf `null` korrigiert
-- **electron/core/Application.js**:
-  - Core-Navigation (Radio) über `NavigationManager.registerItem()` registriert
-- **renderer/components/Sidebar.jsx**:
-  - Hartcodierter Radio-Button entfernt
-  - Navigation vollständig aus Tree gerendert
-- **electron/core/ipc/themeHandlers.js**:
-  - Anbindung an ThemeManager für zentrale Theme-Verwaltung
-  - Fallback für Abwärtskompatibilität beibehalten
-- **electron/core/themes/ThemeManager.js**:
-  - Entfernung von ThemeRuntime-Referenzen
-  - Vereinfachung auf reine Theme-Verwaltung
-  - Logging integriert
-- **electron/core/themes/ThemeProvider.js**:
-  - ENTFERNT (ungenutzt)
+- **electron/core/navigation/NavigationManager.js**: Default-Parameter von `"core"` auf `null` korrigiert
+- **electron/core/Application.js**: Core-Navigation (Radio) über `NavigationManager.registerItem()` registriert
+- **renderer/components/Sidebar.jsx**: Hartcodierter Radio-Button entfernt, Navigation vollständig aus Tree gerendert
+- **electron/core/ipc/themeHandlers.js**: Anbindung an ThemeManager für zentrale Theme-Verwaltung, Fallback für Abwärtskompatibilität beibehalten
+- **electron/core/themes/ThemeManager.js**: ThemeRuntime-Referenzen entfernt, vereinfacht auf reine Theme-Verwaltung, Logging integriert
+- **electron/core/themes/ThemeProvider.js**: ENTFERNT (ungenutzt)
 
 ### 🧪 Tests
 
@@ -82,11 +128,11 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
   - Isolation & Duplicate Protection, Plugin Lifecycle Cleanup
   - Permissions & PluginAPI, Visibility & Disabled, Collapsible & Expanded
   - Order-Sortierung
-- **Theme Tests** (12/12 bestanden):
+- **Theme Tests** (14/14 bestanden):
   - ThemeValidator Tests, ThemeManager Lifecycle, ThemeManager Getters
   - ThemeLoader, Architecture Check (kein ThemeRuntime, kein ThemeProvider)
 
-### 🐛 Bugfixes
+### 🐛 Weitere Bugfixes
 
 - NavigationManager Default-Parameter-Inkonsistenz behoben
 - ThemeRuntime fehlende Referenzen entfernt
