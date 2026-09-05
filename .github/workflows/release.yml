@@ -274,9 +274,10 @@ jobs:
               pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip
               useradd -m builder
               chown -R builder:builder /work
-              # SRCDEST auf das Arbeitsverzeichnis setzen, damit makepkg
-              # die Source-Dateien direkt dort findet (kein Download nötig)
-              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg --noextract --nodeps -s --noconfirm || SRCDEST=/work makepkg -s --noconfirm'
+              # --nodeps: Runtime-Abh\u00e4ngigkeiten m\u00fcssen im Container NICHT installiert
+              # sein (sie sind f\u00fcr das Zielsystem). makepkg kopiert die lokalen
+              # Source-Dateien aus /work in srcdir und baut das Paket.
+              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg --nodeps --noconfirm'
             "
 
       - name: Prepare Linux Artifacts

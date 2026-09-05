@@ -124,7 +124,9 @@ jobs:
               pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip
               useradd -m builder
               chown -R builder:builder /work
-              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg -s --noconfirm'
+              # --nodeps: Runtime-Deps m\u00fcssen im Container NICHT installiert sein.
+              # makepkg kopiert lokale Source-Dateien aus /work in srcdir.
+              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg --nodeps --noconfirm'
             "
 
       - name: Ergebnis-Artefakt hochladen
