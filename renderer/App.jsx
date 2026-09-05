@@ -32,7 +32,7 @@ export default function App() {
   } = usePlayer();
 
   const { favorites, toggleFavorite } = useFavorites();
-  const updateInfo = useUpdateInfo();
+  const { updateInfo, version, isPrerelease, channel } = useUpdateInfo();
 
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
@@ -67,11 +67,20 @@ export default function App() {
         <div className="titlebar-left">
           <div className="app-logo"></div>
           <span className="app-title">WebRadio</span>
+          {version && (
+            <span
+              className={`app-version ${isPrerelease ? 'beta' : ''}`}
+              title={`WebRadio ${version} – ${isPrerelease ? 'Beta' : 'Stable'}-Kanal`}
+            >
+              v{version}
+              {isPrerelease && <span className="app-version-badge">BETA</span>}
+            </span>
+          )}
           {updateInfo && (
             <button
-              className="update-badge"
+              className={`update-badge ${updateInfo.channel === 'beta' ? 'beta' : ''}`}
               onClick={() => window.api?.openSettings?.()}
-              title={`Update verfügbar: v${updateInfo.version}`}
+              title={`Update verfügbar: v${updateInfo.version} (${updateInfo.channel === 'beta' ? 'Beta' : 'Stable'})`}
             >
               <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
                 <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z" />

@@ -21,7 +21,7 @@ WebRadio ist ein plattformübergreifender Desktop-Radioplayer mit einem modernen
 | 🧩 **Plugin-System** | Erweiterbar durch Vanilla-JS Plugins (eigene Seiten, Widgets & Overlays) |
 | 🎮 **Discord RPC** | Zeigt den aktuellen Sender und Songtitel live in Discord an |
 | ⚙️ **Einstellungen** | Plugins und Themes verwalten, Updates prüfen |
-| 🔄 **Auto-Updater** | Sucht im Hintergrund nach neuen Versionen |
+| 🔄 **Auto-Updater** | GitHub-basierte Updates mit **Stable**- und **Beta**-Kanal |
 
 ---
 
@@ -79,6 +79,10 @@ npm start
 ## 🐧 Linux / Arch Linux
 
 WebRadio wird für Linux x86_64 als AppImage und als natives Arch-Paket ausgeliefert. Beide Builds sind eigenständig – es muss **kein Node.js, npm, Electron oder FFmpeg** auf dem Zielsystem installiert sein.
+
+> **Hinweis Auto-Updates:** Auf **AppImage** und **.deb** funktioniert der integrierte Auto-Updater (electron-updater). Auf **Arch Linux (.pkg.tar.zst)** läuft die Versionsverwaltung bewusst über den Paketmanager – die App zeigt verfügbare Updates an, verlinkt aber auf den GitHub-Release.
+
+---
 
 ### AppImage nutzen
 
@@ -195,6 +199,59 @@ WebRadio ist als offene Plattform konzipiert:
 | macOS | 💡 Vorbereitet (electron-builder) |
 
 ---
+
+## 🔄 Update-System
+
+WebRadio bezieht Updates aus dem offiziellen GitHub-Repository und nutzt die integrierte Auto-Update-Logik auf Basis von `electron-updater`.
+
+### Kanäle
+
+In den Einstellungen kann zwischen zwei Kanälen gewählt werden:
+
+- **Stable** – Standard. Liefert ausschließlich stabile Releases.
+- **Beta** – Liefert Beta- und stabile Releases. Beim erstmaligen Aktivieren erscheint eine deutliche Sicherheitswarnung.
+
+Der Wechsel ist jederzeit in beide Richtungen möglich. Beta → Stable funktioniert auch, wenn die installierte Beta-Version **numerisch neuer** ist als die stabile – die `allowDowngrade`-Option von electron-updater kümmert sich darum.
+
+### Versionen
+
+Releases folgen strikt [SemVer](https://semver.org/):
+
+```
+v1.0.5          (stable)
+v1.0.6-beta.1   (beta)
+v1.0.6-beta.2   (beta)
+v1.0.6          (stable)
+```
+
+Stable-Releases werden als „Latest" auf GitHub veröffentlicht, Beta-Releases werden als **Pre-Release** markiert.
+
+### Verhalten
+
+- **Auto-Check**: optional beim App-Start (in Einstellungen deaktivierbar), danach höchstens alle 6 Stunden
+- **Auto-Download**: aus. Updates werden zur Bestätigung angezeigt („Später" oder „Update herunterladen")
+- **Release Notes**: werden aus den GitHub Release Notes gelesen und sicher dargestellt
+- **Notifications**: System-Benachrichtigung nur einmal pro Version (Deduplizierung)
+- **Offline**: WebRadio funktioniert vollständig offline. Der Update-Check ist optional und blockiert nie den App-Start
+
+### Plattform-Unterstützung
+
+| Plattform | Auto-Update | Hinweis |
+| --- | --- | --- |
+| Windows (NSIS) | ✅ | via `latest.yml` / `beta.yml` |
+| Linux AppImage | ✅ | via `latest-linux.yml` / `beta-linux.yml` |
+| Linux .deb | ✅ | via `latest-linux.yml` / `beta-linux.yml` |
+| Linux Arch (.pkg.tar.zst) | ❌ | Update via `pacman -U` aus GitHub-Releases |
+| macOS | 🟡 Vorbereitet | electron-builder-Konfig vorhanden, kein Release-Workflow |
+
+Arch-Linux-Benutzer sehen in der App verfügbare Updates, müssen das `.pkg.tar.zst` aber manuell über `pacman` installieren. Das ist eine bewusste Designentscheidung – das `PKGBUILD` ist die einzige autoritative Quelle für Arch-Pakete.
+
+### Sicherheit
+
+- Es werden **keine GitHub-Tokens oder persönlichen Credentials** im Client ausgeliefert
+- Update-Quellen sind ausschließlich die offiziellen GitHub-Releases
+- Release Notes werden vor dem Rendern sanitiert (kein rohes HTML, keine `javascript:`-URLs)
+- Renderer hat keinen Zugriff auf `exec`, `spawn` oder `shell.openExternal` für die Installation – diese läuft ausschließlich über electron-updater im Main-Prozess
 
 ## 🤝 Beitragen
 

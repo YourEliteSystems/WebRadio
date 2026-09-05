@@ -1,0 +1,44 @@
+# app-update.yml
+#
+# Wird von electron-updater zur Laufzeit ausgelesen.
+# Liefert die Update-Quelle (GitHub) und das Fallback-Verhalten.
+#
+# KEIN GitHub-Token hier ablegen – das Repo ist öffentlich,
+# electron-updater nutzt den unauthentifizierten Public-API-Endpunkt.
+#
+# Hinweis: Diese Datei wird zur Laufzeit aus dem
+# resources/-Verzeichnis der gepackten App gelesen. Sie wird
+# vom electron-builder NICHT überschrieben, solange sie im
+# Projekt-Root liegt und in `files:` eingeschlossen ist.
+
+provider: github
+owner: YourEliteSystems
+repo: WebRadio
+releaseType: release
+
+# Bei Fehlern (z.B. Update-Server nicht erreichbar) nicht
+# den App-Start blockieren. Update ist ein optionales Feature.
+requestHeaders: {}
+
+# In-App-Download / -Install:
+#   autoDownload = false -> Renderer bestätigt explizit
+#   autoInstallOnAppQuit = true -> wenn App sauber beendet wird
+#                                 UND der User "Später neu starten"
+#                                 gedrückt hat, wird beim nächsten
+#                                 regulären Beenden installiert.
+#                                 Das ist explizit gewünscht.
+autoDownload: false
+autoInstallOnAppQuit: true
+
+# Channel:
+#   - "latest" (default) = nur stabile Releases
+#   - "beta"             = stable + pre-releases
+# Der UpdateManager setzt diesen Wert zur Laufzeit überschreibend
+# je nach vom Benutzer gewähltem Settings-Eintrag.
+channel: latest
+
+# Falls ein Fehler beim Update-Check auftritt, den App-Start
+# und den Renderer NICHT stören. UpdateManager fängt das
+# intern ab und liefert einen sauberen "up-to-date" / "error"
+# Status.
+disableWebInstaller: true

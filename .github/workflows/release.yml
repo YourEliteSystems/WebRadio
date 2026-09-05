@@ -117,10 +117,29 @@ jobs:
           $isPrerelease = $version -match '-(alpha|beta|rc|nightly)(\.\d+)?$'
           Write-Host "IS_PRERELEASE   = $isPrerelease"
 
+          # Update-Channel für electron-updater ableiten:
+          #   - Pre-Releases (insbesondere Beta) -> "beta"
+          #   - Stable                              -> "latest"
+          # Wird als Umgebungsvariable an electron-builder übergeben
+          # und in den Update-Metadaten (latest*.yml / beta*.yml)
+          # referenziert.
+          $updateChannel = "latest"
+          if ($version -match '-beta(\.|$)') {
+              $updateChannel = "beta"
+          } elseif ($isPrerelease) {
+              # alpha / rc / nightly landen NICHT in v1-Channels.
+              # Wir behandeln sie wie Stable-Metadaten, damit keine
+              # versehentlichen Beta-User betroffen sind. Trotzdem
+              # werden sie als GitHub Pre-Release markiert.
+              $updateChannel = "latest"
+          }
+          Write-Host "UPDATE_CHANNEL  = $updateChannel"
+
           # In GITHUB_ENV schreiben
           "RELEASE_TAG=$tag"       | Add-Content -Path $env:GITHUB_ENV
           "RELEASE_VERSION=$version" | Add-Content -Path $env:GITHUB_ENV
           "IS_PRERELEASE=$($isPrerelease.ToString().ToLower())" | Add-Content -Path $env:GITHUB_ENV
+          "UPDATE_CHANNEL=$updateChannel" | Add-Content -Path $env:GITHUB_ENV
 
       # ───────────────────────────────────────────────────────────────────────
       # 5. Release-Validierung
@@ -144,8 +163,14 @@ jobs:
 
       # ───────────────────────────────────────────────────────────────────────
       # 7. Electron-Applikation paketieren (electron-builder)
+      #
+      # UPDATE_CHANNEL steuert, ob die generierten Update-Metadaten
+      # unter "latest*.yml" (Stable) oder "beta*.yml" (Beta) liegen.
       # ───────────────────────────────────────────────────────────────────────
       - name: Build Electron Application
+        env:
+          UPDATE_CHANNEL: ${{ env.UPDATE_CHANNEL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist -- --publish=never
 
       # ───────────────────────────────────────────────────────────────────────

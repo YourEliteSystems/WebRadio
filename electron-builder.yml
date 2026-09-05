@@ -11,6 +11,7 @@ files:
   - themes/**/*
   - assets/**/*
   - package.json
+  - app-update.yml
 
 extraResources:
   - from: themes
@@ -19,7 +20,32 @@ extraResources:
   - from: plugins
     to: plugins
 
+  - from: app-update.yml
+    to: app-update.yml
+
 asar: true
+
+# ──────────────────────────────────────────────────────────────────
+# Update System v1 (electron-updater / GitHub Releases)
+#
+# Erzeugt je nach Git-Tag Stable- oder Beta-Update-Metadaten
+# (latest*.yml / beta*.yml). Der konkrete Channel wird zur
+# Build-Zeit über die Umgebungsvariable UPDATE_CHANNEL gesetzt
+# (Stable = "latest" / Beta = "beta"). Ohne Variable wird "latest"
+# angenommen.
+#
+# generateUpdatesFilesForAllChannels sorgt dafür, dass für jedes
+# Target die plattform-spezifischen Metadaten erzeugt werden
+# (latest.yml, latest-linux.yml, latest-mac.yml), damit der
+# Updater ohne Rate-Limits und ohne User-Eingriff arbeiten kann.
+# ──────────────────────────────────────────────────────────────────
+publish:
+  - provider: github
+    releaseType: release
+    channel: ${env.UPDATE_CHANNEL || "latest"}
+    useMultipleRangeRequest: false
+
+generateUpdatesFilesForAllChannels: true
 
 # FFmpeg ist eine native Binary und kann nicht aus ASAR heraus
 # ausgeführt werden. Wir entpacken nur den FFmpeg-Binary aus

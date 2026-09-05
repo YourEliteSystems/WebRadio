@@ -490,8 +490,201 @@
       margin-top: 4px;
     }
 
-    .settings-nav-label-group {
+    /* Channel Badge */
+    .channel-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-radius: 4px;
+      background: rgba(34, 197, 94, 0.18);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      vertical-align: middle;
+    }
+
+    .channel-badge.beta {
+      background: rgba(245, 158, 11, 0.18);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    /* Channel-Auswahl Radio-Karten */
+    .channel-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .channel-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .channel-option:hover {
+      background: rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .channel-option input[type="radio"] {
+      margin-top: 4px;
+      accent-color: var(--accent-color);
+      cursor: pointer;
+    }
+
+    .channel-option.selected {
+      border-color: var(--accent-color);
+      background: rgba(99, 102, 241, 0.10);
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25) inset;
+    }
+
+    .channel-option-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .channel-option-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .channel-option-desc strong {
+      color: #f59e0b;
+    }
+
+    .beta-hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
       margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.10);
+      border: 1px solid rgba(245, 158, 11, 0.30);
+      color: #f59e0b;
+      font-size: 12px;
+    }
+
+    .beta-hint svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Modal (Beta-Warnung) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 460px;
+      max-width: 90vw;
+      background: var(--bg-card);
+      border: var(--glass-border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    }
+
+    .modal h2 {
+      margin: 0 0 12px;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text-main);
+    }
+
+    .modal .modal-warning {
+      background: rgba(245, 158, 11, 0.10);
+      border: 1px solid rgba(245, 158, 11, 0.30);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #f59e0b;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-primary {
+      padding: 8px 18px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary.danger {
+      background: #f59e0b;
+    }
+
+    .btn-primary.danger:hover {
+      background: #ea8909;
+    }
+
+    .btn-secondary {
+      padding: 8px 18px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:disabled,
+    .btn-primary:disabled,
+    .btn-update:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -675,24 +868,101 @@
             </div>
           </div>
 
+          <!-- Download Progress (nur sichtbar während Download) -->
+          <div id="downloadProgressWrap" style="display:none; margin: 12px 0 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span id="downloadProgressLabel" style="font-size:12px; color:var(--text-muted);">Wird heruntergeladen…</span>
+              <span id="downloadProgressPercent" style="font-size:12px; color:var(--text-main); font-weight:600;">0%</span>
+            </div>
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden;">
+              <div id="downloadProgressBar" style="width:0%; height:100%; background:var(--accent-color); transition: width 200ms ease;"></div>
+            </div>
+            <div id="downloadProgressBytes" style="margin-top:4px; font-size:11px; color:var(--text-muted);"></div>
+          </div>
+
+          <!-- Downloaded: Benutzer muss Installation bestätigen -->
+          <div id="downloadedWrap" style="display:none; margin-top:14px;">
+            <div
+              style="padding:14px 16px; border-radius:10px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); display:flex; gap:12px; align-items:flex-start;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-color); margin-top:2px; flex-shrink:0;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <div style="flex:1;">
+                <strong style="font-size:13px; color:var(--text-main); display:block; margin-bottom:2px;">Update bereit</strong>
+                <span id="downloadedMessage" style="font-size:12px; color:var(--text-muted);">Das Update wird installiert, sobald WebRadio neu gestartet wird.</span>
+              </div>
+            </div>
+            <div class="update-actions" style="margin-top:12px; gap:8px;">
+              <button id="restartLaterBtn" class="btn-secondary" style="display:inline-flex; width:auto; padding:10px 18px; font-size:13px;">Später neu starten</button>
+              <button id="installNowBtn" class="btn-update" style="display:inline-flex;">↻ Jetzt neu starten</button>
+            </div>
+          </div>
+
           <!-- Release Notes (nur sichtbar wenn Update da) -->
           <div id="releaseNotesWrap" style="display:none;">
             <p
-              style="font-size:12px; color:var(--text-muted); margin:0 0 8px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px;">
+              style="font-size:12px; color:var(--text-muted); margin:16px 0 8px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px;">
               Was ist neu</p>
             <div class="update-release-notes" id="releaseNotes"></div>
           </div>
 
           <!-- Buttons -->
-          <div class="update-actions">
+          <div class="update-actions" id="updateActionsRow">
             <button id="checkUpdateBtn" class="btn-secondary"
               style="width:auto; padding:10px 18px; font-size:13px;">Jetzt prüfen</button>
-            <button id="installUpdateBtn" class="btn-update" style="display:none;">⬇ Jetzt herunterladen</button>
+            <button id="dismissUpdateBtn" class="btn-secondary" style="display:none; width:auto; padding:10px 18px; font-size:13px;">Später</button>
+            <button id="installUpdateBtn" class="btn-update" style="display:none;">⬇ Update herunterladen</button>
+          </div>
+
+          <!-- Auto-Check Option -->
+          <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06);">
+            <label style="display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--text-main); cursor:pointer; user-select:none;">
+              <input type="checkbox" id="autoCheckOnStart" style="accent-color:var(--accent-color); cursor:pointer;" checked />
+              <span>Beim Start nach Updates suchen</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Channel-Auswahl -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Update-Kanal</span>
+            <span id="channelBadge" class="channel-badge stable" style="display:none;">Stable</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px;">
+            Wähle, welche Versionen dir angeboten werden.
+          </p>
+          <div class="channel-options">
+            <label class="channel-option" data-channel="stable">
+              <input type="radio" name="updateChannel" value="stable" id="channelStable" />
+              <div class="channel-option-content">
+                <div class="channel-option-title">Stable</div>
+                <div class="channel-option-desc">Nur offiziell veröffentlichte stabile Versionen.</div>
+              </div>
+            </label>
+            <label class="channel-option" data-channel="beta">
+              <input type="radio" name="updateChannel" value="beta" id="channelBeta" />
+              <div class="channel-option-content">
+                <div class="channel-option-title">Beta</div>
+                <div class="channel-option-desc">
+                  Neue Funktionen früher testen. <strong>Kann Fehler und Instabilitäten enthalten.</strong>
+                </div>
+              </div>
+            </label>
+          </div>
+          <div id="betaHint" class="beta-hint" style="display:none;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
           </div>
         </div>
 
         <div class="version-info">
-          <span>Aktuelle Version: <strong id="currentVersion">–</strong></span>
+          <span>Aktuelle Version: <strong id="currentVersion">–</strong> <span id="currentVersionBadge" class="channel-badge" style="display:none;"></span></span>
           <span>WebRadio by Your Elite Systems</span>
         </div>
       </div>
@@ -810,6 +1080,38 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal: Beta-Warnung -->
+  <div class="modal-backdrop" id="betaWarningModal" role="dialog" aria-modal="true" aria-labelledby="betaWarningTitle">
+    <div class="modal">
+      <h2 id="betaWarningTitle">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:#f59e0b;">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Beta-Versionen aktivieren
+      </h2>
+      <p>
+        Du möchtest WebRadio auf den <strong>Beta-Kanal</strong> umstellen.
+      </p>
+      <p>
+        Beta-Versionen befinden sich noch in Entwicklung und wurden möglicherweise nicht vollständig getestet.
+        Sie können <strong>Fehler, Abstürze, Funktionsprobleme oder andere unerwartete Probleme</strong> enthalten.
+      </p>
+      <div class="modal-warning">
+        Der Beta-Kanal sollte nur aktiviert werden, wenn du bereit bist, mögliche Fehler zu melden
+        und mit instabileren Versionen zu arbeiten.
+      </div>
+      <p style="font-size:12px; color:var(--text-muted);">
+        Möchtest du den Beta-Kanal wirklich aktivieren?
+      </p>
+      <div class="modal-actions">
+        <button id="betaWarningCancel" class="btn-secondary" type="button">Abbrechen</button>
+        <button id="betaWarningConfirm" class="btn-primary danger" type="button">Beta aktivieren</button>
+      </div>
     </div>
   </div>
 

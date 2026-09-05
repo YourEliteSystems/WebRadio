@@ -272,17 +272,44 @@ chmod +x WebRadio-*.AppImage
 - Electron has limited Wayland support
 - Use XWayland or wait for full Electron Wayland support
 
-## Release Process
+## Release Process & Update Channels
 
-1. Update version in package.json
-2. Test on all platforms
-3. Create git tag: `git tag v1.1.0`
-4. Push tag: `git push origin v1.1.0`
-5. GitHub Actions will build all platforms
-6. Download and test artifacts
-7. Create GitHub Release
-8. Publish to AUR (for Arch)
-9. Update documentation
+### Update System v1 Architecture
+
+WebRadio uses an integrated update system based on `electron-updater` and GitHub Releases:
+
+- **Repository**: `YourEliteSystems/WebRadio`
+- **Channels**:
+  - **Stable** (`latest`): Only official stable versions (e.g. `v1.0.5`, `v1.0.6`).
+  - **Beta** (`beta`): Pre-releases and stable versions (e.g. `v1.0.6-beta.1`, `v1.0.6-beta.2`). Users receive a clear warning before activating Beta.
+- **Downgrade Support**: Beta users can switch back to Stable at any time; `allowDowngrade` ensures that a stable release is accepted even if the beta version string is numerically higher.
+- **Auto-Check**: Optional toggle in Settings (`updates.autoCheckOnStart`). Checked on app startup (debounced by 4s) and throttled to once every 6 hours.
+- **Safety**: No GitHub tokens or secrets in the client, sanitized release notes, no forced restarts (`autoInstallOnAppQuit` / manual restart confirmation).
+
+### Platform Auto-Update Matrix
+
+| Target | Auto-Update Capability | Mechanism |
+|---|---|---|
+| **Windows** (NSIS) | ✅ Supported | In-app download & background install via NSIS (`latest.yml` / `beta.yml`) |
+| **Linux AppImage** | ✅ Supported | In-app download & replacement via AppImage updater (`latest-linux.yml`) |
+| **Linux deb** | ✅ Supported | In-app download & update (`latest-linux.yml`) |
+| **Arch Linux** (`.pkg.tar.zst`) | ❌ Package Manager | Version check only; installation managed via `pacman -U` |
+| **macOS** | 🟡 Prepared | electron-builder config ready; requires macOS signing for distribution |
+
+### Release Workflow
+
+1. Update version in `package.json` (e.g. `1.0.6` for Stable or `1.0.6-beta.2` for Beta).
+2. Create and push tag:
+   ```bash
+   git tag v1.0.6-beta.2
+   git push origin v1.0.6-beta.2
+   ```
+3. GitHub Actions (`.github/workflows/release.yml`) automatically:
+   - Detects whether the tag is a pre-release (`-beta.*`).
+   - Sets `UPDATE_CHANNEL=beta` or `UPDATE_CHANNEL=latest`.
+   - Builds artifacts and update manifests (`latest*.yml` / `beta*.yml`).
+   - Generates SHA256 checksums and release notes.
+   - Publishes GitHub Release with `prerelease: true` for beta tags.
 
 ## Community Contributions
 

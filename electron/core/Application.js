@@ -47,7 +47,12 @@ const ThemeManager = require("./themes/ThemeManager");
 
 const ShortcutManager = require("./ShortcutManager");
 const { createTray, destroyTray } = require("./system/tray");
-const { checkForUpdates } = require("./updater");
+
+// ─────────────────────────────────────────────
+// Updater
+// ─────────────────────────────────────────────
+
+const { updateManager } = require("./updates");
 
 // ─────────────────────────────────────────────
 // Services
@@ -129,6 +134,7 @@ class Application {
         HealthCheck.shutdown();
         CrashReportManager.shutdown();
         CrashHandler.shutdown();
+        updateManager.dispose();
         LogManager.shutdown();
         ShortcutManager.shutdown();
         await this.shutdownServices();
@@ -216,9 +222,13 @@ class Application {
     }
 
     async initializeUpdater() {
-        // Aktuell keine Initialisierung notwendig.
-        // Wird für zukünftige Versione vorbereitet.
-
+        // Zentrale Update-Logik. Idempotent – initialize() ist ein
+        // Singleton-Guard, weitere Aufrufe sind no-op.
+        try {
+            updateManager.initialize();
+        } catch (err) {
+            logger.error(`Updater-Initialisierung fehlgeschlagen: ${err.message}`);
+        }
     }
 
     async initializeDiagnostics() {
@@ -244,9 +254,12 @@ class Application {
     }
     
     async checkForUpdates() {
-
-        return checkForUpdates();
-
+        try {
+            return await updateManager.checkForUpdates();
+        } catch (err) {
+            logger.error(`checkForUpdates: ${err.message}`);
+            return { status: "error", error: { code: "INTERNAL", message: err.message } };
+        }
     }
 
     async shutdownTray() {

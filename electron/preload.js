@@ -1,5 +1,67 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// UPDATES API IMPLEMENTATION
+const updatesApi = {
+  // Commands
+  check:        () => ipcRenderer.invoke("updates:check"),
+  download:     () => ipcRenderer.invoke("updates:download"),
+  install:      () => ipcRenderer.invoke("updates:install"),
+  getState:     () => ipcRenderer.invoke("updates:get-state"),
+  getChannel:   () => ipcRenderer.invoke("updates:get-channel"),
+  setChannel:   (channel) => ipcRenderer.invoke("updates:set-channel", channel),
+  getCurrentVersion:    () => ipcRenderer.invoke("updates:get-current-version"),
+  isPrerelease:         () => ipcRenderer.invoke("updates:is-prerelease"),
+  markNotified:         () => ipcRenderer.invoke("updates:mark-notified"),
+  getAvailableInfo:     () => ipcRenderer.invoke("updates:get-available-info"),
+  getAutoCheck:         () => ipcRenderer.invoke("updates:get-auto-check"),
+  setAutoCheck:         (enabled) => ipcRenderer.invoke("updates:set-auto-check", enabled),
+  dismissLater:         () => ipcRenderer.invoke("updates:dismiss-later"),
+
+  // Events – sauber registrieren & entfernen
+  onStateChanged: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:state-changed");
+    ipcRenderer.on("updates:state-changed", handler);
+    return () => ipcRenderer.removeListener("updates:state-changed", handler);
+  },
+  onAvailable: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:available");
+    ipcRenderer.on("updates:available", handler);
+    return () => ipcRenderer.removeListener("updates:available", handler);
+  },
+  onNotAvailable: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:not-available");
+    ipcRenderer.on("updates:not-available", handler);
+    return () => ipcRenderer.removeListener("updates:not-available", handler);
+  },
+  onProgress: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:download-progress");
+    ipcRenderer.on("updates:download-progress", handler);
+    return () => ipcRenderer.removeListener("updates:download-progress", handler);
+  },
+  onDownloaded: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:downloaded");
+    ipcRenderer.on("updates:downloaded", handler);
+    return () => ipcRenderer.removeListener("updates:downloaded", handler);
+  },
+  onError: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:error");
+    ipcRenderer.on("updates:error", handler);
+    return () => ipcRenderer.removeListener("updates:error", handler);
+  },
+  onChannelChanged: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.removeAllListeners("updates:channel-changed");
+    ipcRenderer.on("updates:channel-changed", handler);
+    return () => ipcRenderer.removeListener("updates:channel-changed", handler);
+  }
+};
+
 contextBridge.exposeInMainWorld('api', {
   log: (level, context, msg) => ipcRenderer.send("log", level, context, msg),
   // FAVORITES
@@ -22,7 +84,13 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.removeAllListeners("plugins:changed");
     ipcRenderer.on("plugins:changed", (_, result) => callback(result));
   },
+
+  // UPDATES (Section 16 Specification)
+  updates: updatesApi
 });
+
+// UPDATES API (Abwärtskompatibilität für bestehende Renderer-Aufrufe)
+contextBridge.exposeInMainWorld("updatesAPI", updatesApi);
 
 // NAVIGATION API
 contextBridge.exposeInMainWorld("navigationAPI", {
@@ -98,7 +166,7 @@ contextBridge.exposeInMainWorld("themeAPI", {
   }
 });
 
-// UPDATER API
+// UPDATER API (Kompatibilitätsschicht für bestehenden Renderer-Code)
 contextBridge.exposeInMainWorld("updaterAPI", {
   check: () => ipcRenderer.invoke("updater:check"),
   install: () => ipcRenderer.invoke("updater:install"),
@@ -108,6 +176,7 @@ contextBridge.exposeInMainWorld("updaterAPI", {
     ipcRenderer.on("updater:available", (_, data) => callback(data));
   }
 });
+
 
 contextBridge.exposeInMainWorld("uiAPI", {
     getPages() {
