@@ -3,7 +3,7 @@
 > Ein moderner, erweiterbarer Desktop-Radioplayer von **Your Elite Systems** – gebaut mit Electron, React 19 und FFmpeg.
 
 [![Version](https://img.shields.io/badge/version-1.0.5-6366f1?style=flat-square)](./CHANGELOG.md)
-[![Platform](https://img.shields.io/badge/platform-Windows-blue?style=flat-square)]()
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=flat-square)](./LICENSE)
 
 ---
@@ -41,7 +41,7 @@ npm install
 npm start
 ```
 
-`npm start` baut zuerst das React-Frontend mit esbuild und startet danach Electron Forge im Entwicklungsmodus.
+`npm start` baut zuerst das React-Frontend mit esbuild und startet danach Electron im Entwicklungsmodus.
 
 ---
 
@@ -51,10 +51,10 @@ npm start
 | --- | --- |
 | App-Framework | [Electron](https://www.electronjs.org/) |
 | UI | [React 19](https://react.dev/) |
-| Build / Bundle | [esbuild](https://esbuild.github.io/), [Electron Forge](https://www.electronforge.io/) |
+| Build / Bundle | [esbuild](https://esbuild.github.io/), [electron-builder](https://www.electron.build/) |
 | Audio | [fluent-ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg), ffmpeg-static, Web Audio API |
 | Plugins | Vanilla JavaScript (ES Modules) |
-| Installer | Electron Forge Squirrel (Windows) |
+| Installer | electron-builder (NSIS / AppImage / deb / pkg.tar.zst / DMG) |
 
 ---
 
@@ -63,10 +63,57 @@ npm start
 | Befehl | Zweck |
 | --- | --- |
 | `npm start` | Entwicklungsmodus starten |
-| `npm run build-react` | Nur den Renderer neu bauen |
-| `npm run make` | Installerpaket erstellen |
-| `npm run package` | App paketieren (ohne Installer) |
-| `npm run publish` | Release über Electron Forge veröffentlichen |
+| `npm run build` | Renderer (React) produktions-bauen |
+| `npm run dist` | Installer für die aktuelle Plattform |
+| `npm run dist:win` | Windows-Installer (NSIS + Portable) |
+| `npm run dist:linux` | Linux AppImage + deb |
+| `npm run dist:linux:appimage` | Nur AppImage bauen |
+| `npm run dist:linux:deb` | Nur .deb bauen |
+| `npm run dist:linux:arch` | Arch-Linux-Paket (.pkg.tar.zst) |
+| `npm run make:linux` | AppImage + Arch-Paket |
+| `npm run make:linux:all` | AppImage + Arch + deb |
+| `npm test` | Test-Suite (inkl. Plattform-Pfade) |
+
+---
+
+## 🐧 Linux / Arch Linux
+
+WebRadio wird für Linux x86_64 als AppImage und als natives Arch-Paket ausgeliefert. Beide Builds sind eigenständig – es muss **kein Node.js, npm, Electron oder FFmpeg** auf dem Zielsystem installiert sein.
+
+### AppImage nutzen
+
+```bash
+chmod +x WebRadio-*-linux-x86_64.AppImage
+./WebRadio-*-linux-x86_64.AppImage
+```
+
+### Arch-Paket installieren
+
+```bash
+sudo pacman -U webradio-*-x86_64.pkg.tar.zst
+```
+
+WebRadio ist anschließend über das Desktop-Menü und via `webradio` im Terminal verfügbar.
+
+### Deinstallation
+
+```bash
+sudo pacman -R webradio
+```
+
+### Lokaler Build
+
+```bash
+npm install
+npm run make:linux
+```
+
+Ergebnis:
+
+- `dist/WebRadio-<version>-linux-x86_64.AppImage`
+- `dist/webradio-<version>-x86_64.pkg.tar.zst`
+
+> Das Arch-Paket wird lokal über `makepkg` gebaut – Arch-spezifische Tools (`pacman`, `makepkg`) müssen installiert sein. In CI läuft der Arch-Build in einem offiziellen `archlinux:latest`-Container (siehe [`.github/workflows/build-linux.yml`](./.github/workflows/build-linux.yml)).
 
 ---
 
@@ -81,7 +128,8 @@ WebRadio/
 │       ├── app/                  # Fenster-Management
 │       ├── audio/                # Stream-Management & FFmpeg
 │       ├── ipc/                  # IPC-Handler (Favorites, History, ...)
-│       └── plugins/              # Plugin-Loader, API, Context
+│       ├── plugins/              # Plugin-Loader, API, Context
+│       └── themes/               # Theme-Manager
 │
 ├── renderer/                     # React-Frontend
 │   ├── App.jsx                   # Haupt-Komponente & View-Routing
@@ -96,6 +144,13 @@ WebRadio/
 │   ├── default/
 │   ├── dark/
 │   └── neon/
+│
+├── packaging/                    # Distributions-Bausteine
+│   └── arch/                     # PKGBUILD für Arch Linux
+│
+├── scripts/
+│   ├── build-linux-arch.js       # Helfer für Arch-Build
+│   └── tests/                    # Automatisierte Tests
 │
 └── docs/                         # 📚 Dokumentation (hier findest du alles!)
 ```
@@ -115,6 +170,7 @@ Die vollständige Dokumentation liegt im [`docs/`](./docs/README.md) Ordner.
 | [⚖️ Code of Conduct](./docs/CODE_OF_CONDUCT.md) | Community-Regeln |
 | [🔐 Security Policy](./docs/SECURITY.md) | Sicherheitslücken melden |
 | [🗺️ Roadmap](./docs/roadmap.md) | Geplante Versionen und Meilensteine |
+| [🛠 Cross-Platform Setup](./docs/CROSS_PLATFORM_SETUP.md) | Build & Distribution pro Plattform |
 
 ---
 
@@ -124,7 +180,7 @@ WebRadio ist als offene Plattform konzipiert:
 
 - **Themes** ändern das komplette Aussehen der App über CSS-Variablen.
 - **Plugins** können eigene Seiten (`registerView`) oder Widgets (`registerSlot`) tief in die React-Oberfläche integrieren – in purem Vanilla JavaScript.
-- Das **Plugin-API** wächst mit jeder Version. In v1.2 kommt ein vollständiges Permissions-System dazu.
+- Das **Plugin-API** wächst mit jeder Version.
 
 ---
 
@@ -132,10 +188,11 @@ WebRadio ist als offene Plattform konzipiert:
 
 | Plattform | Status |
 | --- | --- |
-| Windows | ✅ Haupt-Testplattform |
-| Linux (Wine) | ⚠️ Erster Test erfolgreich (Wine 11) |
-| Linux nativ | 🔜 Geplant |
-| macOS | 💡 Langfristig angedacht |
+| Windows (x64) | ✅ Haupt-Testplattform |
+| Linux x86_64 (AppImage) | ✅ Produktions-Build |
+| Linux x86_64 (.deb) | ✅ Produktions-Build |
+| Arch Linux x86_64 (.pkg.tar.zst) | ✅ Produktions-Build |
+| macOS | 💡 Vorbereitet (electron-builder) |
 
 ---
 

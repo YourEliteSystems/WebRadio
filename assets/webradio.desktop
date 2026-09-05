@@ -1,9 +1,15 @@
 [Desktop Entry]
+Version=1.0
 Name=WebRadio
+GenericName=Internet Radio Player
 Comment=Modern Desktop Radio Player with Plugin System
-Exec=webradio
+Comment[de]=Moderner Desktop-Radioplayer mit Plugin-System
+Exec=webradio %U
 Icon=webradio
-Type=Application
-Categories=AudioVideo;Audio;Player;
 Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;Network;
+Keywords=radio;player;stream;audio;webradio;internet;music;
 StartupNotify=true
+StartupWMClass=WebRadio
+MimeType=x-scheme-handler/webradio;

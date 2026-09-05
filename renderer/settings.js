@@ -58,6 +58,20 @@ async function applyActiveTheme() {
 }
 applyActiveTheme();
 
+// Theme-Änderungen von anderen Fenstern empfangen
+if (window.themeAPI?.onThemeChanged) {
+  window.themeAPI.onThemeChanged((data) => {
+    if (data?.css) {
+      const link = document.getElementById("theme-style");
+      const url = data.css.startsWith("file://") ? data.css : "file:///" + data.css.replace(/\\/g, "/");
+      if (link) link.href = url;
+      
+      // Theme-Karten aktualisieren
+      loadThemes();
+    }
+  });
+}
+
 // ── Plugins ───────────────────────────────────────────────────
 async function loadPlugins() {
   const plugins = await window.api.getPlugins();
@@ -89,7 +103,34 @@ async function loadPlugins() {
   });
 }
 
-document.getElementById("reloadPluginsBtn").addEventListener("click", () => loadPlugins());
+const reloadPluginsBtn = document.getElementById("reloadPluginsBtn");
+if (reloadPluginsBtn) {
+  reloadPluginsBtn.addEventListener("click", async () => {
+    reloadPluginsBtn.disabled = true;
+    const originalLabel = reloadPluginsBtn.textContent;
+    reloadPluginsBtn.textContent = "↺ Rescan läuft…";
+    try {
+      if (window.api?.reloadPlugins) {
+        await window.api.reloadPlugins();
+      }
+    } catch (err) {
+      console.error("[Plugins] Reload fehlgeschlagen:", err);
+    } finally {
+      reloadPluginsBtn.disabled = false;
+      reloadPluginsBtn.textContent = originalLabel;
+      await loadPlugins();
+    }
+  });
+}
+
+// Auf globale Plugin-Änderungen reagieren (z. B. Rescan via IPC,
+// anderer Renderer oder Hotkey) – Liste automatisch aktualisieren.
+if (window.api?.onPluginsChanged) {
+  window.api.onPluginsChanged(() => {
+    loadPlugins();
+  });
+}
+
 loadPlugins();
 
 // ── Themes ────────────────────────────────────────────────────

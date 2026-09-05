@@ -19,6 +19,21 @@ extraResources:
   - from: plugins
     to: plugins
 
+asar: true
+
+# FFmpeg ist eine native Binary und kann nicht aus ASAR heraus
+# ausgeführt werden. Wir entpacken nur den FFmpeg-Binary aus
+# ffmpeg-static (das unter Linux x64 ein ELF liefert).
+# Hinweis: discord-rpc ist reines JavaScript (nutzt WebSockets),
+# daher KEIN asarUnpack-Eintrag notwendig. register-scheme (transitive
+# Dep von discord-rpc) enthält eine .node-Binary; sie wird durch die
+# Standard-Regel `**/*.node` automatisch von electron-builder entpackt.
+asarUnpack:
+  - "**/node_modules/ffmpeg-static/**"
+  - "**/*.node"
+
+compression: normal
+
 win:
   target:
     - target: nsis
@@ -30,12 +45,60 @@ win:
 
   icon: assets/icons/tray.ico
 
+# ──────────────────────────────────────────────────────────────────
+# Linux x86_64 / amd64
+#
+# Primäre Targets:
+#   • AppImage – universelles, ausführbares Binary
+#   • deb      – Debian / Ubuntu (vorbereitet, optional)
+#
+# Arch-Pakete (.pkg.tar.zst) werden NICHT direkt von electron-builder
+# erzeugt. Stattdessen wird das fertige AppImage in einem
+# Arch-Linux-Container in einen echten pacman-Build überführt
+# (siehe .github/workflows/build-linux.yml → "arch-package" Job).
+# ──────────────────────────────────────────────────────────────────
 linux:
   target:
-    - AppImage
-    - deb
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+
+  # Synchronisiere den in package.json gesetzten desktopName automatisch
+  # in die generierte .desktop-Datei. Damit passt der StartupWMClass zum
+  # Electron-WM_CLASS und das Fenster wird vom Desktop (GNOME/KDE/XFCE)
+  # korrekt dem Launcher zugeordnet.
+  # https://www.electron.build/linux#window-association-desktopname--syncdesktopname
+  syncDesktopName: true
 
   category: AudioVideo
+
+  synopsis: Modern desktop radio player
+  description: |
+    WebRadio is a modern, extensible desktop radio player built with
+    Electron and React. It features a plugin system, theme engine,
+    and FFmpeg-based stream decoding for thousands of online radio
+    stations from the Radio Browser API.
+
+  desktop:
+    entry:
+      Name: WebRadio
+      Comment: Modern Desktop Radio Player with Plugin System
+      Categories: AudioVideo;Audio;Player;Network;
+      Keywords: radio;player;stream;audio;webradio;
+      Terminal: "false"
+      StartupNotify: "true"
+      StartupWMClass: WebRadio
+      Type: Application
+
+  # Icons: electron-builder erzeugt aus assets/icons/tray.png
+  # automatisch die Standard-Hicon-Größen.
+  icon: assets/icons/tray.png
+
+  mimeTypes:
+    - x-scheme-handler/webradio
 
 mac:
   target:
@@ -47,7 +110,3 @@ mac:
   category: public.app-category.music
 
 artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
-
-asar: true
-
-compression: normal

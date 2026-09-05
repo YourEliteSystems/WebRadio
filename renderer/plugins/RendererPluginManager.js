@@ -104,11 +104,11 @@ async function loadRendererPlugins() {
           try { plugin.deactivate({pluginId: id}); } catch (err) { window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${id} deactivation error: ${err.message}`); }
         }
         activePlugins.delete(id);
-        
+
         // Unregister plugin UI & Navigation
         unregisterPluginUI(id);
         unregisterPluginNavigation(id);
-        
+
         // Remove script tag
         const scriptTag = injectedScripts.get(id);
         if (scriptTag) {
@@ -126,6 +126,50 @@ async function loadRendererPlugins() {
               injectScript(scriptUrl, id);
             }
           });
+        }
+      }
+    });
+  }
+
+  // Globaler Rescan: entferne Renderer-Scripte weggefallener Plugins
+  // und lade neue/geänderte Scripts nach.
+  if (window.api && window.api.onPluginsChanged) {
+    window.api.onPluginsChanged(async (result) => {
+      const removed = (result?.removed || []).concat(result?.disabled || []);
+      removed.forEach(id => {
+        const hooks = activePlugins.get(id);
+        if (hooks && hooks.destroy) {
+          try { hooks.destroy(); } catch (err) {
+            window.pluginAPI?.log("error", "RendererPluginManager",
+              `Plugin ${id} destroy error: ${err.message}`);
+          }
+        }
+        const plugin = activePlugins.get(id);
+        if (plugin && typeof plugin.deactivate === "function") {
+          try { plugin.deactivate({ pluginId: id }); } catch (err) {
+            window.pluginAPI?.log("error", "RendererPluginManager",
+              `Plugin ${id} deactivation error: ${err.message}`);
+          }
+        }
+        activePlugins.delete(id);
+        unregisterPluginUI(id);
+        unregisterPluginNavigation(id);
+
+        const scriptTag = injectedScripts.get(id);
+        if (scriptTag) {
+          scriptTag.remove();
+          injectedScripts.delete(id);
+        }
+      });
+
+      const toReload = (result?.added || []).concat(result?.changed || []);
+      if (toReload.length > 0 && window.api.getRendererScripts) {
+        try {
+          const scripts = await window.api.getRendererScripts();
+          scripts.forEach(scriptUrl => injectScript(scriptUrl));
+        } catch (err) {
+          window.pluginAPI?.log("error", "RendererPluginManager",
+            `Error reloading renderer scripts: ${err.message}`);
         }
       }
     });

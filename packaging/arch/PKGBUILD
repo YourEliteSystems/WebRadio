@@ -1,0 +1,144 @@
+# Maintainer: Your Elite Systems <contact@yourelitesystems.com>
+# Contributor: WebRadio Community
+
+# WebRadio wird über electron-builder als AppImage erzeugt.
+# Dieser PKGBUILD nimmt das fertige AppImage, entpackt es in einen
+# echten /opt/-Installationsbaum und verpackt ihn mit makepkg.
+# Damit ist die Distribution vollständig:
+#   • Eigenes Icon (hicolor)
+#   • .desktop-Datei
+#   • Symlink /usr/bin/webradio → /opt/webradio/webradio
+#   • Keine Abhängigkeit von node, npm, electron oder ffmpeg
+#     auf dem Zielsystem – alles ist im Paket enthalten.
+
+pkgname=webradio
+_pkgname=webradio
+pkgver=__PKGVER__
+pkgrel=1
+pkgdesc="Modern desktop radio player with plugin system"
+arch=('x86_64')
+url="https://github.com/YourEliteSystems/WebRadio"
+license=('MIT')
+depends=(
+  'alsa-lib'
+  'at-spi2-atk'
+  'cairo'
+  'dbus'
+  'expat'
+  'gcc-libs'
+  'glib2'
+  'gtk3'
+  'hicolor-icon-theme'
+  'libcups'
+  'libdrm'
+  'libnotify'
+  'libsecret'
+  'libx11'
+  'libxcb'
+  'libxcomposite'
+  'libxdamage'
+  'libxext'
+  'libxfixes'
+  'libxkbcommon'
+  'libxrandr'
+  'mesa'
+  'nspr'
+  'nss'
+  'pango'
+  'python'
+  'xdg-utils'
+)
+optdepends=(
+  'libpulse: PulseAudio support'
+  'pipewire-pulse: PipeWire (Pulse) support'
+  'noto-fonts: broader glyph coverage'
+)
+makedepends=(
+  'fakeroot'
+  'squashfs-tools'
+  'unzip'
+)
+provides=('webradio')
+conflicts=('webradio-bin' 'webradio-git')
+options=('!strip')
+source=(
+  "webradio-${pkgver}.AppImage::file://__APPIMAGE_PATH__"
+  "webradio.desktop::file://__DESKTOP_PATH__"
+  "tray.png::file://__ICON_PATH__"
+)
+sha256sums=(
+  '__APPIMAGE_SHA256__'
+  '__DESKTOP_SHA256__'
+  '__ICON_SHA256__'
+)
+
+# KEIN prepare() / build() – wir entpacken das AppImage und kopieren
+# die bereits gebauten Dateien. Das vermeidet eine zweite Electron-
+# Build-Pipeline und garantiert, dass die ausgelieferte Binary
+# identisch zum AppImage-Build ist.
+
+package() {
+  # 1) AppImage in ein Arbeitsverzeichnis entpacken.
+  cd "$srcdir"
+  mkdir -p appimage-extract
+  chmod +x "webradio-${pkgver}.AppImage"
+  # --no-sandbox, damit das Entpacken auch in CI-Containern ohne
+  # Kernel-Sandbox-Erweiterungen funktioniert.
+  "./webradio-${pkgver}.AppImage" --appimage-extract >/dev/null 2>&1 || {
+    # Fallback: manuell entpacken (benötigt nur squashfs-tools + unzip)
+    bash -c '
+      cd appimage-extract
+      offset=$(./../webradio-'"${pkgver}"'.AppImage --appimage-offset)
+      tail -c +$((offset + 1)) ../webradio-'"${pkgver}"'.AppImage | unsquashfs -d squashfs-root - >/dev/null 2>&1
+    '
+  }
+
+  # 2) Installations-Verzeichnisbaum anlegen.
+  install -dm755 "$pkgdir/opt/${_pkgname}"
+
+  # 3) AppImage-Inhalt nach /opt/webradio kopieren.
+  #    Wir nehmen den vollständigen squashfs-root-Inhalt – so bleibt
+  #    die Binary lauffähig (eigene libs, ASAR, FFmpeg etc.).
+  if [ -d "$srcdir/appimage-extract/squashfs-root" ]; then
+    cp -a "$srcdir/appimage-extract/squashfs-root/." "$pkgdir/opt/${_pkgname}/"
+  else
+    # Ältere AppImage-Versionen entpacken direkt.
+    cp -a "$srcdir/appimage-extract/." "$pkgdir/opt/${_pkgname}/"
+  fi
+
+  # Rechte absichern: Executable für die App, Read-only für den Rest.
+  # Keine globalen Schreibrechte (kein chmod 777).
+  find "$pkgdir/opt/${_pkgname}" -type d -exec chmod 755 {} +
+  find "$pkgdir/opt/${_pkgname}" -type f -exec chmod 644 {} +
+  # Die Hauptbinary und das Helper-Binary ausführbar machen.
+  [ -f "$pkgdir/opt/${_pkgname}/${_pkgname}" ] && chmod 755 "$pkgdir/opt/${_pkgname}/${_pkgname}"
+  if [ -d "$pkgdir/opt/${_pkgname}/resources" ]; then
+    find "$pkgdir/opt/${_pkgname}/resources" -type f -name 'ffmpeg*' -exec chmod 755 {} + 2>/dev/null || true
+  fi
+  # ASAR-unpacked FFmpeg (falls vorhanden)
+  if [ -d "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" ]; then
+    find "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" -type f -exec chmod 644 {} +
+    find "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" -type f -name 'ffmpeg*' -exec chmod 755 {} + 2>/dev/null || true
+  fi
+
+  # 4) Symlink /usr/bin/webradio → /opt/webradio/webradio.
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s "/opt/${_pkgname}/${_pkgname}" "$pkgdir/usr/bin/${_pkgname}"
+
+  # 5) .desktop-Datei installieren.
+  install -Dm644 "$srcdir/webradio.desktop" "$pkgdir/usr/share/applications/webradio.desktop"
+
+  # 6) Icon in mehreren Standardgrößen installieren.
+  #    Wir haben ein 256x256 PNG; electron-builder liefert die anderen
+  #    Größen über die Hicon-Skala. Für Arch reicht 256x256 als Default.
+  for size in 16 32 48 64 128 256 512; do
+    install -Dm644 "$srcdir/tray.png" \
+      "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/webradio.png"
+  done
+
+  # 7) Lizenz
+  if [ -f "$pkgdir/opt/${_pkgname}/LICENSE" ]; then
+    install -Dm644 "$pkgdir/opt/${_pkgname}/LICENSE" \
+      "$pkgdir/usr/share/licenses/${_pkgname}/LICENSE"
+  fi
+}

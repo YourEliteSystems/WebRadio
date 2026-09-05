@@ -64,17 +64,21 @@ mac:
 - Node.js 20+
 - npm 10+
 - Build tools (for native modules)
+- Arch-spezifisch (für .pkg.tar.zst): `pacman`, `makepkg`, `fakeroot`, `squashfs-tools`, `unzip`
+- Oder: Docker (für Arch-Container-Build)
 
 ### Icon Setup
 
-Linux requires PNG icons in various sizes:
+Linux requires PNG icons in various sizes. Wir liefern `assets/icons/tray.png`
+in Standard-Auflösung aus; `electron-builder` und der `PKGBUILD` erzeugen
+daraus automatisch die üblichen Hicon-Größen (16, 32, 48, 64, 128, 256, 512).
 
 ```bash
-# Create icon sizes using ImageMagick:
-convert assets/icons/tray.png -resize 16x16 assets/icons/icon-16.png
-convert assets/icons/tray.png -resize 32x32 assets/icons/icon-32.png
-convert assets/icons/tray.png -resize 48x48 assets/icons/icon-48.png
-convert assets/icons/tray.png -resize 64x64 assets/icons/icon-64.png
+# Optional – manuell aus dem Quell-Icon ableiten:
+convert assets/icons/tray.png -resize 16x16   assets/icons/icon-16.png
+convert assets/icons/tray.png -resize 32x32   assets/icons/icon-32.png
+convert assets/icons/tray.png -resize 48x48   assets/icons/icon-48.png
+convert assets/icons/tray.png -resize 64x64   assets/icons/icon-64.png
 convert assets/icons/tray.png -resize 128x128 assets/icons/icon-128.png
 convert assets/icons/tray.png -resize 256x256 assets/icons/icon-256.png
 convert assets/icons/tray.png -resize 512x512 assets/icons/icon-512.png
@@ -83,43 +87,41 @@ convert assets/icons/tray.png -resize 512x512 assets/icons/icon-512.png
 ### Building for Linux
 
 ```bash
-# Build AppImage (universal Linux)
-npm run dist:linux
+# AppImage + Arch-Paket (primär)
+npm run make:linux
 
-# Build .deb (Debian/Ubuntu)
-npm run dist:linux -- --linux deb
+# Nur AppImage
+npm run make:linux:appimage
 
-# Build .rpm (Fedora/RHEL)
-npm run dist:linux -- --linux rpm
+# Nur Arch-Paket (.pkg.tar.zst)
+npm run make:linux:arch
+
+# AppImage + Arch + .deb
+npm run make:linux:all
 ```
 
 ### Installation Methods
 
 #### AppImage (Universal)
 ```bash
-chmod +x WebRadio-1.0.5-linux.AppImage
-./WebRadio-1.0.5-linux.AppImage
+chmod +x WebRadio-*-linux-x86_64.AppImage
+./WebRadio-*-linux-x86_64.AppImage
 ```
 
 #### Debian/Ubuntu
 ```bash
-sudo dpkg -i webradio_1.0.5_amd64.deb
-sudo apt-get install -f  # Fix dependencies if needed
+sudo dpkg -i webradio_*_amd64.deb
+sudo apt-get install -f   # ggf. fehlende Abhängigkeiten nachziehen
 ```
 
-#### Fedora/RHEL
+#### Arch Linux (offizielles Paket)
 ```bash
-sudo rpm -i webradio-1.0.5.x86_64.rpm
+sudo pacman -U webradio-*-x86_64.pkg.tar.zst
 ```
 
-#### Arch Linux (AUR)
+Deinstallation:
 ```bash
-# From AUR (once published)
-yay -S webradio
-
-# Or manually from PKGBUILD
-cd assets/
-makepkg -si
+sudo pacman -R webradio
 ```
 
 ### Linux Desktop Integration
@@ -127,14 +129,20 @@ makepkg -si
 The `.desktop` file at `assets/webradio.desktop` provides:
 - Application menu integration
 - Icon association
-- Proper categorization (Audio/Video)
+- Proper categorization (Audio/Video/Player/Network)
+- GenericName + Keywords für Discoverability
+- MimeType (x-scheme-handler/webradio)
 
-Install it system-wide:
-```bash
-sudo cp assets/webradio.desktop /usr/share/applications/
-sudo cp assets/icons/tray.png /usr/share/icons/hicolor/256x256/apps/webradio.png
-sudo update-desktop-database
-```
+`electron-builder` installiert die `.desktop`-Datei und das Icon
+bei AppImage und .deb automatisch. Der `PKGBUILD` installiert sie
+nach `/usr/share/applications` und `/usr/share/icons/hicolor`.
+
+### FFmpeg
+
+`ffmpeg-static` liefert eine vorkompilierte Linux x86_64 Binary.
+`electron-builder` entpackt sie über `asarUnpack` aus dem ASAR-Archiv,
+damit der ELF-Binary beim Endanwender direkt ausgeführt werden kann.
+Der Benutzer muss KEIN systemweites FFmpeg installieren.
 
 ## Platform-Specific Code
 

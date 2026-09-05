@@ -274,6 +274,51 @@ Each lifecycle stage has a clearly defined purpose.
 
 ---
 
+# Reloading
+
+A plugin can be reloaded while WebRadio is running.
+
+Reloading is primarily intended for development and debugging and is
+triggered manually – it does **not** happen automatically.
+
+There are two reload operations with clearly distinct scope:
+
+## Single Plugin
+
+```text
+reloadPlugin(id)
+   ↓
+PluginRuntime.stop()  → destroy()  → cleanup listeners/navigation
+   ↓
+PluginRuntime.start() → init()
+```
+
+## Global Discovery Rescan
+
+Triggered by the **"Plugins neu laden"** button. Performs a full
+discovery-rescan of the plugin directory and reconciles the runtime
+state with the current filesystem.
+
+```text
+reloadPlugins()
+   ↓
+discover() → compare with currently loaded plugins
+   ↓
+new plugins           → start()
+changed plugins       → stop() + start()
+removed plugins       → stop()
+disabled (config)     → stop()
+unchanged plugins     → keep current state
+```
+
+For the full behaviour and return value, see
+[`PluginManager.reloadPlugins()`](../api-reference/PluginManager.md#reloadplugins).
+
+The plugin's `destroy()` is called before `init()` again when a plugin
+is reloaded individually or detected as changed by the rescan.
+
+---
+
 # Common Mistakes
 
 Typical lifecycle issues include:

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const StorageManager = require("../storage/StorageManager");
 const LogManager = require("../diagnostics/logging/LogManager");
@@ -24,6 +25,21 @@ class PluginLoader {
         throw new Error(
             `Kein Manifest gefunden (plugin.json oder manifest.json fehlt in ${pluginPath})`
         );
+    }
+
+    // Erzeugt einen Fingerprint für Änderungserkennung
+    createFingerprint(plugin) {
+        const manifest = plugin.manifest || plugin;
+        const relevantFields = {
+            id: manifest.id,
+            name: manifest.name,
+            version: manifest.version,
+            main: manifest.main,
+            renderer: manifest.renderer,
+            path: plugin.path
+        };
+        const fingerprintStr = JSON.stringify(relevantFields);
+        return crypto.createHash('md5').update(fingerprintStr).digest('hex');
     }
 
     discoverPlugins() {
@@ -60,14 +76,15 @@ class PluginLoader {
                 const manifest =
                     this.loadManifest(pluginPath);
 
-                plugins.push({
-
+                const plugin = {
                     ...manifest,
-
                     path: pluginPath,
                     dir: folder.name
+                };
 
-                });
+                plugin.fingerprint = this.createFingerprint(plugin);
+
+                plugins.push(plugin);
 
             } catch (err) {
 

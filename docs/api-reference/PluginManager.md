@@ -177,7 +177,7 @@ Before unloading, `onUnload()` is called to allow the plugin to release any rema
 
 ## reloadPlugin()
 
-Reloads a plugin without restarting WebRadio.
+Reloads a single, already-known plugin without restarting WebRadio.
 
 ### Syntax
 
@@ -204,6 +204,76 @@ Enable
 ```
 
 Reloading is primarily intended for development and debugging.
+
+> **See also:** [`reloadPlugins()`](#reloadplugins) for the global
+> discovery-rescan that detects new, changed or removed plugins in the
+> plugin directory.
+
+---
+
+## reloadPlugins()
+
+Performs a global **discovery-rescan** of the plugin directory and
+reconciles the runtime state with the current filesystem state.
+
+This is the method triggered by the **"Plugins neu laden"** button in
+the settings UI.
+
+### Syntax
+
+```javascript
+const result = pluginManager.reloadPlugins();
+```
+
+### Behaviour
+
+The rescan performs the following steps:
+
+1. Re-scan the plugin directory via `PluginLoader.discoverPlugins()`.
+2. Compare the discovered plugins with the currently loaded ones
+   (matched by `manifest.id`).
+3. Detect changes using a stable fingerprint of each plugin
+   (manifest fields + plugin path + main file).
+4. Treat plugins that are no longer present as removed.
+5. Honour the `enabled` flag from `userData/plugins/plugins.json`.
+6. Start, restart or stop plugins as required using the existing
+   `PluginRuntime.start()` / `PluginRuntime.stop()` lifecycle.
+7. Emit a `plugins:changed` event on the eventBus and broadcast
+   `plugins:changed` via IPC to all renderer windows.
+
+A plugin that fails during start or stop is logged via the existing
+`LogManager` and the rescan continues with the remaining plugins.
+
+### Returns
+
+```javascript
+{
+    success: true | false,
+    added:    ["plugin-id", ...],   // newly discovered
+    removed:  ["plugin-id", ...],   // no longer present
+    changed:  ["plugin-id", ...],   // fingerprint differed
+    unchanged:["plugin-id", ...],   // already loaded and identical
+    disabled: ["plugin-id", ...],   // loaded before, now disabled in config
+    errors:   [{ id, error }, ...]  // per-plugin start/stop failures
+}
+```
+
+### Differences from `reloadPlugin(id)`
+
+| Concern | `reloadPlugin(id)` | `reloadPlugins()` |
+| --- | --- | --- |
+| Scope | single plugin | entire plugin directory |
+| Discovery | no | yes |
+| Detects new plugins | no | yes |
+| Detects removed plugins | no | yes |
+| Detects manifest changes | only if you call it after the change | yes, via fingerprint |
+| Result | boolean | structured report |
+
+### Atomicity
+
+If a plugin fails to start after its old version has been stopped,
+the plugin is left in the unloaded state. The old instance is **not**
+re-started, to prevent duplicate event listeners or navigation entries.
 
 ---
 

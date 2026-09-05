@@ -46,3 +46,12 @@ jobs:
 
       - name: Electron Builder Verzeichnis-Test
         run: npx electron-builder --dir
+
+  linux-package:
+    # Baut AppImage und Arch-Paket (siehe .github/workflows/build-linux.yml).
+    # Läuft nur auf Push / main, develop – auf PRs übernimmt das den Smoke-Test.
+    if: github.event_name == 'push'
+    needs: build
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      # keine Inputs – das gerufene Workflow läuft mit seinen Defaults

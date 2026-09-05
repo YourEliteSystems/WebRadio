@@ -185,6 +185,51 @@ These states provide predictable lifecycle management.
 
 ---
 
+# Plugin Rescan (Discovery)
+
+The `PluginManager` exposes two reload entry points:
+
+* `reloadPlugin(id)` – targeted reload of a single known plugin.
+* `reloadPlugins()`  – global discovery-rescan of the plugin
+  directory. This is the implementation behind the
+  **"Plugins neu laden"** UI button.
+
+## Reload a Single Plugin
+
+```text
+reloadPlugin(id)
+   ↓
+disable(id)    → PluginRuntime.stop()
+   ↓
+enable(id)     → PluginRuntime.start()
+```
+
+## Reload All Plugins
+
+```text
+reloadPlugins()
+   ↓
+PluginLoader.discoverPlugins()      ← re-scan directory
+   ↓
+compare discovered vs loaded plugins
+   ↓
+new plugins           → PluginRuntime.start()
+changed plugins       → PluginRuntime.stop() + start()
+removed plugins       → PluginRuntime.stop()
+disabled (config)     → PluginRuntime.stop()
+unchanged plugins     → keep current state
+   ↓
+emit "plugins:changed" via eventBus + IPC
+```
+
+The rescan never deletes listener or navigation entries belonging to
+a plugin that stays loaded – those are removed exclusively by the
+existing `PluginRuntime.stop()` path.
+
+See also [`PluginManager.reloadPlugins()`](../api-reference/PluginManager.md#reloadplugins).
+
+---
+
 # Why a Dedicated PluginManager?
 
 Without a dedicated PluginManager:

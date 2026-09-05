@@ -165,6 +165,190 @@ class PluginManager {
         return this.enablePlugin(id);
     }
 
+    /**
+     * Discovery-Rescan: scannt das Plugin-Verzeichnis erneut und führt den
+     * Runtime-Zustand mit dem aktuellen Dateisystem-Zustand zusammen.
+     *
+     * Unterschied zu reloadPlugin(id):
+     *   - reloadPlugin(id): lädt ein einzelnes, bereits bekanntes Plugin neu.
+     *   - reloadPlugins():  globaler Rescan inkl. neuer/entfernter/geänderter Plugins.
+     *
+     * Die Konfiguration in `plugins.json` (enabled-Flag) bleibt maßgeblich.
+     */
+    reloadPlugins() {
+        const config = this.readConfig();
+        const discovered = PluginLoader.discoverPlugins();
+
+        const result = {
+            success: true,
+            added: [],
+            removed: [],
+            changed: [],
+            unchanged: [],
+            disabled: [],
+            errors: []
+        };
+
+        const isDisabled = (id) =>
+            config.plugins?.[id]?.enabled === false;
+
+        const pluginIdOf = (p) => p?.manifest?.id || p?.id;
+
+        // Snapshot der aktuell geladenen Plugins nach ID
+        const currentPlugins = new Map();
+        for (const plugin of this.plugins.values()) {
+            const id = pluginIdOf(plugin);
+            if (id) currentPlugins.set(id, plugin);
+        }
+
+        // Snapshot der neu entdeckten Plugins nach ID
+        const discoveredPlugins = new Map();
+        for (const plugin of discovered) {
+            const id = pluginIdOf(plugin);
+            if (!id) {
+                logger.warn("Plugin ohne ID beim Rescan übersprungen");
+                continue;
+            }
+            discoveredPlugins.set(id, plugin);
+        }
+
+        const loadedIds = new Set();
+        const failedIds = new Set();
+
+        // 1) Discovery-Scan: neue, geänderte und deaktivierte Plugins behandeln.
+        for (const [id, newPlugin] of discoveredPlugins) {
+            // Deaktiviertes Plugin darf nach Rescan nicht (erneut) geladen werden.
+            if (isDisabled(id)) {
+                if (currentPlugins.has(id)) {
+                    try {
+                        const old = currentPlugins.get(id);
+                        PluginRuntime.stop(old);
+                        this.plugins.delete(id);
+                        result.disabled.push(id);
+                        logger.info(
+                            `Plugin deaktiviert (Rescan): ${old?.manifest?.name || id}`
+                        );
+                    } catch (err) {
+                        result.errors.push({ id, error: err.message });
+                        logger.error(
+                            `Fehler beim Stoppen des deaktivierten Plugins ${id}: ${err.message}`
+                        );
+                    }
+                }
+                continue;
+            }
+
+            const currentPlugin = currentPlugins.get(id);
+
+            if (!currentPlugin) {
+                // Neues Plugin
+                try {
+                    const started = PluginRuntime.start(newPlugin);
+                    if (!started) {
+                        failedIds.add(id);
+                        result.errors.push({
+                            id,
+                            error: "PluginRuntime.start() returned false"
+                        });
+                        continue;
+                    }
+                    this.plugins.set(id, newPlugin);
+                    loadedIds.add(id);
+                    result.added.push(id);
+                    logger.info(
+                        `Plugin neu geladen (Rescan): ${newPlugin.manifest?.name || id}`
+                    );
+                } catch (err) {
+                    failedIds.add(id);
+                    result.errors.push({ id, error: err.message });
+                    logger.error(
+                        `Fehler beim Laden von Plugin ${id}: ${err.message}`
+                    );
+                }
+                continue;
+            }
+
+            // Existierendes Plugin: Fingerprint-Vergleich für Änderungen
+            const oldFingerprint = currentPlugin.fingerprint;
+            const newFingerprint = newPlugin.fingerprint;
+
+            if (oldFingerprint !== newFingerprint) {
+                try {
+                    PluginRuntime.stop(currentPlugin);
+                    this.plugins.delete(id);
+
+                    const started = PluginRuntime.start(newPlugin);
+                    if (!started) {
+                        failedIds.add(id);
+                        result.errors.push({
+                            id,
+                            error: "PluginRuntime.start() returned false"
+                        });
+                        // Altes Plugin bewusst nicht neu starten — würde
+                        // potentiell Listener/Navigation doppelt registrieren.
+                        logger.error(
+                            `Geändertes Plugin ${id} konnte nicht gestartet werden, ` +
+                            `altes Plugin bleibt entladen.`
+                        );
+                        continue;
+                    }
+                    this.plugins.set(id, newPlugin);
+                    loadedIds.add(id);
+                    result.changed.push(id);
+                    logger.info(
+                        `Plugin geändert und neu geladen (Rescan): ${newPlugin.manifest?.name || id}`
+                    );
+                } catch (err) {
+                    failedIds.add(id);
+                    result.errors.push({ id, error: err.message });
+                    logger.error(
+                        `Fehler beim Neuladen von Plugin ${id}: ${err.message}`
+                    );
+                }
+            } else {
+                result.unchanged.push(id);
+                loadedIds.add(id);
+            }
+        }
+
+        // 2) Im aktuellen Lauf entfernte Plugins sauber stoppen.
+        for (const [id, plugin] of currentPlugins) {
+            if (!discoveredPlugins.has(id) && !failedIds.has(id)) {
+                try {
+                    PluginRuntime.stop(plugin);
+                    this.plugins.delete(id);
+                    result.removed.push(id);
+                    logger.info(
+                        `Plugin entfernt (Rescan): ${plugin?.manifest?.name || id}`
+                    );
+                } catch (err) {
+                    result.errors.push({ id, error: err.message });
+                    logger.error(
+                        `Fehler beim Entfernen von Plugin ${id}: ${err.message}`
+                    );
+                }
+            }
+        }
+
+        // Falls einzelne Operationen Fehler verursacht haben: success = false,
+        // aber Rescan wurde dennoch so weit wie möglich fortgeführt.
+        if (result.errors.length > 0) {
+            result.success = false;
+        }
+
+        // EventBus Event für interne Konsumenten
+        eventBus.emit("plugins:changed", result);
+
+        logger.info(
+            `Plugin-Rescan abgeschlossen: ` +
+            `${result.added.length} neu, ${result.removed.length} entfernt, ` +
+            `${result.changed.length} geändert, ${result.unchanged.length} unverändert, ` +
+            `${result.disabled.length} deaktiviert, ${result.errors.length} Fehler`
+        );
+
+        return result;
+    }
+
     //
     // Getters
     //

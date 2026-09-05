@@ -17,6 +17,11 @@ contextBridge.exposeInMainWorld('api', {
   getPlugins: () => ipcRenderer.invoke("plugins:get"),
   togglePlugin: (id, enabled) => ipcRenderer.invoke("plugins:toggle", id, enabled),
   getRendererScripts: () => ipcRenderer.invoke("plugins:getRendererScripts"),
+  reloadPlugins: () => ipcRenderer.invoke("plugins:reload"),
+  onPluginsChanged: (callback) => {
+    ipcRenderer.removeAllListeners("plugins:changed");
+    ipcRenderer.on("plugins:changed", (_, result) => callback(result));
+  },
 });
 
 // NAVIGATION API

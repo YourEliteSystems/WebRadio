@@ -197,6 +197,7 @@ jobs:
           $include = @(
             '.exe', '.zip', '.7z', '.AppImage',
             '.deb', '.rpm', '.dmg', '.blockmap',
+            '.pkg.tar.zst', '.pkg.tar', '.pacman',
             '.txt', '.yml', '.yaml', '.json'
           )
 

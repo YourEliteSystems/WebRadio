@@ -98,6 +98,17 @@ The tray should expose only frequently used actions.
 
 ---
 
+# Platform Notes
+
+* **Windows**: nutzt `assets/icons/tray.ico` (natives ICO-Format).
+* **Linux/macOS**: nutzt `assets/icons/tray.png`, automatisch auf
+  22×22 px für die Statusbar skaliert. PNG wird von `nativeImage`
+  verlustfrei dekodiert.
+* `getTrayIconPath()` ist die zentrale Auswahlfunktion und kann von
+  Diagnose-Tools verwendet werden.
+
+---
+
 # Related Documentation
 
 * Application

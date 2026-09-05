@@ -1,0 +1,122 @@
+name: Build Linux (AppImage + Arch)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/**
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    name: Build Linux AppImage (x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dependencies installieren
+        run: npm ci
+
+      - name: Renderer bauen
+        run: npm run build
+
+      - name: Linux AppImage bauen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --linux AppImage --x64 --publish=never
+
+      - name: Build-Artefakte hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: webradio-linux-appimage
+          path: |
+            dist/*.AppImage
+            dist/latest*.yml
+            dist/latest*.json
+            dist/*.blockmap
+          if-no-files-found: error
+
+  arch-package:
+    name: Build Arch Linux Package (.pkg.tar.zst)
+    needs: appimage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      # Wir bauen das Arch-Paket in einem offiziellen Arch-Linux-Container.
+      # Der WebRadio-Build selbst (AppImage) wurde bereits im vorherigen
+      # Job erzeugt und wird hier heruntergeladen und eingebettet.
+      - name: AppImage herunterladen
+        uses: actions/download-artifact@v4
+        with:
+          name: webradio-linux-appimage
+          path: dist
+
+      - name: PKGBUILD und Quellen vorbereiten
+        run: |
+          set -euo pipefail
+          mkdir -p dist/arch-build
+          cd dist/arch-build
+
+          # AppImage mit normalisiertem Namen ablegen.
+          APPIMAGE_SRC="$(ls ../*.AppImage | head -n1)"
+          PKGVER="$(node -p "require('../../package.json').version")"
+          cp "$APPIMAGE_SRC" "./webradio-${PKGVER}.AppImage"
+          chmod +x "./webradio-${PKGVER}.AppImage"
+
+          cp ../../assets/webradio.desktop .
+          cp ../../assets/icons/tray.png .
+
+      - name: PKGBUILD aus Template rendern
+        run: |
+          set -euo pipefail
+          cd dist/arch-build
+          PKGVER="$(node -p "require('../../package.json').version")"
+          APP_SHA="$(sha256sum "webradio-${PKGVER}.AppImage" | awk '{print $1}')"
+          DESK_SHA="$(sha256sum webradio.desktop | awk '{print $1}')"
+          ICON_SHA="$(sha256sum tray.png | awk '{print $1}')"
+          # Werte in das Template einsetzen.
+          sed \
+            -e "s|__PKGVER__|${PKGVER}|g" \
+            -e "s|__APP_SHA__|${APP_SHA}|g" \
+            -e "s|__DESK_SHA__|${DESK_SHA}|g" \
+            -e "s|__ICON_SHA__|${ICON_SHA}|g" \
+            ../../packaging/arch/PKGBUILD \
+            > PKGBUILD
+          echo "--- PKGBUILD (head) ---"
+          head -n 40 PKGBUILD
+
+      - name: Arch-Paket im Container bauen
+        run: |
+          docker run --rm \
+            -v "$PWD/dist/arch-build:/work" \
+            -w /work \
+            archlinux:latest \
+            bash -lc "pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip && useradd -m builder && chown -R builder:builder /work && sudo -u builder makepkg -s --noconfirm"
+
+      - name: Ergebnis-Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: webradio-linux-arch
+          path: dist/arch-build/*.pkg.tar.zst
+          if-no-files-found: error

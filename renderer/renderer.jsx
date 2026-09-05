@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 
 import { initPlayer } from './services/playerService';
-import { loadAndApplySavedTheme } from './services/themeService';
+import { loadAndApplySavedTheme, listenToThemeChanges } from './services/themeService';
 import { loadRendererPlugins } from './plugins/RendererPluginManager';
 
 // Initialize audio context and player
@@ -19,12 +19,15 @@ async function bootstrap() {
       console.warn("Could not load themes:", themeErr);
     }
 
-    // 3. Render React App
+    // 3. Theme-Änderungen von anderen Fenstern empfangen
+    listenToThemeChanges();
+
+    // 4. Render React App
     const container = document.getElementById('app');
     const root = createRoot(container);
     root.render(<App />);
 
-    // 4. Renderer-Plugins laden (nach React-Mount, damit uiRegistry bereit ist)
+    // 5. Renderer-Plugins laden (nach React-Mount, damit uiRegistry bereit ist)
     await loadRendererPlugins();
 
   } catch (err) {
