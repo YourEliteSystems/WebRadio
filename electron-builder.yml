@@ -29,20 +29,18 @@ asar: true
 # Update System v1 (electron-updater / GitHub Releases)
 #
 # Erzeugt je nach Git-Tag Stable- oder Beta-Update-Metadaten
-# (latest*.yml / beta*.yml). Der konkrete Channel wird zur
-# Build-Zeit über die Umgebungsvariable UPDATE_CHANNEL gesetzt
-# (Stable = "latest" / Beta = "beta"). Ohne Variable wird "latest"
-# angenommen.
+# (latest*.yml / beta*.yml). Der aktive Kanal ("latest" / "beta")
+# wird NICHT hier gesetzt, sondern zur Laufzeit durch UpdateChannel.js
+# via autoUpdater.channel bestimmt.
 #
 # generateUpdatesFilesForAllChannels sorgt dafür, dass für jedes
-# Target die plattform-spezifischen Metadaten erzeugt werden
-# (latest.yml, latest-linux.yml, latest-mac.yml), damit der
+# Target die plattform-spezifischen Metadaten beider Kanäle erzeugt
+# werden (latest.yml, beta.yml, latest-linux.yml …), damit der
 # Updater ohne Rate-Limits und ohne User-Eingriff arbeiten kann.
 # ──────────────────────────────────────────────────────────────────
 publish:
   - provider: github
     releaseType: release
-    channel: ${env.UPDATE_CHANNEL || "latest"}
     useMultipleRangeRequest: false
 
 generateUpdatesFilesForAllChannels: true
