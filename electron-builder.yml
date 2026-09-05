@@ -41,7 +41,6 @@ asar: true
 publish:
   - provider: github
     releaseType: release
-    useMultipleRangeRequest: false
 
 generateUpdatesFilesForAllChannels: true
 

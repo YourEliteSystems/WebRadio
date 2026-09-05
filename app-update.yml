@@ -20,6 +20,10 @@ releaseType: release
 # den App-Start blockieren. Update ist ein optionales Feature.
 requestHeaders: {}
 
+# Verhindert Multi-Range-Requests beim Download (bessere Kompatibilität
+# mit manchen GitHub CDN-Konfigurationen).
+useMultipleRangeRequest: false
+
 # In-App-Download / -Install:
 #   autoDownload = false -> Renderer bestätigt explizit
 #   autoInstallOnAppQuit = true -> wenn App sauber beendet wird
