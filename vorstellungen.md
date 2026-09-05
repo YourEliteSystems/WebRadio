@@ -4,77 +4,85 @@
 
 ## 🗣️ Forum-Vorstellung
 
-> Formuliert für klassische Foren (z.B. Reddit, GitHub Discussions, eigene Community-Foren).
-> Längerer Text, gut strukturiert, erklärt was das Projekt ist und was neu ist.
+> Formuliert für klassische Foren (z. B. Reddit, GitHub Discussions, ComputerBase, Deskmodder, eigene Community-Foren).  
+> Ausführlicher Text, übersichtlich gegliedert, erklärt das Projekt, die Funktionen und alle Neuerungen ab Version 1.0.6-beta.2.
 
 ---
 
-### 📻 WebRadio v1.0.5 RC3 – Kostenloser Desktop-Radioplayer mit Plugin- & Theme-System
+### 📻 WebRadio v1.0.6-beta.2 – Plattformübergreifender Desktop-Radioplayer mit Update-Kanälen, Plugin- & Theme-System
 
 Hallo zusammen! 👋
 
-Ich möchte euch **WebRadio** vorstellen – einen kostenlosen Desktop-Radioplayer für Windows, den ich mit Electron und React gebaut habe.
+Ich möchte euch **WebRadio** vorstellen – einen kostenlosen, Open-Source Desktop-Radioplayer für **Windows und Linux**, entwickelt mit Electron, React und ESBuild.
 
 ---
 
-#### 🤔 Was ist WebRadio überhaupt?
+#### 🤔 Was ist WebRadio?
 
-WebRadio ist ein Programm, mit dem ihr direkt von eurem Computer aus tausende Radiosender aus aller Welt hören könnt – ganz ohne Browser und ohne Werbung. Ihr sucht nach eurem Lieblingssender, klickt drauf, und er spielt. So einfach ist das.
+WebRadio ist ein schlanker, nativer Desktop-Player, mit dem ihr direkt von eurem Rechner aus tausende Internet-Radiosender weltweit hören könnt – komplett ohne Browser-Overhead und ohne Werbung. Sender suchen, anklicken und die Musik läuft.
 
-Aber WebRadio kann noch mehr als das: Es ist so gebaut, dass ihr es anpassen könnt – mit eigenen Designs (**Themes**) und eigenen Erweiterungen (**Plugins**).
-
----
-
-#### ✨ Was kann die App?
-
-- 🔍 **Sendersuche** – Durchsuche tausende Sender, filter nach Land oder Musikrichtung
-- ▶️ **Stabile Wiedergabe** – Audio wird direkt und zuverlässig abgespielt
-- ⭐ **Favoriten & Verlauf** – Deine liebsten Sender immer schnell griffbereit
-- 🎨 **Themes** – Ändere das komplette Aussehen der App mit einem Klick
-- 🧩 **Plugins** – Erweite die App mit eigenen Funktionen
-- 🎮 **Discord-Anzeige** – Zeigt deinen aktuellen Sender live in Discord an
-- ⌨️ **Medientasten** – Play/Pause und Stop funktionieren auch mit der Tastatur
-- 🔄 **Automatische Updates** – Die App prüft selbst, ob eine neue Version verfügbar ist
-- 🔒 **Sichere Updates** – Jedes Update wird mit einem SHA-256-Hash auf Echtheit geprüft
+Das Besondere an WebRadio: Die Anwendung ist modular aufgebaut und lässt sich vollständig anpassen und erweitern – durch ein modulares **Theme-System** und ein erweiterbares **Plugin-System**.
 
 ---
 
-#### 🆕 Was ist in v1.0.5 RC3 neu?
+#### ✨ Kern-Features im Überblick
 
-Das ist der dritte Release Candidate für Version 1.0.5. In diesem Update wurde vor allem die interne Struktur der App verbessert, damit sie stabiler und leichter erweiterbar wird:
-
-- **Sauberere App-Struktur** – Die App startet und beendet sich jetzt in einer klar definierten Reihenfolge. Das verhindert Fehler beim Start und beim Schließen.
-- **Besseres Theme-System** – Themes können jetzt sauber aktiviert, deaktiviert und neu geladen werden, ohne die App neu starten zu müssen.
-- **Stabileres Plugin-System** – Defekte Plugins stürzen die App nicht mehr ab. Sie werden einfach übersprungen und das Problem wird geloggt.
-- **Vollständige Dokumentation** – Für alle, die selbst Plugins oder Themes bauen wollen, gibt es jetzt eine komplette Anleitung mit Beispielen:
-  - Plugin SDK (12 Kapitel)
-  - Theme SDK (9 Kapitel)
-  - Architektur-Übersicht (10 Kapitel)
-  - API-Referenz für alle öffentlichen Schnittstellen
-
----
-
-#### 🛠️ Für wen ist das interessant?
-
-- Für alle, die **Webradio auf dem Desktop** hören wollen
-- Für Bastler und Entwickler, die die App mit eigenen **Plugins** erweitern wollen
-- Für Designer, die eigene **Themes** für die App bauen wollen
+- 🔍 **Sendersuche & Filter** – Riesige Auswahl an weltweiten Sendern, filterbar nach Land, Sprache oder Genre
+- ▶️ **Zuverlässige Audiowiedergabe** – Schnelles Buffering, stabiler Stream und Codec-Unterstützung (inkl. integrierter FFmpeg-Unterstützung)
+- ⭐ **Favoriten & Hörverlauf** – Eure Lieblingssender mit einem Klick speichern und sortieren
+- 🎨 **Theme-Engine** – Schneller Wechsel zwischen modernen Themes ohne Neustart
+- 🧩 **Plugin-Architektur** – Erweiterung der Kernfunktionen durch ein strukturiertes Plugin-SDK
+- 🔄 **Neues Update System v1** – Direkte Updates über GitHub Releases mit Wahl zwischen **Stable-** und **Beta-Kanal**
+- 🐧 **Echte Cross-Platform-Unterstützung** – Bereitgestellt für Windows sowie Linux (AppImage und natives Arch Linux `.pkg.tar.zst`)
+- 🎮 **Discord Rich Presence** – Zeigt euren aktuell gespielten Sender und Titel live im Discord-Status an
+- ⌨️ **Medientasten & Tray-Steuerung** – Play, Pause, Mute und Senderwechsel über Tastatur und System-Tray
+- 🔒 **Sicherheit & Integrität** – Vollständige Validierung aller Pakete, XSS-bereinigte Release-Notes und kein Tracking
 
 ---
 
-#### 🔗 Links
+#### 🆕 Was ist neu in v1.0.6-beta.2?
 
-- 📦 **Download & Releases:** [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases)
-- 📚 **Dokumentation:** Im `docs/`-Ordner des Projekts
-- 🐛 **Bugs melden:** [GitHub Issues](https://github.com/YourEliteSystems/WebRadio/issues)
-- 🤝 **Mitmachen:** [Contributing Guide](https://github.com/YourEliteSystems/WebRadio/blob/master/CONTRIBUTING.md)
+Seit Version 1.0.5 und 1.0.6-beta.1 hat sich unter der Haube und an der Oberfläche enorm viel getan:
+
+- 🔄 **Update System v1 (Stable & Beta Kanäle)**:
+  - Vollständig integrierter UpdateManager basierend auf `electron-updater` und GitHub Releases.
+  - **Zwei Kanäle**: Wählt in den Einstellungen flexibel zwischen dem erprobten **Stable-Kanal** oder dem **Beta-Kanal** für frühe Vorabversionen.
+  - **Sicherer Kanalwechsel**: Nahtloser Wechsel zwischen Beta und Stable (unterstützt automatisches Downgrade auf die letzte stabile Version).
+  - Neuer Update-Dialog mit Fortschrittsbalken, Übertragungsrate, Release-Notes-Vorschau und Optionen wie `[Später]` oder `[Beim Start prüfen]`.
+- 🐧 **Arch Linux & Linux-Packaging**:
+  - Offizielles Arch Linux Paket (`.pkg.tar.zst`) mit passendem `PKGBUILD`, Hicolor-Icons und Desktop-Integration.
+  - Automatisierte Build-Workflows für Linux AppImages und Arch-Pakete via GitHub Actions.
+- 🧩 **Dynamischer Plugin-Rescan**:
+  - Neue oder aktualisierte Plugins im Plugin-Ordner können jetzt direkt zur Laufzeit neu eingelesen werden (`rescan`), ohne die App neu starten zu müssen.
+  - Plugin-gesteuerte Navigation für noch flexiblere Erweiterungen.
+- 🧹 **Bereinigte Build-Infrastruktur & Qualität**:
+  - Umstellung auf konsistentes SemVer (`v1.0.6-beta.2`).
+  - Schnelleres Bundling via ESBuild, Node >= 20.
+  - Über 60 automatisierte Integrationstests für Updater, Navigation, Themes und Linux-Artefakte.
 
 ---
 
-Da das noch ein Release Candidate ist, freue ich mich über jeden Tester! Bugs und Feedback bitte direkt auf GitHub oder hier im Thread. 😊
+#### 🛠️ Für wen ist WebRadio interessant?
 
-Viel Spaß beim Radiohören!
+- Für alle Musik- und Radiobegeisterten, die einen **ressourcenschonenden Desktop-Player** suchen.
+- Für **Arch Linux**- und **Linux**-Nutzer, die native Pakete und saubere Desktop-Integration schätzen.
+- Für **Entwickler & Designer**, die mit JavaScript/CSS eigene Plugins und Themes entwickeln möchten.
 
+---
+
+#### 🔗 Downloads & Links
+
+- 📦 **Releases & Downloads:** [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases)
+- 💻 **Quellcode:** [GitHub Repository](https://github.com/YourEliteSystems/WebRadio)
+- 📚 **SDK-Dokumentation:** Im `docs/`-Ordner (Plugin SDK, Theme SDK, Architektur-Handbuch)
+- 🐛 **Feedback & Fehler melden:** [GitHub Issues](https://github.com/YourEliteSystems/WebRadio/issues)
+- 🤝 **Mitwirken:** [Contributing Guide](https://github.com/YourEliteSystems/WebRadio/blob/master/CONTRIBUTING.md)
+
+---
+
+Da Version 1.0.6 im Beta-Stadium ist, freue ich mich riesig über Feedback, Anregungen und Tester für Windows und Linux! 😊
+
+Viel Spaß beim Hören!  
 *– YourEliteSystems*
 
 ---
@@ -82,35 +90,37 @@ Viel Spaß beim Radiohören!
 
 ## 💬 Discord-Vorstellung
 
-> Formuliert für Discord-Server. Kurz, knackig, mit Emojis – leicht zu überfliegen.
+> Formuliert für Discord-Server & Community-Chats. Knackig, modern, mit Emojis und leicht scannbar.
 
 ---
 
-**📻 WebRadio v1.0.5 RC3 ist da!**
+**📻 WebRadio v1.0.6-beta.2 ist am Start!** 🚀
 
-Hey! Kurze Vorstellung: Ich entwickle **WebRadio** – einen kostenlosen Desktop-Radioplayer für Windows. Tausende Sender, kein Browser, keine Werbung. Einfach runterladen und loshören. 🎵
+Hey zusammen! Ich entwickle **WebRadio** – einen kostenlosen, schlanken Desktop-Radioplayer für **Windows & Linux**.  
+Tausende weltweite Sender direkt auf dem Desktop – ohne Browser, ohne Werbung, einfach einschalten und genießen. 🎵
 
-**Was die App kann:**
-- 🔍 Sendersuche mit Filter nach Land & Genre
-- ⭐ Favoriten & Verlauf
-- 🎨 Themes – ändere das Aussehen der App
-- 🧩 Plugins – erweiter die App selbst
-- 🎮 Discord Rich Presence (zeigt deinen Sender in Discord an)
-- ⌨️ Medientasten-Support
-- 🔒 Sichere Updates mit Hash-Prüfung
+**Highlights:**
+- 🔍 Schnelle Sendersuche nach Land, Genre & Sprache
+- ⭐ Favoritenliste & Verlauf
+- 🔄 **NEU: Update System v1** – Updates direkt in der App mit Wahl zwischen **Stable**- und **Beta-Kanal**
+- 🐧 **NEU: Arch Linux Support** – Native `.pkg.tar.zst`-Pakete & AppImages
+- 🎨 Theme-Engine für sofortigen Look-Wechsel
+- 🧩 Modulares Plugin-System mit **Live-Rescan** (Plugins ohne Neustart nachladen)
+- 🎮 Discord Rich Presence (zeigt deinen aktuellen Track/Sender im Profil)
+- ⌨️ Tastatur-Medientasten & Tray-Steuerung
 
-**Was ist in RC3 neu?**
-- Die App startet und beendet sich jetzt viel stabiler
-- Defekte Plugins crashen die App nicht mehr
-- Themes können ohne Neustart gewechselt werden
-- Komplett neue Doku für Plugin- und Theme-Entwickler 📚
+**Was ist neu in v1.0.6-beta.2?**
+- Neues Einstellungs-Menü für Updates (Kanalwahl Stable/Beta, Fortschrittsanzeige, flexible Neustart-Optionen)
+- Nahtloses Umschalten zwischen Beta und Stable (Downgrade-Support)
+- Arch Linux Paketierung via PKGBUILD
+- Plugin-Discovery zur Laufzeit aktualisierbar
+- 60+ automatisierte Tests & sauber optimierte Build-Pipeline
 
-**Für Entwickler & Bastler:** Es gibt jetzt ein vollständiges Plugin SDK und Theme SDK mit Beispielen und Anleitungen. Eigene Erweiterungen sind jetzt viel einfacher zu bauen! 🛠️
+Wir sind aktuell in der Beta-Phase und freuen uns über jeden Tester auf Windows & Linux! Feedback und Wünsche sind herzlich willkommen! 🙌
 
-Da das noch ein RC ist: Jeder Tester ist willkommen! Fehler gerne auf GitHub melden oder hier im Chat. 🙏
-
-> 📦 Download: [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases)
-> 🐛 Bugs: [GitHub Issues](https://github.com/YourEliteSystems/WebRadio/issues)
+> 📦 **Download:** [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases)  
+> 💻 **GitHub:** [YourEliteSystems/WebRadio](https://github.com/YourEliteSystems/WebRadio)  
+> 🐛 **Bugs & Ideen:** [GitHub Issues](https://github.com/YourEliteSystems/WebRadio/issues)
 
 *– YourEliteSystems* 🎶
 

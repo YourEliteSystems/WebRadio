@@ -4,6 +4,69 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.6-beta.2] – 2026-09-05
+
+> Update System v1 mit Stable- und Beta-Kanälen, native Arch Linux Paketierungs-Unterstützung (.pkg.tar.zst) und Plugin-Discovery-Laufzeit-Rescan.
+
+### 🔄 Update System v1 (GitHub Stable & Beta Channels)
+
+- **Zentraler UpdateManager (`electron/core/updates/`)**:
+  - Eigenständiges Core-Modul basierend auf `electron-updater` und den offiziellen GitHub Releases (`YourEliteSystems/WebRadio`).
+  - Idempotente Initialisierung, Singleton-Architektur, kein Polling, defensive Kopien aller States.
+  - Saubere Trennung in `UpdateManager.js`, `UpdateChannel.js`, `UpdateState.js`, `MarkdownSanitizer.js` und `index.js`.
+- **Release-Kanäle (Stable & Beta)**:
+  - **Stable (`latest`)**: Erhält ausschließlich offizielle stabile Releases (z. B. `1.0.5`, `1.0.6`).
+  - **Beta (`beta`)**: Erhält Vorabversionen sowie stabile Releases (z. B. `1.0.6-beta.1`, `1.0.6-beta.2`).
+  - **SemVer-Konformität**: Dynamische Aktivierung von `allowDowngrade: true` bei installierter Pre-Release-Version, sodass ein Wechsel von Beta zurück auf Stable jederzeit reibungslos funktioniert.
+  - Alpha-Releases sind in v1 für beide Kanäle explizit ausgeschlossen.
+- **Sicherheit**:
+  - Keine persönlichen Access Tokens (PAT) oder Credentials im Client; Nutzung des unauthentifizierten GitHub Releases Providers.
+  - `MarkdownSanitizer`: Neutralisiert `<script>`, `<iframe>`, `<embed>`, `<object>`, Inline-Event-Handler (`onerror`, `onload` etc.) sowie gefährliche URL-Schemata (`javascript:`, `data:`, `vbscript:`).
+  - Keine Shell- oder Installer-Ausführung aus dem Renderer – Installation läuft ausschließlich über `autoUpdater.quitAndInstall()` im Main-Prozess.
+- **IPC & Preload-Integration**:
+  - `window.api.updates`: Vollständige Schnittstelle mit `check()`, `download()`, `install()`, `getState()`, `getChannel()`, `setChannel()`, `getAutoCheck()`, `setAutoCheck()`, `dismissLater()` und typsicheren Event-Listenern (`onStateChanged`, `onAvailable`, `onProgress`, `onDownloaded`, `onError`, `onChannelChanged`).
+  - Vollständige Abwärtskompatibilität für `window.updatesAPI` und `window.updaterAPI`.
+- **Settings UI & Interaktion**:
+  - Neue Update-Kategorie mit Status-Box, Kanal-Auswahl (Radio für Stable und Beta).
+  - Interaktiver Bestätigungsdialog mit deutlicher Warnung beim erstmaligen Aktivieren des Beta-Kanals.
+  - Fortschrittsanzeige mit Prozentbalken, Download-Geschwindigkeit und transferierten Megabytes.
+  - Benutzergesteuerter Workflow: `[Update herunterladen]`, `[Später]`, `[Jetzt neu starten]` und `[Später neu starten]`.
+  - Option `☑ Beim Start nach Updates suchen` (`updates.autoCheckOnStart`).
+- **Main Window Titlebar Integration**:
+  - Anzeige der aktuellen Version mit farbigem `BETA`-Badge bei Pre-Releases in der Titlebar.
+  - Pulsierender `Update verfügbar`-Button in der Titelleiste, der direkt in die Update-Einstellungen führt.
+- **Release Pipeline & Build-Konfiguration**:
+  - `.github/workflows/release.yml` erkennt anhand des Git-Tags automatisch, ob es sich um ein Pre-Release handelt (`IS_PRERELEASE`).
+  - Setzt zur Build-Zeit `UPDATE_CHANNEL=beta` bzw. `UPDATE_CHANNEL=latest`.
+  - `electron-builder.yml` erzeugt plattformspezifische Update-Metadaten (`latest*.yml` / `beta*.yml`, `.blockmap`) über `generateUpdatesFilesForAllChannels: true`.
+- **Tests**:
+  - 67 Unit- und Integrationstests in `scripts/tests/updater.test.js` (u. a. Kanalmatrix, Downgrade-Handling, Markdown-Sanitizer, IPC-Handler, Deduplizierung und Event-Listener).
+
+### 🐧 Linux & Arch Linux Paketierung
+
+- **Natives Arch Linux Paket (`.pkg.tar.zst`)**:
+  - Eigener `PKGBUILD`-Template unter `packaging/arch/PKGBUILD` mit korrekten Dateirechten, Hicolor-Icons in 7 Größen (16 bis 512px) und Desktop-Integration.
+  - Node.js-Build-Skript `scripts/build-linux-arch.js` zur Template-Generierung und SHA256-Prüfung.
+  - Docker-Unterstützung für den Arch-Build in isolierten `archlinux:latest`-Containern.
+  - Neue npm-Scripts: `make:linux:arch`, `make:linux:appimage`, `make:linux` und `make:linux:all`.
+- **GitHub Actions Linux Workflow**:
+  - `.github/workflows/build-linux.yml` zum automatisierten Bauen von Linux AppImage und Arch Linux `.pkg.tar.zst`-Paketen.
+- **Plattform-Audit & Pfad-Tests**:
+  - `scripts/tests/artifact-audit.test.js` (24 Tests für WM_CLASS, .desktop-Einträge, Permissions, Icons und ASAR-Unpack).
+  - `scripts/tests/paths.test.js` (Pfad-Auflösung auf Windows, Linux und macOS).
+
+### 🧩 Plugin-System & Discovery
+
+- **Laufzeit-Rescan für Plugins**:
+  - `PluginManager.rescan()` und `PluginLoader.reloadPlugins()` für dynamisches Wiedererkennen von hinzugefügten/geänderten Plugins zur Laufzeit.
+  - IPC-Kanal `plugins:reload` und Event `plugins:changed` im Preload exponiert.
+  - `scripts/tests/pluginManager.test.js` zur Verifikation des gesamten Plugin-Lebenszyklus.
+- **Dokumentation**:
+  - Erweiterte Guides für Plugin-Lifecycle (`docs/plugin-sdk/04-Lifecycle.md`) und Tray-Steuerung (`docs/architecture/09-Tray.md`).
+  - Plattform-Dokumentation in `docs/CROSS_PLATFORM_SETUP.md` und `README.md`.
+
+---
+
 ## [v1.0.6-beta.1] – 2026-08-23
 
 > Plugin-gesteuerte Navigation, Theme-System-Konsolidierung, Projektstruktur-Bereinigung, Quality-Tooling und Refactoring – keine neuen Features.
