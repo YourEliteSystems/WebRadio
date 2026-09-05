@@ -80,9 +80,13 @@ jobs:
 
           # AppImage mit normalisiertem Namen ablegen.
           APPIMAGE_SRC="$(ls ../*.AppImage | head -n1)"
-          PKGVER="$(node -p "require('../../package.json').version")"
-          cp "$APPIMAGE_SRC" "./webradio-${PKGVER}.AppImage"
-          chmod +x "./webradio-${PKGVER}.AppImage"
+          # SemVer aus package.json (z.B. "1.0.6-beta.2")
+          SEMVER="$(node -p "require('../../package.json').version")"
+          # Arch pkgver darf KEINE Bindestriche enthalten → ersetze durch Punkte
+          PKGVER_ARCH="${SEMVER//-/.}"
+
+          cp "$APPIMAGE_SRC" "./webradio-${SEMVER}.AppImage"
+          chmod +x "./webradio-${SEMVER}.AppImage"
 
           cp ../../assets/webradio.desktop .
           cp ../../assets/icons/tray.png .
@@ -91,20 +95,23 @@ jobs:
         run: |
           set -euo pipefail
           cd dist/arch-build
-          PKGVER="$(node -p "require('../../package.json').version")"
-          APP_SHA="$(sha256sum "webradio-${PKGVER}.AppImage" | awk '{print $1}')"
+          SEMVER="$(node -p "require('../../package.json').version")"
+          PKGVER_ARCH="${SEMVER//-/.}"
+          APP_SHA="$(sha256sum "webradio-${SEMVER}.AppImage" | awk '{print $1}')"
           DESK_SHA="$(sha256sum webradio.desktop | awk '{print $1}')"
           ICON_SHA="$(sha256sum tray.png | awk '{print $1}')"
-          # Werte in das Template einsetzen.
+          # __PKGVER__ = Arch-Version (ohne Bindestriche)
+          # __SEMVER__  = Original SemVer für Dateinamen und pkgdesc
           sed \
-            -e "s|__PKGVER__|${PKGVER}|g" \
-            -e "s|__APP_SHA__|${APP_SHA}|g" \
-            -e "s|__DESK_SHA__|${DESK_SHA}|g" \
-            -e "s|__ICON_SHA__|${ICON_SHA}|g" \
+            -e "s|__PKGVER__|${PKGVER_ARCH}|g" \
+            -e "s|__SEMVER__|${SEMVER}|g" \
+            -e "s|__APPIMAGE_SHA256__|${APP_SHA}|g" \
+            -e "s|__DESKTOP_SHA256__|${DESK_SHA}|g" \
+            -e "s|__ICON_SHA256__|${ICON_SHA}|g" \
             ../../packaging/arch/PKGBUILD \
             > PKGBUILD
           echo "--- PKGBUILD (head) ---"
-          head -n 40 PKGBUILD
+          head -n 45 PKGBUILD
 
       - name: Arch-Paket im Container bauen
         run: |
@@ -112,7 +119,13 @@ jobs:
             -v "$PWD/dist/arch-build:/work" \
             -w /work \
             archlinux:latest \
-            bash -lc "pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip && useradd -m builder && chown -R builder:builder /work && sudo -u builder makepkg -s --noconfirm"
+            bash -lc "
+              set -euo pipefail
+              pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip
+              useradd -m builder
+              chown -R builder:builder /work
+              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg -s --noconfirm'
+            "
 
       - name: Ergebnis-Artefakt hochladen
         uses: actions/upload-artifact@v4

@@ -228,34 +228,56 @@ jobs:
           mkdir -p dist/arch-build
 
           APPIMAGE_SRC="$(ls dist/*.AppImage | head -n1)"
-          PKGVER="$(node -p "require('./package.json').version")"
-          cp "$APPIMAGE_SRC" "dist/arch-build/webradio-${PKGVER}.AppImage"
-          chmod +x "dist/arch-build/webradio-${PKGVER}.AppImage"
+          # SemVer aus package.json (z.B. "1.0.6-beta.2") – wird für Dateinamen genutzt
+          SEMVER="$(node -p "require('./package.json').version")"
+          # Arch pkgver darf KEINE Bindestriche enthalten → ersetze durch Punkte
+          PKGVER_ARCH="${SEMVER//-/.}"
+
+          # AppImage mit Original-SemVer-Namen ablegen (Dateiname bleibt)
+          cp "$APPIMAGE_SRC" "dist/arch-build/webradio-${SEMVER}.AppImage"
+          chmod +x "dist/arch-build/webradio-${SEMVER}.AppImage"
 
           cp assets/webradio.desktop dist/arch-build/
           cp assets/icons/tray.png dist/arch-build/
 
           cd dist/arch-build
-          APP_SHA="$(sha256sum "webradio-${PKGVER}.AppImage" | awk '{print $1}')"
+
+          # Checksums berechnen
+          APP_SHA="$(sha256sum "webradio-${SEMVER}.AppImage" | awk '{print $1}')"
           DESK_SHA="$(sha256sum webradio.desktop | awk '{print $1}')"
           ICON_SHA="$(sha256sum tray.png | awk '{print $1}')"
 
+          # PKGBUILD aus Template rendern
+          # __PKGVER__ = Arch-kompatible Version (ohne Bindestrich)
+          # __SEMVER__  = Original SemVer (für Dateinamen und pkgdesc)
           sed \
-            -e "s|__PKGVER__|${PKGVER}|g" \
-            -e "s|__APP_SHA__|${APP_SHA}|g" \
-            -e "s|__DESK_SHA__|${DESK_SHA}|g" \
-            -e "s|__ICON_SHA__|${ICON_SHA}|g" \
+            -e "s|__PKGVER__|${PKGVER_ARCH}|g" \
+            -e "s|__SEMVER__|${SEMVER}|g" \
+            -e "s|__APPIMAGE_SHA256__|${APP_SHA}|g" \
+            -e "s|__DESKTOP_SHA256__|${DESK_SHA}|g" \
+            -e "s|__ICON_SHA256__|${ICON_SHA}|g" \
             ../../packaging/arch/PKGBUILD \
             > PKGBUILD
 
           echo "--- PKGBUILD (head) ---"
-          head -n 40 PKGBUILD
+          head -n 45 PKGBUILD
 
+          # makepkg benötigt die Source-Dateien im selben Verzeichnis.
+          # (PKGBUILD referenziert sie ohne file://, d.h. makepkg sucht
+          #  sie im SRCDEST = Arbeitsverzeichnis des Containers)
           docker run --rm \
             -v "$PWD:/work" \
             -w /work \
             archlinux:latest \
-            bash -lc "pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip && useradd -m builder && chown -R builder:builder /work && sudo -u builder makepkg -s --noconfirm"
+            bash -lc "
+              set -euo pipefail
+              pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip
+              useradd -m builder
+              chown -R builder:builder /work
+              # SRCDEST auf das Arbeitsverzeichnis setzen, damit makepkg
+              # die Source-Dateien direkt dort findet (kein Download nötig)
+              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg --noextract --nodeps -s --noconfirm || SRCDEST=/work makepkg -s --noconfirm'
+            "
 
       - name: Prepare Linux Artifacts
         run: |
