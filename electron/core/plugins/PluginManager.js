@@ -269,8 +269,15 @@ class PluginManager {
             }
 
             // Existierendes Plugin: Fingerprint-Vergleich für Änderungen
-            const oldFingerprint = currentPlugin.fingerprint;
+            let oldFingerprint = currentPlugin.fingerprint;
             const newFingerprint = newPlugin.fingerprint;
+
+            // Falls alter Fingerprint fehlt (z.B. von vor Fingerprint-Implementierung),
+            // Fingerprint nachträglich berechnen
+            if (!oldFingerprint) {
+                oldFingerprint = PluginLoader.createFingerprint(currentPlugin);
+                currentPlugin.fingerprint = oldFingerprint;
+            }
 
             if (oldFingerprint !== newFingerprint) {
                 try {

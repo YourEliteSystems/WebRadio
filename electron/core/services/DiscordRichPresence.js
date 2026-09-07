@@ -2,6 +2,9 @@ const RPC = require("discord-rpc");
 const eventBus = require("../eventBus");
 const SettingsManager = require("../storage/SettingsManager");
 const LogManager = require("../diagnostics/logging/LogManager");
+const fs = require("fs");
+const path = require("path");
+const { app } = require("electron");
 
 const logger = LogManager.getLogger("DiscordRichPresence");
 
@@ -22,6 +25,9 @@ class DiscordRichPresence {
 
   initialize() {
     try {
+      // Migration: Falls Discord-RPC Status in integrations.json liegt, zu settings.json migrieren
+      this._migrateFromLegacyStorage();
+
       const settings = SettingsManager.get();
       this.isEnabled = settings.integrations?.discordRichPresence === true;
 
@@ -33,6 +39,36 @@ class DiscordRichPresence {
       logger.info("Discord Rich Presence initialized");
     } catch (err) {
       logger.error("Failed to initialize Discord Rich Presence:", err);
+    }
+  }
+
+  _migrateFromLegacyStorage() {
+    try {
+      const legacyConfigPath = path.join(app.getPath("userData"), "integrations/integrations.json");
+      if (!fs.existsSync(legacyConfigPath)) {
+        return;
+      }
+
+      const legacyConfig = JSON.parse(fs.readFileSync(legacyConfigPath, "utf8"));
+      const discordConfig = legacyConfig.integrations?.["discord-rpc"];
+
+      if (discordConfig && discordConfig.enabled !== undefined) {
+        const settings = SettingsManager.get();
+        if (!settings.integrations) settings.integrations = {};
+        
+        // Nur migrieren, wenn noch kein Wert in settings.json existiert
+        if (settings.integrations.discordRichPresence === undefined) {
+          settings.integrations.discordRichPresence = discordConfig.enabled;
+          SettingsManager.update(settings);
+          logger.info(`Discord-RPC Status von integrations.json migriert: ${discordConfig.enabled}`);
+        }
+
+        // Legacy-Datei nach erfolgreicher Migration löschen
+        fs.unlinkSync(legacyConfigPath);
+        logger.info("Legacy integrations.json nach Migration gelöscht");
+      }
+    } catch (err) {
+      logger.warn(`Migration von integrations.json fehlgeschlagen: ${err.message}`);
     }
   }
 

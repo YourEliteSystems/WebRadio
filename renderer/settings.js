@@ -10,7 +10,9 @@ async function loadIntegrations() {
   const integrations = await window.integrationsAPI.get();
   const toggle = document.getElementById("discordRpcToggle");
   if (toggle) {
-    toggle.checked = integrations.discordRichPresence === true;
+    // Discord-RPC aus der Liste der Integrationen finden
+    const discordIntegration = integrations.find(i => i.id === "discord-rpc");
+    toggle.checked = discordIntegration?.enabled === true;
   }
 }
 
@@ -20,7 +22,8 @@ async function saveIntegrations() {
   const toggle = document.getElementById("discordRpcToggle");
   const discordRichPresence = toggle ? toggle.checked : false;
 
-  await window.integrationsAPI.update({ discordRichPresence });
+  // Discord-RPC über die neue API aktualisieren
+  await window.integrationsAPI.update({ id: "discord-rpc", enabled: discordRichPresence });
 }
 
 document.getElementById("discordRpcToggle")?.addEventListener("change", () => saveIntegrations());
