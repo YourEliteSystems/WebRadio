@@ -4,6 +4,41 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.6-beta.3] – 2026-09-07
+
+> Bugfixes für Discord RPC, Plugin Fingerprinting und EventBus sowie umfassende Regressionstests.
+
+### 🐛 Bugfixes
+
+- **Discord RPC (BUG-001/002)**:
+  - Konsolidierung auf Single Source of Truth (`settings.json`)
+  - Entfernung der parallelen `integrations.json` für Discord-RPC
+  - Legacy-Migration von `integrations/discord-rpc` nach `settings.json`
+  - Virtuelle Integration im IPC-Handler für konsistente API
+- **Plugin Fingerprinting (BUG-004)**:
+  - Fallback-Logik für fehlende Fingerprints hinzugefügt
+  - Plugin-Reload erkennt jetzt korrekt unveränderte Plugins
+  - Verhindert unnötige Neustarts von unveränderten Plugins
+- **EventBus (BUG-005)**:
+  - False Positive bestätigt – Implementierung bereits korrekt
+  - `once()` Listener Cleanup funktioniert wie erwartet
+  - `off()` entfernt korrekt wrapped callbacks über `_originalCb`
+
+### 🧪 Tests
+
+- **Discord RPC Regressionstests** (`scripts/tests/discord-rpc.test.js`):
+  - 8 Tests für Single Source of Truth, Persistence, Legacy Migration und IPC Integration
+- **EventBus Regressionstests** (`scripts/tests/eventbus.test.js`):
+  - 14 Tests für normale Listener, `once()`, `off()`, Listener Counts und Event Names
+- **Plugin Fingerprint Regressionstests** (`scripts/tests/plugin-fingerprint.test.js`):
+  - 6 Tests für Initialisierung, unveränderte/geänderte/neue/entfernte Plugins und Fallback
+
+### 🔧 Code Quality
+
+- Entfernung von Dead Code (`electron/core/events/EventBus.js` – leere Datei)
+
+---
+
 ## [v1.0.6-beta.2] – 2026-09-05
 
 > Update System v1 mit Stable- und Beta-Kanälen, native Arch Linux Paketierungs-Unterstützung (.pkg.tar.zst) und Plugin-Discovery-Laufzeit-Rescan.
