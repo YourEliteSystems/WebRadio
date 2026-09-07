@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.yourelitesystems.webradio</id>
+  <launchable type="desktop-id">webradio.desktop</launchable>
+  <name>WebRadio</name>
+  <summary>Modern desktop radio player with plugin system</summary>
+  <description>
+    <p>WebRadio is a modern, extensible desktop radio player built with Electron and React. It features a plugin system, theme engine, and FFmpeg-based stream decoding for thousands of online radio stations from the Radio Browser API.</p>
+    <p>Key features:</p>
+    <ul>
+      <li>Plugin system for extensibility</li>
+      <li>Theme engine for customization</li>
+      <li>FFmpeg-based stream decoding</li>
+      <li>Access to thousands of online radio stations</li>
+      <li>Cross-platform support (Windows, Linux, macOS)</li>
+    </ul>
+  </description>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <url type="homepage">https://github.com/YourEliteSystems/WebRadio</url>
+  <url type="bugtracker">https://github.com/YourEliteSystems/WebRadio/issues</url>
+  <url type="donation">https://github.com/YourEliteSystems/WebRadio</url>
+  <developer_name>Your Elite Systems</developer_name>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="1.0.6-beta.3" date="2026-09-07">
+      <description>
+        <p>Bugfixes for Discord RPC, Plugin Fingerprinting and EventBus as well as comprehensive regression tests.</p>
+      </description>
+    </release>
+  </releases>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>Player</category>
+    <category>Network</category>
+  </categories>
+  <keywords>
+    <keyword>radio</keyword>
+    <keyword>player</keyword>
+    <keyword>stream</keyword>
+    <keyword>audio</keyword>
+    <keyword>webradio</keyword>
+  </keywords>
+  <provides>
+    <binary>webradio</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+</component>

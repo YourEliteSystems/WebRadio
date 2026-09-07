@@ -37,6 +37,21 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 - Entfernung von Dead Code (`electron/core/events/EventBus.js` – leere Datei)
 
+### 🐧 Linux / AppImage
+
+- **AppImage-Metadaten verbessert**:
+  - X-AppImage-Name und X-AppImage-Version zu electron-builder.yml hinzugefügt
+  - Bessere Desktop-Integration und Update-Erkennung
+- **AppStream-Metainfo ergänzt**:
+  - `assets/org.yourelitesystems.webradio.metainfo.xml` erstellt
+  - Software-Center-Integration für Linux-Distributionen
+- **SHA256SUMS**:
+  - Bestehendes Release-Infrastructure-System deckt .AppImage und .deb ab
+  - Automatische SHA256-Generierung in CI/CD
+- **Wayland-Dokumentation**:
+  - CROSS_PLATFORM_SETUP.md mit Wayland-Support-Dokumentation erweitert
+  - XWayland-Fallback und Verhalten dokumentiert
+
 ---
 
 ## [v1.0.6-beta.2] – 2026-09-05

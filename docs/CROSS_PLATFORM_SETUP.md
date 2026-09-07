@@ -137,6 +137,30 @@ The `.desktop` file at `assets/webradio.desktop` provides:
 bei AppImage und .deb automatisch. Der `PKGBUILD` installiert sie
 nach `/usr/share/applications` und `/usr/share/icons/hicolor`.
 
+### Wayland Support
+
+WebRadio is built on Electron, which provides limited native Wayland support. The actual display server behavior depends on your distribution and desktop environment.
+
+**Current Status:**
+- WebRadio runs on modern Linux desktop environments using either X11 or Wayland
+- Electron/Chromium may use XWayland as a compatibility layer on Wayland-based systems
+- No project-specific Wayland limitations are currently known
+
+**Expected Behavior:**
+- On Wayland-native desktops (GNOME 40+, KDE Plasma 5.20+ with Wayland session), WebRadio typically runs via XWayland
+- On X11-based desktops, WebRadio runs natively on X11
+- The specific behavior depends on your distribution's Electron package and configuration
+
+**Known Considerations:**
+- System tray integration may have limited functionality on pure Wayland sessions (depends on desktop environment)
+- Window controls and behavior are consistent across X11 and XWayland
+- Audio playback (ALSA/PulseAudio/PipeWire) works independently of display server
+
+**No Configuration Required:**
+WebRadio does not force specific Wayland or X11 flags. The application uses Electron's default behavior, which automatically adapts to your system's display server configuration.
+
+If you experience display-related issues specific to your Wayland environment, please report them with details about your distribution and desktop environment.
+
 ### FFmpeg
 
 `ffmpeg-static` liefert eine vorkompilierte Linux x86_64 Binary.

@@ -426,6 +426,108 @@ test("userData-Konfiguration nutzt app.getPath()", () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// 9. AppImage Metadata Tests (v1.0.6-beta.3+)
+// ─────────────────────────────────────────────────────────────
+console.log("\n[9] AppImage Metadata");
+
+test("electron-builder.yml enthält X-AppImage-Name", () => {
+    const yml = fs.readFileSync(path.join(ROOT, "electron-builder.yml"), "utf8");
+    assert.ok(/X-AppImage-Name:\s*WebRadio/.test(yml), "X-AppImage-Name fehlt");
+});
+
+test("electron-builder.yml enthält X-AppImage-Version", () => {
+    const yml = fs.readFileSync(path.join(ROOT, "electron-builder.yml"), "utf8");
+    assert.ok(/X-AppImage-Version:\s*\$\{version\}/.test(yml), "X-AppImage-Version fehlt");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 10. SHA256SUMS Tests
+// ─────────────────────────────────────────────────────────────
+console.log("\n[10] SHA256SUMS");
+
+test("SHA256-System vorhanden (scripts/release/checksums.js)", () => {
+    const checksumsScript = path.join(ROOT, "scripts", "release", "checksums.js");
+    assert.ok(exists(checksumsScript), "checksums.js fehlt");
+});
+
+test("SHA256-System deckt .AppImage ab", () => {
+    const constants = path.join(ROOT, "scripts", "release", "constants.js");
+    const s = fs.readFileSync(constants, "utf8");
+    assert.ok(/\.AppImage/.test(s), ".AppImage nicht in ASSET_EXTENSIONS");
+});
+
+test("SHA256-System deckt .deb ab", () => {
+    const constants = path.join(ROOT, "scripts", "release", "constants.js");
+    const s = fs.readFileSync(constants, "utf8");
+    assert.ok(/\.deb/.test(s), ".deb nicht in ASSET_EXTENSIONS");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 11. AppStream Metainfo Tests
+// ─────────────────────────────────────────────────────────────
+console.log("\n[11] AppStream Metainfo");
+
+test("AppStream metainfo.xml vorhanden", () => {
+    const metainfo = path.join(ROOT, "assets", "org.yourelitesystems.webradio.metainfo.xml");
+    assert.ok(exists(metainfo), "metainfo.xml fehlt");
+});
+
+test("AppStream metainfo.xml ist valides XML", () => {
+    const metainfo = path.join(ROOT, "assets", "org.yourelitesystems.webradio.metainfo.xml");
+    const content = fs.readFileSync(metainfo, "utf8");
+    assert.ok(content.includes('<?xml version="1.0"'), "XML-Header fehlt");
+    assert.ok(content.includes('<component'), "component-Tag fehlt");
+    assert.ok(content.includes('</component>'), "component-End-Tag fehlt");
+});
+
+test("AppStream metainfo.xml enthält Application ID", () => {
+    const metainfo = path.join(ROOT, "assets", "org.yourelitesystems.webradio.metainfo.xml");
+    const content = fs.readFileSync(metainfo, "utf8");
+    assert.ok(/<id>org\.yourelitesystems\.webradio<\/id>/.test(content), "Application ID fehlt");
+});
+
+test("AppStream metainfo.xml enthält Name", () => {
+    const metainfo = path.join(ROOT, "assets", "org.yourelitesystems.webradio.metainfo.xml");
+    const content = fs.readFileSync(metainfo, "utf8");
+    assert.ok(/<name>WebRadio<\/name>/.test(content), "Name fehlt");
+});
+
+test("AppStream metainfo.xml enthält Version", () => {
+    const metainfo = path.join(ROOT, "assets", "org.yourelitesystems.webradio.metainfo.xml");
+    const content = fs.readFileSync(metainfo, "utf8");
+    assert.ok(/<release version=/.test(content), "Version fehlt");
+});
+
+test("electron-builder.yml enthält metainfo.xml in files", () => {
+    const yml = fs.readFileSync(path.join(ROOT, "electron-builder.yml"), "utf8");
+    assert.ok(/org\.yourelitesystems\.webradio\.metainfo\.xml/.test(yml), "metainfo.xml nicht in files");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 12. Wayland Documentation Tests
+// ─────────────────────────────────────────────────────────────
+console.log("\n[12] Wayland Documentation");
+
+test("Wayland-Dokumentation in CROSS_PLATFORM_SETUP.md vorhanden", () => {
+    const doc = path.join(ROOT, "docs", "CROSS_PLATFORM_SETUP.md");
+    const content = fs.readFileSync(doc, "utf8");
+    assert.ok(/Wayland/i.test(content), "Wayland-Dokumentation fehlt");
+});
+
+test("Wayland-Dokumentation erwähnt XWayland", () => {
+    const doc = path.join(ROOT, "docs", "CROSS_PLATFORM_SETUP.md");
+    const content = fs.readFileSync(doc, "utf8");
+    assert.ok(/XWayland/i.test(content), "XWayland nicht dokumentiert");
+});
+
+test("Wayland-Dokumentation erwähnt keine projektspezifischen Einschränkungen", () => {
+    const doc = path.join(ROOT, "docs", "CROSS_PLATFORM_SETUP.md");
+    const content = fs.readFileSync(doc, "utf8");
+    assert.ok(/No project-specific Wayland limitations/i.test(content), 
+        "Erklärung zu projektspezifischen Einschränkungen fehlt");
+});
+
+// ─────────────────────────────────────────────────────────────
 // Zusammenfassung
 // ─────────────────────────────────────────────────────────────
 console.log("\n==========================================");

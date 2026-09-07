@@ -12,6 +12,7 @@ files:
   - assets/**/*
   - package.json
   - app-update.yml
+  - assets/org.yourelitesystems.webradio.metainfo.xml
 
 extraResources:
   - from: themes
@@ -115,6 +116,8 @@ linux:
       StartupNotify: "true"
       StartupWMClass: WebRadio
       Type: Application
+      X-AppImage-Name: WebRadio
+      X-AppImage-Version: ${version}
 
   # Icons: electron-builder erzeugt aus assets/icons/tray.png
   # automatisch die Standard-Hicon-Größen.
