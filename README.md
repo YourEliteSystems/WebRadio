@@ -2,7 +2,7 @@
 
 > Ein moderner, erweiterbarer Desktop-Radioplayer von **Your Elite Systems** – gebaut mit Electron, React 19 und FFmpeg.
 
-[![Version](https://img.shields.io/badge/version-1.0.5-6366f1?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.6--beta.3-6366f1?style=flat-square)](./CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=flat-square)](./LICENSE)
 
@@ -38,10 +38,10 @@ WebRadio ist ein plattformübergreifender Desktop-Radioplayer mit einem modernen
 git clone https://github.com/YourEliteSystems/WebRadio.git
 cd WebRadio
 npm install
-npm start
+npm run dev
 ```
 
-`npm start` baut zuerst das React-Frontend mit esbuild und startet danach Electron im Entwicklungsmodus.
+`npm run dev` baut zuerst das React-Frontend mit esbuild und startet danach Electron im Entwicklungsmodus.
 
 ---
 
@@ -62,7 +62,7 @@ npm start
 
 | Befehl | Zweck |
 | --- | --- |
-| `npm start` | Entwicklungsmodus starten |
+| `npm run dev` | Entwicklungsmodus starten |
 | `npm run build` | Renderer (React) produktions-bauen |
 | `npm run dist` | Installer für die aktuelle Plattform |
 | `npm run dist:win` | Windows-Installer (NSIS + Portable) |

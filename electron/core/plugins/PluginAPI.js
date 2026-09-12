@@ -2,7 +2,6 @@
 
 const eventBus = require("../eventBus");
 const fs = require("fs");
-const path = require("path");
 const PluginStorage = require("./PluginStorage");
 const UIManager = require("../ui/UIManager");
 const NavigationManager = require("../navigation/NavigationManager");

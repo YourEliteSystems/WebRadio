@@ -8,8 +8,6 @@
 
 'use strict';
 
-const path = require('node:path');
-
 const semver = require('./semver');
 
 const utils = require('./utils');
@@ -17,7 +15,6 @@ const utils = require('./utils');
 const constants = require('./constants');
 
 const {
-    ValidationError,
     VersionError,
     ChangelogError,
     PackageError

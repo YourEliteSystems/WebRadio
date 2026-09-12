@@ -2,7 +2,7 @@
 // Use ShortcutManager instead for all shortcut management.
 // Kept for backward compatibility only.
 
-const { globalShortcut, BrowserWindow } = require("electron");
+const { globalShortcut } = require("electron");
 const LogManager = require("./diagnostics/logging/LogManager");
 
 const logger = LogManager.getLogger("MediaKeys");

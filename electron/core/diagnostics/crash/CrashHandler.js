@@ -1,4 +1,3 @@
-const path = require("path");
 const LogManager = require("../logging/LogManager");
 
 class CrashHandler {

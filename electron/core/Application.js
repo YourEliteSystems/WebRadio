@@ -47,6 +47,7 @@ const ThemeManager = require("./themes/ThemeManager");
 
 const ShortcutManager = require("./ShortcutManager");
 const { createTray, destroyTray } = require("./system/tray");
+const streamManager = require("./audio/streamManager");
 
 // ─────────────────────────────────────────────
 // Updater
@@ -135,6 +136,10 @@ class Application {
         CrashReportManager.shutdown();
         CrashHandler.shutdown();
         updateManager.dispose();
+        // Aktiven FFmpeg-/Stream-Prozess stoppen, damit beim App-Exit
+        // kein verwaister ffmpeg-Prozess weiterläuft (Regression: fehlte
+        // nach der Refaktorierung auf Application.shutdown()).
+        streamManager.stop();
         LogManager.shutdown();
         ShortcutManager.shutdown();
         await this.shutdownServices();

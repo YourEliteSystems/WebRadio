@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 
-const StorageManager = require("../storage/StorageManager");
 const LogManager = require("../diagnostics/logging/LogManager");
 
 const logger = LogManager.getLogger("IntegrationLoader");

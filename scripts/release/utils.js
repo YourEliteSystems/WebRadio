@@ -9,7 +9,6 @@
 'use strict';
 
 const fs = require('node:fs');
-const path = require('node:path');
 const crypto = require('node:crypto');
 const { execSync } = require('node:child_process');
 
