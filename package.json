@@ -6,7 +6,7 @@
   "author": "Your Elite Systems",
   "desktopName": "WebRadio",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "npm run build-react && electron .",
@@ -18,6 +18,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "dist": "electron-builder",
+    "_argdebug": "node scripts/_debug-args.js",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
     "dist:linux:appimage": "electron-builder --linux AppImage",
