@@ -5,24 +5,31 @@
  *
  * Provider für Linux AppImage-Updates.
  *
- * Aktueller Status: VORBEREITET (nicht vollständig implementiert)
+ * Aktiver Status (Beta 4): Produktiv aktiv. Delegiert an electron-updater
+ * in Kombination mit GitHub Releases (latest-linux.yml / beta-linux.yml),
+ * die electron-builder fuer das AppImage-Target erzeugt.
  *
- * Dieser Provider ist als Platzhalter für eine zukünftige AppImageUpdate-Integration
- * konzipiert. Die vollständige Implementierung erfordert:
+ * electron-updater unterstuetzt AppImage-Updates nativ:
+ *   - Check   -> latest-linux.yml / beta-linux.yml (GitHub Releases) mit
+ *                zentraler Stable/Beta-Semantik (allowPrerelease,
+ *                allowDowngrade, channel) – konfiguriert im UpdateManager.
+ *   - Download -> AppImage-Blockmap-Download via electron-updater.
+ *   - Install  -> quitAndInstall() ersetzt die AppImage beim Beenden.
  *
- * 1. AppImageUpdate-Integration (appimageupdatetool-binaries)
- * 2. zsync-Unterstützung im Build-Prozess
- * 3. Einbettung von Update-Metadaten in das AppImage
- * 4. SHA256-Verifikation für AppImage-Artefakte
- * 5. Stable/Beta-Channel-Integration für AppImage
+ * Integritaet: electron-updater verifiziert die heruntergeladene AppImage-Datei
+ * anhand der sha512/size-Angaben aus der yml-Metadatei automatisch.
  *
- * Bis diese Voraussetzungen erfüllt sind, delegiert dieser Provider an GitHub Releases
- * und informiert den Benutzer über manuelle Update-Optionen.
+ * Noch NICHT implementiert (Future Work, sauber dokumentiert, nicht vorgetaeuscht):
+ *   - Inkrementelles Update via appimageupdatetool + zsync-Metadaten
+ *     (erfordert AppImageUpdate-Build-Tooling, zsync-Server und Einbettung
+ *      von Update-Metadaten in die AppImage). Das hier verwendete Verfahren
+ *      laedt stattdessen staets die vollstaendige neue AppImage-Datei herunter.
  *
  * Designprinzipien:
- *  - Saubere Architektur für zukünftige AppImageUpdate-Integration
- *  - Keine fragilen Workarounds
- *  - Konsistente API mit anderen Providern
+ *   - Saubere Architektur, bei Bedarf erweiterbar fuer AppImageUpdate-Tooling
+ *   - autoDownload bleibt false (Benutzer muss Download/Installation
+ *     explizit ausloesen) – durch den UpdateManager sichergestellt
+ *   - Konsistente API mit anderen Providern
  */
 
 const BaseUpdateProvider = require("./BaseUpdateProvider");
@@ -32,7 +39,9 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
     constructor(autoUpdater) {
         super();
         this._autoUpdater = autoUpdater;
-        this._reason = "AppImage automatic updates are not yet fully implemented";
+        // Grund, der in Diagnose-Antworten erscheint, wenn kein AutoUpdater
+        // verfuegbar ist (z.B. `npm run dev`).
+        this._reason = "AppImage-Updater verfuegbar nur in gepackten Builds via electron-updater";
     }
 
     getProviderType() {
@@ -43,38 +52,53 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
         return runtimeInfo.platform === "linux" && runtimeInfo.isAppImage;
     }
 
+    /**
+     * Prüft auf verfügbare Updates.
+     *
+     * Delegiert an electron-updater, der die plattformspezifische
+     * Metadatendatei (latest-linux.yml / beta-linux.yml) auswertet.
+     * Stable/Beta-Semantik (Kanal, Prerelease, Downgrade) wird zentral
+     * im UpdateManager über `_configureAutoUpdater()` gesetzt.
+     */
     async checkForUpdates() {
-        // TODO: Vollständige AppImageUpdate-Integration
-        // - AppImageUpdate-Tool aufrufen
-        // - zsync-Metadaten prüfen
-        // - SHA256 verifizieren
-        // - Stable/Beta-Channel berücksichtigen
-
-        // Fallback: GitHub Releases prüfen (wie electron-updater)
         if (!this._autoUpdater) {
             return {
                 status: "unsupported",
                 code: "UPDATER_NOT_AVAILABLE",
                 message: this._reason,
-                suggestion: "Please download the latest AppImage from GitHub Releases manually."
+                suggestion: "Bitte lade die neueste AppImage manuell von den GitHub Releases herunter."
             };
         }
 
         try {
             const result = await this._autoUpdater.checkForUpdates();
+
+            // electron-updater liefert updateInfo == null, wenn kein neueres
+            // Release vorliegt. `version` ist dann die installierte Version.
             if (!result || !result.updateInfo) {
                 return {
                     status: "up-to-date",
                     currentVersion: result?.version || null
                 };
             }
+
+            // Ungültige Antwort ohne Versionsangabe abfangen.
+            if (!result.updateInfo.version) {
+                return {
+                    status: "error",
+                    code: "INVALID_RESPONSE",
+                    message: "Update-Antwort ohne Versionsangabe erhalten."
+                };
+            }
+
             return {
                 status: "available",
                 version: result.updateInfo.version,
-                releaseNotes: result.updateInfo.releaseNotes,
-                releaseDate: result.updateInfo.releaseDate,
-                files: result.updateInfo.files,
-                note: "Automatic AppImage updates are not yet implemented. Please download manually from GitHub Releases."
+                releaseNotes: result.updateInfo.releaseNotes || null,
+                releaseDate: result.updateInfo.releaseDate || null,
+                files: result.updateInfo.files || null,
+                // Hinweis: vollständiger AppImage-Download (kein inkrementelles Update).
+                note: "Die neue AppImage-Datei wird vollständig heruntergeladen."
             };
         } catch (err) {
             return {
@@ -85,28 +109,96 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
         }
     }
 
+    /**
+     * Lädt ein gefundenes Update herunter (Benutzer-ausgelöst).
+     *
+     * Delegiert an electron-updater. Das Ergebnis wird asynchron über den
+     * "update-downloaded"-Listener im UpdateManager verarbeitet.
+     */
     async downloadUpdate() {
-        // TODO: AppImageUpdate-Download-Implementierung
-        return {
-            status: "unsupported",
-            code: "NOT_IMPLEMENTED",
-            message: this._reason,
-            suggestion: "Please download the latest AppImage from GitHub Releases manually."
-        };
+        if (!this._autoUpdater) {
+            return {
+                status: "unsupported",
+                code: "UPDATER_NOT_AVAILABLE",
+                message: this._reason,
+                suggestion: "Bitte lade die neueste AppImage manuell von den GitHub Releases herunter."
+            };
+        }
+
+        try {
+            await this._autoUpdater.downloadUpdate();
+            return { status: "downloading" };
+        } catch (err) {
+            return {
+                status: "error",
+                code: "DOWNLOAD_FAILED",
+                message: err.message || "Update konnte nicht heruntergeladen werden"
+            };
+        }
     }
 
+    /**
+     * Installiert ein heruntergeladenes Update (Benutzer-ausgelöst).
+     *
+     * electron-updater ersetzt die AppImage-Datei beim Beenden via
+     * quitAndInstall(). Nur zulässig, wenn ein Update vollständig
+     * heruntergeladen ist.
+     */
     async installUpdate() {
-        // TODO: AppImageUpdate-Install-Implementierung
-        return {
-            status: "unsupported",
-            code: "NOT_IMPLEMENTED",
-            message: this._reason,
-            suggestion: "Please download the latest AppImage from GitHub Releases manually."
-        };
+        if (!this._autoUpdater) {
+            return {
+                status: "unsupported",
+                code: "UPDATER_NOT_AVAILABLE",
+                message: this._reason,
+                suggestion: "Bitte lade die neueste AppImage manuell von den GitHub Releases herunter."
+            };
+        }
+
+        // Sicherstellen, dass ein Download erfolgreich war.
+        if (!this._isInstalledReady()) {
+            return {
+                status: "error",
+                code: "NOT_DOWNLOADED",
+                message: "Kein heruntergeladenes Update vorhanden. Bitte zuerst herunterladen."
+            };
+        }
+
+        try {
+            // isSilent=false, isForceRunAfter=false => explizite Benutzeraktion.
+            this._autoUpdater.quitAndInstall(false, false);
+            return { status: "installing" };
+        } catch (err) {
+            return {
+                status: "error",
+                code: "INSTALL_FAILED",
+                message: err.message || "Update konnte nicht installiert werden"
+            };
+        }
     }
 
     dispose() {
-        // Keine Ressourcen zu bereinigen
+        // Keine eigenen Ressourcen; electron-updater wird vom UpdateManager disposed.
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // Interne Helfer
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Heuristik: Wurde ein Update vollständig heruntergeladen?
+     * electron-updater >= 5.x stellt isUpdateDownloaded() bereit.
+     */
+    _isInstalledReady() {
+        if (!this._autoUpdater) return false;
+        try {
+            if (typeof this._autoUpdater.isUpdateDownloaded === "function") {
+                return !!this._autoUpdater.isUpdateDownloaded();
+            }
+            // Fallback: wenn kein API-Zugriff möglich, nicht freigeben.
+            return false;
+        } catch {
+            return false;
+        }
     }
 }
 

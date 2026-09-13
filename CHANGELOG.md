@@ -4,6 +4,44 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.6-beta.4] – 2026-09-11
+
+> Provider-Architektur ist jetzt produktiv aktiv, Linux-AppImage-Updates werden über den LinuxAppImageUpdateProvider geroutet, Audio- und RadioBrowser-Tests ergänzt, Lint- und Release-Qualität verbessert.
+
+### 🔄 Update-System v1.1 (Provider-Architektur aktiviert)
+
+- **Provider-Routing in UpdateManager**:
+  - `RuntimeDetector` + `ProviderFactory` werden jetzt zur Laufzeit im UpdateManager genutzt.
+  - **Windows** → `WindowsUpdateProvider` (electron-updater, unverändert).
+  - **Linux AppImage** → `LinuxAppImageUpdateProvider`.
+  - **Linux .deb / Arch / macOS / unknown** → `UnsupportedUpdateProvider` (Updates über System-Paketmanager).
+  - Development/`npm run dev` → kein Produktions-Updater.
+- **LinuxAppImageUpdateProvider vervollständigt**:
+  - GitHub-basierter Update-Check über electron-updater (`latest-linux.yml` / `beta-linux.yml`).
+  - Download/Install delegieren an electron-updater, wenn ein AutoUpdater verfügbar ist; andernfalls saubere „unsupported"-Antwort mit manueller Anleitung.
+  - `autoDownload = false` bleibt aktiv – Benutzer muss den Download explizit auslösen.
+- **Stable/Beta-Semantik unverändert zentral**:
+  - Stable → nur stable Releases; Beta → stable + Pre-Releases (ohne alpha).
+  - allowDowngrade für Beta→Stable-Wechsel bleibt erhalten.
+- **AppImage-Metadaten**: X-AppImage-Name/Version (electron-builder.yml) geprüft, AppStream-Metainfo vorhanden, SHA256SUMS via Release-Infrastruktur.
+
+### 🧪 Tests (neue Suiten)
+
+- **Provider-Routing-Tests** (`scripts/tests/provider-routing.test.js`):
+  - korrektes Provider-Routing für Windows / AppImage / deb / arch / macOS / unknown / development
+  - Unsupported-Gate im UpdateManager (keine electron-updater-Aufrufe auf deb/arch)
+- **StreamManager-Tests** (`scripts/tests/streamManager.test.js`):
+  - Start, Stop, Restart, Stationwechsel, FFmpeg-SIGTERM, Fehler, ungültiger Stream, mehrfaches Stoppen, Listener-/Prozess-Cleanup, Shutdown
+  - Zusätzlich: Regressionstest, dass `Application.shutdown()` den Stream stoppt (kein Zombie-Prozess)
+- **RadioBrowser-Tests** (`scripts/tests/radioBrowser.test.js`):
+  - erfolgreiche Suche, leere Ergebnisse, API-/Netzwerkfehler, Timeout, ungültige Antworten, Feldvalidierung, Logo/Fallback-Hilfen, Filter- und Limit-Semantik
+
+### 🐛 Bugfixes
+
+- UpdateManager: Auto-Check & Listener-Wiring werden bei nicht unterstützten Packaging-Typen (deb/arch/macOS) nicht mehr gestartet.
+
+---
+
 ## [v1.0.6-beta.3] – 2026-09-07
 
 > Bugfixes für Discord RPC, Plugin Fingerprinting und EventBus sowie umfassende Regressionstests.

@@ -29,19 +29,15 @@ asar: true
 # ──────────────────────────────────────────────────────────────────
 # Update System v1 (electron-updater / GitHub Releases)
 #
-# Erzeugt je nach Git-Tag Stable- oder Beta-Update-Metadaten
-# (latest*.yml / beta*.yml). Der aktive Kanal ("latest" / "beta")
-# wird NICHT hier gesetzt, sondern zur Laufzeit durch UpdateChannel.js
-# via autoUpdater.channel bestimmt.
-#
-# generateUpdatesFilesForAllChannels sorgt dafür, dass für jedes
-# Target die plattform-spezifischen Metadaten beider Kanäle erzeugt
-# werden (latest.yml, beta.yml, latest-linux.yml …), damit der
-# Updater ohne Rate-Limits und ohne User-Eingriff arbeiten kann.
+# Standard-Channel ist "latest". In CI-Workflows (release.yml) wird der
+# Channel bei Bedarf dynamisch über -c.publish.channel=<channel> übersteuert.
 # ──────────────────────────────────────────────────────────────────
 publish:
   - provider: github
+    owner: YourEliteSystems
+    repo: WebRadio
     releaseType: release
+    channel: latest
 
 generateUpdatesFilesForAllChannels: true
 
@@ -89,6 +85,13 @@ linux:
     - target: deb
       arch:
         - x64
+
+  publish:
+    - provider: github
+      owner: YourEliteSystems
+      repo: WebRadio
+      releaseType: release
+      channel: latest
 
   # Synchronisiere den in package.json gesetzten desktopName automatisch
   # in die generierte .desktop-Datei. Damit passt der StartupWMClass zum

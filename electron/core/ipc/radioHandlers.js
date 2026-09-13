@@ -17,6 +17,15 @@ function registerRadioHandlers(windowManager) {
     streamManager.stop();
   });
 
+  // Gezielte Audio-Diagnostik: kombiniert StreamManager-Zustand (Main) mit
+  // den Worklet-Zählern (Renderer liefert sie über preload mit).
+  ipcMain.handle("radio:getAudioDiagnostics", async (_event, worklet) => {
+    return {
+      stream: streamManager.getDiagnostics(),
+      worklet: worklet || null
+    };
+  });
+
   ipcMain.handle("radio:getCountries", async () => {
     return await radioService.getCountries();
   });

@@ -34,6 +34,12 @@ const UpdateState = require("./UpdateState");
 const UpdateChannel = require("./UpdateChannel");
 const MarkdownSanitizer = require("./MarkdownSanitizer");
 
+// Beta 4: Provider-Routing. Die bestehende electron-updater-Logik
+// (Windows/NSIS + Linux AppImage) bleibt unverändert. Der
+// ProviderFactory wählt den passenden Provider anhand der Runtime.
+const RuntimeDetector = require("../platform/RuntimeDetector");
+const ProviderFactory = require("./providers/ProviderFactory");
+
 const logger = LogManager.getLogger("Updater");
 
 // electron-updater wird NUR in packaged/production-Builds aktiv.
@@ -80,6 +86,10 @@ class UpdateManager {
         this._cachedUpdateInfo = null;
         this._downloadedFile = null;
         this._autoCheck = DEFAULT_AUTO_CHECK;
+
+        // Beta 4: Provider-Routing State
+        this._provider = null;
+        this._runtimeInfo = null;
     }
 
     // ─────────────────────────────────────────────
@@ -89,6 +99,9 @@ class UpdateManager {
     /**
      * Idempotente Initialisierung. Darf nur einmal aufgerufen werden.
      * Mehrfacher Aufruf ist ein no-op.
+     *
+     * Beta 4: Ermittelt zusätzlich die Runtime (RuntimeDetector) und
+     * wählt den passenden Update-Provider über den ProviderFactory.
      */
     initialize() {
         if (this._initialized || this._initializing) {
@@ -102,6 +115,30 @@ class UpdateManager {
             this._autoCheck = this._shouldAutoCheck(settings);
             // currentVersion JEDES Mal setzen, auch nach dispose()/re-init
             this._state.currentVersion = app.getVersion();
+
+            // Beta 4: Runtime-Erkennung + Provider-Auswahl.
+            // Fehler hier dürfen den bestehenden Updater NICHT brechen.
+            try {
+                const fs = require("fs");
+                const path = require("path");
+                this._runtimeInfo = RuntimeDetector.detectRuntime(
+                    app, process, fs, path
+                );
+                this._provider = ProviderFactory.createProvider(
+                    app, autoUpdater, fs, path
+                );
+                logger.info(
+                    `[Updater] Runtime: ${this._runtimeInfo.platform}/` +
+                    `${this._runtimeInfo.packaging} ` +
+                    `(provider=${this._provider.getProviderType()})`
+                );
+            } catch (providerErr) {
+                logger.warn(
+                    `[Updater] Provider-Routing fehlgeschlagen: ${providerErr.message}`
+                );
+                this._runtimeInfo = null;
+                this._provider = null;
+            }
 
             logger.info(`[Updater] Initialized`);
             logger.info(`[Updater] Channel: ${this._state.channel}`);
@@ -122,8 +159,15 @@ class UpdateManager {
             this._state.error = null;
             this._setStatus(UpdateState.STATES.IDLE);
 
-            // Auto-Check nur in produktiven, packaged Builds.
-            if (isPackaged && this._shouldAutoCheck(settings)) {
+            // Auto-Check nur in produktiven, packaged Builds und nur,
+            // wenn der Provider Updates unterstützt.
+            // Beta 4: Unsupported-Pakettypen (deb/arch/macOS/unknown)
+            // führen keinen Auto-Check aus.
+            if (
+                isPackaged &&
+                !this._isUnsupported() &&
+                this._shouldAutoCheck(settings)
+            ) {
                 // Sanftes Delay, damit der App-Start nicht blockiert wird.
                 setTimeout(() => {
                     this._maybeAutoCheck();
@@ -142,6 +186,46 @@ class UpdateManager {
         } finally {
             this._initializing = false;
         }
+    }
+
+    // ─────────────────────────────────────────────
+    // Beta 4: Provider-Introspection & Routing-Helfer
+    // ─────────────────────────────────────────────
+
+    /**
+     * Liefert true, wenn der ausgewählte Provider den Typ "unsupported"
+     * trägt. In diesem Fall dürfen KEINE electron-updater-Aufrufe
+     * mehr gemacht werden (z.B. Linux .deb, Arch, macOS, unknown).
+     */
+    _isUnsupported() {
+        return !!(
+            this._provider &&
+            this._provider.getProviderType() === "unsupported"
+        );
+    }
+
+    /**
+     * Diagnose-Info für Renderer/IPC: welcher Provider aktiv ist und
+     * welche Runtime erkannt wurde. Für Diagnose-Einstellungen genutzt.
+     */
+    getProviderInfo() {
+        return {
+            type: this._provider ? this._provider.getProviderType() : null,
+            reason: (this._isUnsupported() && this._provider && this._provider.getReason)
+                ? this._provider.getReason()
+                : null,
+            runtime: this._runtimeInfo
+                ? {
+                    platform: this._runtimeInfo.platform,
+                    architecture: this._runtimeInfo.architecture,
+                    packaging: this._runtimeInfo.packaging,
+                    isAppImage: !!this._runtimeInfo.isAppImage,
+                    isLinux: !!this._runtimeInfo.isLinux,
+                    isWindows: !!this._runtimeInfo.isWindows,
+                    isMacOS: !!this._runtimeInfo.isMacOS
+                }
+                : null
+        };
     }
 
     /**
@@ -228,6 +312,32 @@ class UpdateManager {
         this._setStatus(UpdateState.STATES.CHECKING);
         this._broadcastState();
 
+        // Beta 4: Unsupported-Pakettypen (.deb, .arch, macOS, unknown)
+        // unterstützen KEINE automatischen App-Updates. Der Provider
+        // antwortet strukturiert; es wird niemals autoUpdater gerufen.
+        if (this._isUnsupported()) {
+            const reason = (this._provider && this._provider.getReason)
+                ? this._provider.getReason()
+                : "Pakettyp unterstützt keine automatischen Updates";
+            logger.info(`[Updater] Update-Check übersprungen (unsupported): ${reason}`);
+            const result = {
+                status: "unsupported",
+                currentVersion: this._state.currentVersion || this.getCurrentVersion(),
+                channel: this._state.channel,
+                providerType: this._provider ? this._provider.getProviderType() : null,
+                reason,
+                suggestion: "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren."
+            };
+            this._state.availableVersion = null;
+            this._state.error = null;
+            // Kein realer Check → kein echtes Ergebnis. Wir belassen den
+            // Status bewusst neutral (IDLE) statt eines irreführenden
+            // "up-to-date"/"error".
+            this._setStatus(UpdateState.STATES.IDLE);
+            this._broadcastState();
+            return result;
+        }
+
         if (!autoUpdater) {
             // Im Dev-Modus liefern wir "up-to-date" – das verhindert
             // störende Fehler-Toasts während `npm run dev`.
@@ -262,6 +372,18 @@ class UpdateManager {
      * bereitgestellt.
      */
     async downloadUpdate() {
+        // Beta 4: Unsupported-Pakettypen unterstützen keinen Download.
+        if (this._isUnsupported()) {
+            return {
+                status: "unsupported",
+                error: UpdateState.buildErrorPayload(
+                    UpdateState.ERROR_CODES.NOT_AVAILABLE,
+                    "Download wird für diesen Pakettyp nicht unterstützt"
+                ),
+                providerType: this._provider ? this._provider.getProviderType() : null,
+                suggestion: "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren."
+            };
+        }
         if (!autoUpdater) {
             return this._buildErrorResult(
                 UpdateState.ERROR_CODES.NOT_AVAILABLE,
@@ -311,6 +433,18 @@ class UpdateManager {
      * Mechanismus von electron-updater.
      */
     async installUpdate() {
+        // Beta 4: Unsupported-Pakettypen unterstützen keine Installation.
+        if (this._isUnsupported()) {
+            return {
+                status: "unsupported",
+                error: UpdateState.buildErrorPayload(
+                    UpdateState.ERROR_CODES.NOT_AVAILABLE,
+                    "Installation wird für diesen Pakettyp nicht unterstützt"
+                ),
+                providerType: this._provider ? this._provider.getProviderType() : null,
+                suggestion: "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren."
+            };
+        }
         if (!autoUpdater) {
             return this._buildErrorResult(
                 UpdateState.ERROR_CODES.NOT_AVAILABLE,
@@ -492,9 +626,20 @@ class UpdateManager {
             }
         }
 
+        // Beta 4: Provider-Ressourcen bereinigen.
+        if (this._provider && typeof this._provider.dispose === "function") {
+            try {
+                this._provider.dispose();
+            } catch (err) {
+                logger.warn(`[Updater] Provider-Dispose fehlgeschlagen: ${err.message}`);
+            }
+        }
+
         this._listeners.clear();
         this._cachedUpdateInfo = null;
         this._downloadedFile = null;
+        this._provider = null;
+        this._runtimeInfo = null;
         this._initialized = false;
         this._initializing = false;
     }

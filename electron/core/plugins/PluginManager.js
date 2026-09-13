@@ -97,11 +97,15 @@ class PluginManager {
 
         for (const plugin of discovered) {
             const pluginConfig = config.plugins?.[plugin.id];
+            // Plugin immer in this.plugins aufnehmen, auch wenn deaktiviert
+            this.plugins.set(plugin.id, plugin);
+            
             if (pluginConfig && pluginConfig.enabled === false) {
+                // Deaktiviertes Plugin nicht starten, aber loaded-Flag setzen
+                plugin.loaded = false;
                 continue;
             }
 
-            this.plugins.set(plugin.id, plugin);
             PluginRuntime.start(plugin);
         }
     }
@@ -130,7 +134,7 @@ class PluginManager {
             }
         } else if (!enabled && isActive) {
             PluginRuntime.stop(plugin);
-            this.plugins.delete(id);
+            // Plugin NICHT aus this.plugins löschen - es bleibt deaktiviert registriert
         }
 
         const pluginMeta = plugin?.manifest || { id, name: id };
@@ -223,7 +227,9 @@ class PluginManager {
                     try {
                         const old = currentPlugins.get(id);
                         PluginRuntime.stop(old);
-                        this.plugins.delete(id);
+                        // Plugin NICHT aus this.plugins löschen - es bleibt deaktiviert registriert
+                        this.plugins.set(id, newPlugin);
+                        newPlugin.loaded = false;
                         result.disabled.push(id);
                         logger.info(
                             `Plugin deaktiviert (Rescan): ${old?.manifest?.name || id}`
@@ -234,6 +240,11 @@ class PluginManager {
                             `Fehler beim Stoppen des deaktivierten Plugins ${id}: ${err.message}`
                         );
                     }
+                } else {
+                    // Plugin war nicht geladen, aber ist deaktiviert - trotzdem registrieren
+                    this.plugins.set(id, newPlugin);
+                    newPlugin.loaded = false;
+                    result.disabled.push(id);
                 }
                 continue;
             }
@@ -366,13 +377,20 @@ class PluginManager {
 
     getPlugins() {
         const config = this.readConfig();
+        const discovered = PluginLoader.discoverPlugins();
         const result = [];
 
-        for (const plugin of this.plugins.values()) {
+        for (const plugin of discovered) {
+            const pluginId = plugin.manifest?.id || plugin.id;
+            const pluginConfig = config.plugins?.[pluginId];
+            const enabled = pluginConfig?.enabled ?? true;
+            const isActive = this.plugins.has(pluginId) && this.plugins.get(pluginId).loaded;
+
             result.push({
-                id: plugin.manifest?.id || plugin.id,
+                id: pluginId,
                 name: plugin.manifest?.name || plugin.name,
-                enabled: config.plugins?.[plugin.manifest?.id || plugin.id]?.enabled ?? true
+                enabled: enabled,
+                loaded: isActive
             });
         }
 

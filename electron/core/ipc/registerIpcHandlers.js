@@ -10,6 +10,7 @@ const registerDiagnosticsHandlers = require("./diagnosticsHandlers");
 const registerIntegrationHandlers = require("./integrationHandlers");
 const registerNavigationHandlers = require("./navigationHandlers");
 const registerUiHandlers = require("./uiHandlers");
+const registerMediaHubHandlers = require("./mediaHubHandlers");
 
 function registerAllIpc(window) {
   registerPluginHandlers(window);
@@ -22,6 +23,7 @@ function registerAllIpc(window) {
   registerIntegrationHandlers(window);
   registerNavigationHandlers();
   registerUiHandlers(window);
+  registerMediaHubHandlers();
 }
 
 module.exports = { registerAllIpc };

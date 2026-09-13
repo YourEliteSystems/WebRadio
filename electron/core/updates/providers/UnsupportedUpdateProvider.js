@@ -30,6 +30,14 @@ class UnsupportedUpdateProvider extends BaseUpdateProvider {
         return "unsupported";
     }
 
+    /**
+     * Liefert den Grund, warum dieser Pakettyp keine automatischen
+     * App-Updates unterstützt. Für Diagnose-Einstellungen gedacht.
+     */
+    getReason() {
+        return this._reason;
+    }
+
     isSuitableForRuntime(runtimeInfo) {
         // Dieser Provider ist der Fallback für alles, was nicht
         // von einem spezialisierten Provider abgedeckt wird.

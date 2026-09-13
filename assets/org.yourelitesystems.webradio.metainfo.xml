@@ -23,6 +23,12 @@
   <developer_name>Your Elite Systems</developer_name>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.0.6-beta.4" date="2026-09-11">
+      <description>
+        <p>Provider architecture activated for update routing. Linux AppImage updates now handled by dedicated provider. StreamManager, RadioBrowser and update routing tests added.</p>
+        <p>Deutsch: Provider-Architektur für Update-Routing aktiviert. Linux-AppImage-Updates über dedizierten Provider. Tests fuer StreamManager, RadioBrowser und Routing ergaenzt.</p>
+      </description>
+    </release>
     <release version="1.0.6-beta.3" date="2026-09-07">
       <description>
         <p>Bugfixes for Discord RPC, Plugin Fingerprinting and EventBus as well as comprehensive regression tests.</p>

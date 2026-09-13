@@ -144,7 +144,22 @@ jobs:
         env:
           UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist -- --publish=never
+        run: npm run dist -- --publish=never -c.publish.channel=${{ needs.context.outputs.update_channel }}
+
+      - name: Ensure Windows Update Metadata Files
+        shell: pwsh
+        run: |
+          Write-Host "UPDATE_CHANNEL = ${{ needs.context.outputs.update_channel }}"
+          if ((Test-Path "dist/latest.yml") -and -not (Test-Path "dist/beta.yml")) {
+            Copy-Item "dist/latest.yml" "dist/beta.yml"
+            Write-Host "  Created beta.yml from latest.yml"
+          }
+          if ((Test-Path "dist/beta.yml") -and -not (Test-Path "dist/latest.yml")) {
+            Copy-Item "dist/beta.yml" "dist/latest.yml"
+            Write-Host "  Created latest.yml from beta.yml"
+          }
+          Write-Host "Files in dist/:"
+          Get-ChildItem -Path dist -Filter "*.yml" | ForEach-Object { Write-Host "  $($_.Name)" }
 
       - name: Generate Checksums
         run: node scripts/release/checksums.js
@@ -217,7 +232,29 @@ jobs:
         env:
           UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux AppImage --x64 --publish=never
+        run: npx electron-builder --linux AppImage --x64 --publish=never -c.publish.channel=${{ needs.context.outputs.update_channel }}
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Ensure both latest-linux.yml and beta-linux.yml exist for
+      # electron-updater. With generateUpdatesFilesForAllChannels=true
+      # both files are generated, but as a safety net we copy/symlink
+      # if one is missing (e.g. older electron-builder versions).
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Ensure Linux Update Metadata Files
+        env:
+          UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
+        run: |
+          echo "UPDATE_CHANNEL = $UPDATE_CHANNEL"
+          if [ -f dist/latest-linux.yml ] && [ ! -f dist/beta-linux.yml ]; then
+            cp dist/latest-linux.yml dist/beta-linux.yml
+            echo "  Created beta-linux.yml from latest-linux.yml"
+          fi
+          if [ -f dist/beta-linux.yml ] && [ ! -f dist/latest-linux.yml ]; then
+            cp dist/beta-linux.yml dist/latest-linux.yml
+            echo "  Created latest-linux.yml from beta-linux.yml"
+          fi
+          echo "Files in dist/:"
+          ls -la dist/*.yml 2>/dev/null || echo "  (no .yml files found)"
 
       - name: Generate Checksums (Linux)
         run: node scripts/release/checksums.js

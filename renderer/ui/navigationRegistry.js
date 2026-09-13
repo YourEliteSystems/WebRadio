@@ -2,8 +2,20 @@ import { registerView } from './componentRegistry';
 
 const listeners = new Set();
 
+const defaultRadioItem = {
+  id: 'home',
+  parent: null,
+  label: 'Radio',
+  icon: 'radio',
+  route: 'home',
+  order: 10,
+  visible: true,
+  disabled: false,
+  ownerPluginId: null
+};
+
 const sections = new Map();
-const items = new Map();
+const items = new Map([['home', defaultRadioItem]]);
 const expandedState = new Map(); // sectionId -> boolean
 
 function notifyListeners() {

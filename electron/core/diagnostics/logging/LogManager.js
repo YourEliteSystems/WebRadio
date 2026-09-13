@@ -25,7 +25,8 @@ class LogManager {
 
     }
 
-    initialize() {
+    initialize(options = {}) {
+        const { transports = ["file", "console"] } = options;
 
         if (this.initialized) {
             return;
@@ -33,31 +34,35 @@ class LogManager {
 
         this.formatter = new LogFormatter();
 
-        this.consoleTransport =
-            new ConsoleTransport(this.formatter);
-
         const logsPath = (app && typeof app.getPath === "function")
             ? path.join(app.getPath("userData"), "logs")
             : path.join(process.cwd(), "logs");
 
-        this.fileTransport =
-            new FileTransport(
-                logsPath,
-                this.formatter
-            );
+        if (transports.includes("console")) {
+            this.consoleTransport =
+                new ConsoleTransport(this.formatter);
+        }
+
+        if (transports.includes("file")) {
+            this.fileTransport =
+                new FileTransport(
+                    logsPath,
+                    this.formatter
+                );
+        }
 
         this.rootLogger =
             new Logger("Application");
 
         if (!app || !app.isPackaged) {
-            this.rootLogger.addTransport(
-                this.consoleTransport
-            );
+            if (this.consoleTransport) {
+                this.rootLogger.addTransport(this.consoleTransport);
+            }
         }
 
-        this.rootLogger.addTransport(
-            this.fileTransport
-        );
+        if (this.fileTransport) {
+            this.rootLogger.addTransport(this.fileTransport);
+        }
 
         this.initialized = true;
 
@@ -102,16 +107,20 @@ class LogManager {
             return;
         }
 
-        this.rootLogger.separator();
-        this.rootLogger.info("Logging wird beendet.");
-        this.rootLogger.separator();
+        if (this.rootLogger) {
+            this.rootLogger.clearTransports();
+        }
 
-        this.rootLogger      = null;
-        this.formatter       = null;
+        this.rootLogger = null;
+        this.formatter = null;
         this.consoleTransport = null;
-        this.fileTransport   = null;
-        this.initialized     = false;
+        this.fileTransport = null;
+        this.initialized = false;
 
+    }
+
+    reset() {
+        this.shutdown();
     }
 
 }

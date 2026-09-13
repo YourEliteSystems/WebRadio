@@ -248,8 +248,13 @@ test("Test 5 – enabled=false bleibt entladen", () => {
 
     const result = PluginManager.reloadPlugins();
 
-    assert.strictEqual(PluginManager.hasPlugin("plugin-a"), false);
-    assert.ok(!result.added.includes("plugin-a"));
+    // Deaktivierte Plugins sind in this.plugins, aber nicht geladen
+    assert.strictEqual(PluginManager.hasPlugin("plugin-a"), true, "Deaktivierte Plugins sind in der Map");
+    const plugin = PluginManager.getPlugin("plugin-a");
+    assert.ok(plugin, "Plugin-Objekt existiert");
+    assert.strictEqual(plugin.loaded, false, "Deaktivierte Plugins sind nicht geladen");
+    assert.ok(result.disabled.includes("plugin-a"), "Plugin muss als disabled gemeldet sein");
+    assert.ok(!result.added.includes("plugin-a"), "Plugin darf nicht als added gemeldet sein");
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -264,14 +269,18 @@ test("Test 6 – laufendes Plugin wird nach enabled=false gestoppt", () => {
 
     PluginManager.reloadPlugins();
     assert.strictEqual(PluginManager.hasPlugin("plugin-a"), true);
+    const pluginBefore = PluginManager.getPlugin("plugin-a");
+    assert.strictEqual(pluginBefore.loaded, true);
 
     setEnabled("plugin-a", false);
 
     const result = PluginManager.reloadPlugins();
-    assert.strictEqual(PluginManager.hasPlugin("plugin-a"), false);
-    assert.ok(result.disabled.includes("plugin-a") ||
-        result.removed.includes("plugin-a"),
-        "plugin-a muss als removed oder disabled gemeldet sein");
+    // Deaktivierte Plugins bleiben in Map, aber werden nicht geladen
+    assert.strictEqual(PluginManager.hasPlugin("plugin-a"), true, "Deaktivierte Plugins bleiben in Map");
+    const pluginAfter = PluginManager.getPlugin("plugin-a");
+    assert.ok(pluginAfter, "Plugin-Objekt existiert");
+    assert.strictEqual(pluginAfter.loaded, false, "Deaktivierte Plugins werden nicht geladen");
+    assert.ok(result.disabled.includes("plugin-a"), "Plugin muss als disabled gemeldet sein");
 });
 
 // ─────────────────────────────────────────────────────────────

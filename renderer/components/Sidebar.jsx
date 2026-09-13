@@ -47,6 +47,19 @@ export default function Sidebar({
     (section.items || []).forEach(item => registeredItemIds.add(item.id));
   });
 
+  const isItemActive = (item) => {
+    return (
+      currentView === item.id ||
+      currentView === item.route ||
+      (currentView === 'home' && (item.id === 'home' || item.id === 'radio' || item.route === 'home'))
+    );
+  };
+
+  const handleItemClick = (item) => {
+    const target = (item.id === 'radio' && !item.route) ? 'home' : (item.route || item.id);
+    setCurrentView(target);
+  };
+
   return (
     <aside className="sidebar">
       {/* ── Haupt-Navigation ── */}
@@ -57,8 +70,8 @@ export default function Sidebar({
         {topLevelItems.map(item => (
           <button
             key={item.id}
-            className={`btn-nav-item ${currentView === item.id || currentView === item.route ? 'active' : ''}`}
-            onClick={() => setCurrentView(item.route || item.id)}
+            className={`btn-nav-item ${isItemActive(item) ? 'active' : ''}`}
+            onClick={() => handleItemClick(item)}
             disabled={item.disabled}
           >
             {item.icon ? (
@@ -107,8 +120,8 @@ export default function Sidebar({
                   {section.items.map(item => (
                     <button
                       key={item.id}
-                      className={`btn-nav-subitem ${currentView === item.id || currentView === item.route ? 'active' : ''}`}
-                      onClick={() => setCurrentView(item.route || item.id)}
+                      className={`btn-nav-subitem ${isItemActive(item) ? 'active' : ''}`}
+                      onClick={() => handleItemClick(item)}
                       disabled={item.disabled}
                     >
                       {item.icon ? (

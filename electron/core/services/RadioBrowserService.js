@@ -17,7 +17,7 @@ const RADIO_MIRRORS = [
 const RADIO_HEADERS = { "User-Agent": "WebRadioApp/1.0" };
 
 async function fetchServerList() {
-  const res = await fetch("https://de1.api.radio-browser.info/json/servers",{
+  const res = await globalThis.fetch("https://de1.api.radio-browser.info/json/servers",{
     headers: RADIO_HEADERS,
     signal: AbortSignal.timeout(8000)   // 8 s Timeout
   });

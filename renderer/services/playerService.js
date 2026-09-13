@@ -12,6 +12,10 @@ let switching = false;
 
 let limiter;
 
+// Zuletzt vom AudioWorklet gemeldete Diagnose-Werte (Bedarfsabfrage)
+let lastWorkletStats = null;
+let statsRequestId = 0;
+
 
 export async function initPlayer() {
   if (initialized) return;
@@ -55,13 +59,19 @@ export async function initPlayer() {
     .connect(analyser)
     .connect(ctx.destination);
 
-  // PCM-Daten aus dem Main-Prozess
-  window.radioAPI.onPCM(chunk => {
-    if(!(chunk instanceof Float32Array)) {
-      // chunk MUSS Float32Array sein, da der PCM-Processor dies erwartet
-      workletNode.port.postMessage(chunk);
-      return;
+  // Diagnose-Antworten des AudioWorklets entgegennehmen (nur bei Bedarf angefordert)
+  workletNode.port.onmessage = e => {
+    const reply = e.data;
+    if (reply && typeof reply === "object" && reply.type === "stats") {
+      lastWorkletStats = reply;
     }
+  };
+
+  // PCM-Daten (ArrayBuffer) immer an den AudioWorklet durchreichen.
+  // Der Worklet verarbeitet sowohl PCM-Binärdaten als auch Kontrollnachrichten
+  // (flush/stats). Kein stilles Verwerfen bei unerwarteten Typen.
+  window.radioAPI.onPCM(chunk => {
+    workletNode.port.postMessage(chunk);
 
     if (!primed && ctx.state !== "running") {
       ctx.resume();
@@ -96,7 +106,10 @@ export async function switchStream(url, station = null) {
     nextGainNode.gain.setValueAtTime(0, now);
     nextGainNode.gain.linearRampToValueAtTime(1.0, now + fadeTime);
 
-    window.radioAPI.startStream(url, station);
+    await window.radioAPI.startStream(url, station);
+    // Alten Stream-Puffer im Worklet verwerfen, damit keine Samples der
+    // vorherigen Station mit der neuen vermischt werden.
+    flushAudioBuffer();
 
     activeGainNode = nextGainNode;
   } catch (err) {
@@ -116,17 +129,48 @@ export async function playStream(url, station = null) {
     await ctx.resume();
   }
   gainNode.gain.setValueAtTime(currentVolume, ctx.currentTime);
-  window.radioAPI.startStream(url, station);
+  await window.radioAPI.startStream(url, station);
+  flushAudioBuffer();
 }
 
 export async function stopPlayer() {
+  if (window.radioAPI && window.radioAPI.stopStream) {
+    await window.radioAPI.stopStream();
+  }
+  // Buffer im Worklet leeren, damit nach erneutem Play kein Rest alt läuft.
+  flushAudioBuffer();
   if (ctx && ctx.state === "running") {
     await ctx.suspend();
   }
-  if (window.radioAPI && window.radioAPI.stopStream) {
-    window.radioAPI.stopStream();
+}
+
+export function flushAudioBuffer() {
+  if (workletNode && workletNode.port) {
+    workletNode.port.postMessage({ type: "flush" });
   }
 }
+
+// Bedarfsgetriebene Diagnose: fragt den Worklet einmalig nach seinen
+// Zählern (underruns, overruns, Pufferfüllstand, ...). Kein Polling-Loop.
+export async function getAudioDiagnostics() {
+  if (!workletNode || !workletNode.port) return null;
+
+  const requestId = ++statsRequestId;
+  workletNode.port.postMessage({ type: "stats", requestId });
+
+  const deadline = Date.now() + 75;
+  while (Date.now() < deadline) {
+    if (lastWorkletStats && lastWorkletStats.requestId === requestId) {
+      return lastWorkletStats;
+    }
+    await new Promise(resolve => setTimeout(resolve, 2));
+  }
+  return lastWorkletStats;
+}
+
+// Für preload/radioAPI.getAudioDiagnostics(): der Renderer liefert die
+// Worklet-Werte beim Aufruf einmalig mit an den Main-Prozess.
+window.__webradioAudioDiagnostics = getAudioDiagnostics;
 
 export function setVolume(value) {
   if (!ctx || ctx.state !== "running" || !gainNode) return;

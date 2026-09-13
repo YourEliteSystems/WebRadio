@@ -6,7 +6,9 @@ export default function PlayerBar({
   station,
   title,
   volume,
+  isMuted,
   onVolumeChange,
+  onMuteToggle,
   onPlay,
   onStop,
   isPlaying,
@@ -17,7 +19,8 @@ export default function PlayerBar({
   const [themes, setThemes] = useState([]);
   const [currentTheme, setCurrentTheme] = useState('');
 
-  // Theme-Liste für den Selector (Stylesheet wird bereits beim Bootstrap gesetzt)
+  // Theme-Liste für den Selector (Stylesheet wird bereits beim Bootstrap
+  // durch themeService.loadAndApplySavedTheme + listenToThemeChanges gesetzt)
   useEffect(() => {
     if (!window.themeAPI?.getThemes) return;
 
@@ -31,11 +34,12 @@ export default function PlayerBar({
     });
 
     if (window.themeAPI?.onThemeChanged) {
-      window.themeAPI.onThemeChanged((data) => {
+      const unsub = window.themeAPI.onThemeChanged((data) => {
         if (data?.css) {
           setCurrentTheme(data.css);
         }
       });
+      return unsub;
     }
   }, []);
 
@@ -63,27 +67,30 @@ export default function PlayerBar({
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
     let animationId;
 
+    // Visualizer stark abgespeckt halten: ein einzelner Verlauf und eine
+    // begrenzte Anzahl Balken pro Frame. Die alte Schleife erzeugte pro
+    // Frame je Bin einen neuen LinearGradient (~1024) → konstanter
+    // Renderer-Thread-Load während des Streams → Jitter im Audiopfad.
+    const BAR_COUNT = 40;
+    const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+    gradient.addColorStop(0, '#00f2fe'); // Bright Cyan
+    gradient.addColorStop(1, '#4facfe'); // Bright Blue
+    ctx.fillStyle = gradient;
+    const barWidth = canvas.width / BAR_COUNT;
+    const binStep = Math.max(1, Math.floor(dataArray.length / BAR_COUNT));
+
     const draw = () => {
       animationId = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const barWidth = (canvas.width / dataArray.length) * 2.5;
       let x = 0;
-
-      for (let i = 0; i < dataArray.length; i++) {
-        const barHeight = (dataArray[i] / 255) * canvas.height;
-
-        // Brighter Gradient color for visualizer
-        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        gradient.addColorStop(0, '#00f2fe'); // Bright Cyan
-        gradient.addColorStop(1, '#4facfe'); // Bright Blue
-
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-
-        x += barWidth + 1;
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const idx = Math.min(dataArray.length - 1, i * binStep);
+        const barHeight = (dataArray[idx] / 255) * canvas.height;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+        x += barWidth;
       }
     };
 
@@ -146,19 +153,49 @@ export default function PlayerBar({
       </div>
 
       <div className="player-right">
-        <div className="volume-container">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
+        <div
+          className="volume-container"
+          onWheel={(e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.05 : -0.05;
+            onVolumeChange(Math.max(0, Math.min(1, parseFloat((volume + delta).toFixed(2)))));
+          }}
+        >
+          <button
+            className="player-btn mute-btn"
+            onClick={onMuteToggle}
+            title={isMuted ? 'Stumm (klicken zum Einschalten)' : `Lautstärke: ${Math.round(volume * 100)}%`}
+            aria-label={isMuted ? 'Ton einschalten' : 'Ton ausschalten'}
+          >
+            {isMuted || volume === 0 ? (
+              // Muted icon
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            ) : (
+              // Volume icon (changes with level)
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                {volume > 0.5 ? (
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                ) : (
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                )}
+              </svg>
+            )}
+          </button>
           <input
             type="range"
             min="0"
             max="1"
             step="0.01"
             value={volume}
+            aria-label="Lautstärke"
             onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
           />
+          <span className="volume-label">{Math.round(volume * 100)}%</span>
         </div>
         <canvas ref={canvasRef} id="vu" width="100" height="30"></canvas>
         <button className="player-btn" onClick={openSettings} title="Einstellungen">

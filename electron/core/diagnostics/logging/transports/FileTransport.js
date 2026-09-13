@@ -9,12 +9,15 @@ class FileTransport {
 
         this.directory = directory;
         this.formatter = formatter;
-
-        this.ensureDirectory();
+        this.directoryEnsured = false;
 
     }
 
     ensureDirectory() {
+
+        if (this.directoryEnsured) {
+            return;
+        }
 
         if (!fs.existsSync(this.directory)) {
 
@@ -23,6 +26,8 @@ class FileTransport {
             });
 
         }
+
+        this.directoryEnsured = true;
 
     }
 
@@ -58,6 +63,8 @@ class FileTransport {
 
     log(entry) {
 
+        this.ensureDirectory();
+
         const line =
             this.formatter.format(entry) + "\n";
 
@@ -76,6 +83,33 @@ class FileTransport {
             );
 
         } catch (err) {
+
+            // Das Verzeichnis kann zwischenzeitlich entfernt worden sein
+            // (z. B. Test-Temp-Verzeichnisse). Einmal zurücksetzen und neu
+            // versuchen, bevor aufgegeben wird – verhindert Log-Ausfälle.
+            if (err && (err.code === "ENOENT" || err.kind === "ENOENT")) {
+                this.directoryEnsured = false;
+                try {
+                    this.ensureDirectory();
+                    fs.appendFileSync(
+                        this.getLatestFile(),
+                        line,
+                        "utf8"
+                    );
+                    fs.appendFileSync(
+                        this.getDailyFile(),
+                        line,
+                        "utf8"
+                    );
+                    return;
+                } catch (retryErr) {
+                    console.error(
+                        "FileTransport:",
+                        retryErr
+                    );
+                    return;
+                }
+            }
 
             console.error(
                 "FileTransport:",

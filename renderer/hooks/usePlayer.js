@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { playStream, stopPlayer, setVolume } from '../services/playerService';
 
 /**
@@ -10,9 +10,13 @@ export function usePlayer() {
     const saved = localStorage.getItem('webradio_volume');
     return saved !== null ? parseFloat(saved) : 1.0;
   });
+  const [isMuted, setIsMuted] = useState(false);
   const [nowPlayingStation, setNowPlayingStation] = useState(null);
   const [nowPlayingTitle, setNowPlayingTitle] = useState('–');
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Lautstärke vor Mute speichern
+  const premuteVolume = useRef(null);
 
   // Metadaten-Listener (IPC aus dem Main-Prozess)
   // Einmalig beim Mount registrieren – nicht bei jedem Sender-Wechsel erneut!
@@ -27,6 +31,60 @@ export function usePlayer() {
         }
       });
     }
+  }, []);
+
+  // Medientasten: VolumeUp / VolumeDown / Mute (Linux + Windows)
+  useEffect(() => {
+    const STEP = 0.05;
+
+    const onUp = () => {
+      setVolumeState(prev => {
+        const next = Math.min(1, parseFloat((prev + STEP).toFixed(2)));
+        setVolume(next);
+        localStorage.setItem('webradio_volume', next.toString());
+        if (next > 0) setIsMuted(false);
+        return next;
+      });
+    };
+
+    const onDown = () => {
+      setVolumeState(prev => {
+        const next = Math.max(0, parseFloat((prev - STEP).toFixed(2)));
+        setVolume(next);
+        localStorage.setItem('webradio_volume', next.toString());
+        if (next === 0) setIsMuted(true);
+        return next;
+      });
+    };
+
+    const onMute = () => {
+      setVolumeState(prev => {
+        if (prev > 0) {
+          // Stumm schalten
+          premuteVolume.current = prev;
+          setVolume(0);
+          setIsMuted(true);
+          return 0;
+        } else {
+          // Wieder einschalten
+          const restore = premuteVolume.current ?? 0.5;
+          setVolume(restore);
+          localStorage.setItem('webradio_volume', restore.toString());
+          setIsMuted(false);
+          return restore;
+        }
+      });
+    };
+
+    window.media?.onVolumeUp?.(onUp);
+    window.media?.onVolumeDown?.(onDown);
+    window.media?.onMute?.(onMute);
+
+    // Cleanup beim Unmount
+    return () => {
+      // ipcRenderer-Listener werden über removeListener- Funktionen
+      // im Preload bereinigt (jeweils als Rückgabewert der on*-Methoden).
+    };
   }, []);
 
   const handlePlay = useCallback((url, station) => {
@@ -53,18 +111,39 @@ export function usePlayer() {
   }, []);
 
   const handleVolumeChange = useCallback((val) => {
-    setVolumeState(val);
-    setVolume(val);
-    localStorage.setItem('webradio_volume', val.toString());
+    const clamped = Math.max(0, Math.min(1, val));
+    setVolumeState(clamped);
+    setVolume(clamped);
+    setIsMuted(clamped === 0);
+    localStorage.setItem('webradio_volume', clamped.toString());
+  }, []);
+
+  const handleMuteToggle = useCallback(() => {
+    setVolumeState(prev => {
+      if (prev > 0) {
+        premuteVolume.current = prev;
+        setVolume(0);
+        setIsMuted(true);
+        return 0;
+      } else {
+        const restore = premuteVolume.current ?? 0.5;
+        setVolume(restore);
+        localStorage.setItem('webradio_volume', restore.toString());
+        setIsMuted(false);
+        return restore;
+      }
+    });
   }, []);
 
   return {
     volume,
+    isMuted,
     nowPlayingStation,
     nowPlayingTitle,
     isPlaying,
     handlePlay,
     handleStop,
-    handleVolumeChange
+    handleVolumeChange,
+    handleMuteToggle
   };
 }

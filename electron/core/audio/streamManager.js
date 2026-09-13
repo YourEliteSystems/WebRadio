@@ -13,6 +13,16 @@ class StreamManager {
     this.ffmpegStream = null;
     this.mainWindow = null;
     this.lastTitle = null;
+
+    // Leichtgewichtige Diagnose-Zähler – kein Logging und kein Polling im
+    // PCM-Pfad, Abruf nur bei Bedarf über getDiagnostics().
+    this.diag = {
+      chunksReceived: 0,
+      chunksSent: 0,
+      ffmpegStarts: 0,
+      streamStartAt: null,
+      lastDataAt: null
+    };
   }
 
   setMainWindow(mainWindow) {
@@ -26,6 +36,11 @@ class StreamManager {
 
     this.lastTitle = null;
     this.currentStation = station;
+    this.diag.chunksReceived = 0;
+    this.diag.chunksSent = 0;
+    this.diag.streamStartAt = Date.now();
+    this.diag.lastDataAt = null;
+    this.diag.ffmpegStarts++;
 
     this.ffmpegCommand = ffmpeg(url)
       .inputOptions(
@@ -56,20 +71,32 @@ class StreamManager {
     this.ffmpegStream = this.ffmpegCommand.pipe();
 
     this.ffmpegStream.on("data", (chunk) => {
+      // Kein künstlicher Puffer und KEIN Verwerfen von PCM im Main-Prozess:
+      // Der AudioWorklet (Renderer) absorbiert IPC-/UI-Jitter. Verworfenes
+      // PCM wäre echter Datenverlust → hörbare Aussetzer.
       if (!this.mainWindow || this.mainWindow.isDestroyed()) {
         return;
       }
 
-      const pcm = new Float32Array(
-        chunk.buffer,
-        chunk.byteOffset,
-        chunk.byteLength / 4
-      );
+      this.diag.chunksReceived++;
+      this.diag.lastDataAt = Date.now();
 
-      this.mainWindow.webContents.send(
-        "radio:pcm",
-        pcm.buffer
-      );
+      if (chunk.byteLength % 4 !== 0) {
+        logger.warn(`PCM-Chunk übersprungen (ungerade Byte-Länge): ${chunk.byteLength}`);
+        return;
+      }
+
+      try {
+        const pcm = new Float32Array(
+          chunk.buffer,
+          chunk.byteOffset,
+          chunk.byteLength / 4
+        );
+        this.mainWindow.webContents.send("radio:pcm", pcm.buffer);
+        this.diag.chunksSent++;
+      } catch (err) {
+        logger.warn(`PCM Send-Fehler: ${err.message}`);
+      }
     });
 
     eventBus.emit("play", { url, station });
@@ -105,7 +132,25 @@ class StreamManager {
       this.ffmpegStream = null;
     }
 
+    this.diag.lastDataAt = null;
+
     eventBus.emit("stop");
+  }
+
+  // Gezielte Diagnose-Abfrage (kein dauerhaftes Polling/Logging im PCM-Pfad).
+  // Kann über IPC radio:getAudioDiagnostics abgerufen werden.
+  getDiagnostics() {
+    return {
+      ffmpegRunning: Boolean(this.ffmpegCommand),
+      currentStation: this.currentStation,
+      chunksReceived: this.diag.chunksReceived,
+      chunksSent: this.diag.chunksSent,
+      ffmpegStarts: this.diag.ffmpegStarts,
+      streamStartAt: this.diag.streamStartAt,
+      lastDataAt: this.diag.lastDataAt,
+      // Millisekunden seit dem letzten PCM-Chunk (Stream-Read-Stall-Erkennung)
+      msSinceLastData: this.diag.lastDataAt ? Date.now() - this.diag.lastDataAt : null
+    };
   }
 
   handleMetadata(line) {
@@ -114,14 +159,18 @@ class StreamManager {
     }
 
     const match = line.match(
-      /StreamTitle[:=]\s*['"]?(.*?)['"]?$/
+      /StreamTitle[:=]\s*['"]?(.*?)['"]?;?\s*$/
     );
 
     if (!match) {
       return;
     }
 
-    const rawTitle = match[1].trim();
+    let rawTitle = match[1].trim();
+    // Bereinige ein überflüssiges abschließendes Semikolon,
+    // das vom ICY-Format (`StreamTitle='A - B';`) mitgegeben
+    // wurde, falls der Regex es nicht komplett verarbeitet hat.
+    rawTitle = rawTitle.replace(/['"]+$/g, "").replace(/;+$/g, "").trim();
 
     if (!rawTitle || rawTitle === this.lastTitle) {
       return;
@@ -151,4 +200,8 @@ class StreamManager {
   }
 }
 
-module.exports = new StreamManager();
+// Singleton-Instanz (wird von radioHandlers/Application genutzt) –
+// plus named Export der Klasse für Tests und Dependency Injection.
+const streamManagerInstance = new StreamManager();
+module.exports = streamManagerInstance;
+module.exports.StreamManager = StreamManager;

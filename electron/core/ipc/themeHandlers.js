@@ -76,17 +76,20 @@ function registerThemeHandlers(windowManager) {
     });
 
     // CSS-Pfad ermitteln
-    const themesPath = getThemesPath();
     let cssPath = "";
-
-    if (fs.existsSync(themesPath)) {
-      const themeJsonPath = path.join(themesPath, themeId, "theme.json");
-      if (fs.existsSync(themeJsonPath)) {
-        try {
-          const data = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
-          cssPath = path.join(themesPath, themeId, data.css);
-        } catch (err) {
-          logger.error(`Theme CSS konnte nicht aufgelöst werden: ${themeId}`, err);
+    if (ThemeManager.isInitialized() && ThemeManager.hasTheme(themeId)) {
+      cssPath = ThemeManager.getTheme(themeId).css;
+    } else {
+      const themesPath = getThemesPath();
+      if (fs.existsSync(themesPath)) {
+        const themeJsonPath = path.join(themesPath, themeId, "theme.json");
+        if (fs.existsSync(themeJsonPath)) {
+          try {
+            const data = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
+            cssPath = path.join(themesPath, themeId, data.css);
+          } catch (err) {
+            logger.error(`Theme CSS konnte nicht aufgelöst werden: ${themeId}`, err);
+          }
         }
       }
     }

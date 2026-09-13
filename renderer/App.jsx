@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
@@ -8,9 +8,40 @@ import { useRadioSearch } from './hooks/useRadioSearch';
 import { usePlayer } from './hooks/usePlayer';
 import { useFavorites } from './hooks/useFavorites';
 import { useUpdateInfo } from './hooks/useUpdateInfo';
+import { subscribe as subscribeNav, getNavigationTree } from './ui/navigationRegistry';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
+
+  // Ensure currentView always points to a valid navigation item.
+  // Navigation is loaded async (syncWithMain in RendererPluginManager),
+  // so on first render topLevelItems may be empty. This effect validates
+  // currentView once navigation is available and falls back to the first
+  // item if currentView doesn't match any registered item.
+  const currentViewRef = useRef(currentView);
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
+  useEffect(() => {
+    const validateCurrentView = () => {
+      const tree = getNavigationTree();
+      if (!tree.topLevelItems || tree.topLevelItems.length === 0) return;
+
+      const current = currentViewRef.current;
+      const isValid = tree.topLevelItems.some(
+        item => item.id === current || item.route === current || (current === 'home' && (item.id === 'home' || item.id === 'radio' || item.route === 'home'))
+      );
+      if (!isValid) {
+        const firstItem = tree.topLevelItems[0];
+        setCurrentView(firstItem.route || firstItem.id);
+      }
+    };
+
+    validateCurrentView();
+    const unsub = subscribeNav(validateCurrentView);
+    return unsub;
+  }, []);
 
   const {
     stations, setStations,
@@ -23,12 +54,14 @@ export default function App() {
 
   const {
     volume,
+    isMuted,
     nowPlayingStation,
     nowPlayingTitle,
     isPlaying,
     handlePlay,
     handleStop,
-    handleVolumeChange
+    handleVolumeChange,
+    handleMuteToggle
   } = usePlayer();
 
   const { favorites, toggleFavorite } = useFavorites();
@@ -150,7 +183,9 @@ export default function App() {
         station={nowPlayingStation}
         title={nowPlayingTitle}
         volume={volume}
+        isMuted={isMuted}
         onVolumeChange={handleVolumeChange}
+        onMuteToggle={handleMuteToggle}
         onPlay={handlePlayCurrent}
         onStop={handleStop}
         isPlaying={isPlaying}

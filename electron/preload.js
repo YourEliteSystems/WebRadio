@@ -20,43 +20,36 @@ const updatesApi = {
   // Events – sauber registrieren & entfernen
   onStateChanged: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:state-changed");
     ipcRenderer.on("updates:state-changed", handler);
     return () => ipcRenderer.removeListener("updates:state-changed", handler);
   },
   onAvailable: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:available");
     ipcRenderer.on("updates:available", handler);
     return () => ipcRenderer.removeListener("updates:available", handler);
   },
   onNotAvailable: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:not-available");
     ipcRenderer.on("updates:not-available", handler);
     return () => ipcRenderer.removeListener("updates:not-available", handler);
   },
   onProgress: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:download-progress");
     ipcRenderer.on("updates:download-progress", handler);
     return () => ipcRenderer.removeListener("updates:download-progress", handler);
   },
   onDownloaded: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:downloaded");
     ipcRenderer.on("updates:downloaded", handler);
     return () => ipcRenderer.removeListener("updates:downloaded", handler);
   },
   onError: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:error");
     ipcRenderer.on("updates:error", handler);
     return () => ipcRenderer.removeListener("updates:error", handler);
   },
   onChannelChanged: (callback) => {
     const handler = (_e, data) => callback(data);
-    ipcRenderer.removeAllListeners("updates:channel-changed");
     ipcRenderer.on("updates:channel-changed", handler);
     return () => ipcRenderer.removeListener("updates:channel-changed", handler);
   }
@@ -81,8 +74,9 @@ contextBridge.exposeInMainWorld('api', {
   getRendererScripts: () => ipcRenderer.invoke("plugins:getRendererScripts"),
   reloadPlugins: () => ipcRenderer.invoke("plugins:reload"),
   onPluginsChanged: (callback) => {
-    ipcRenderer.removeAllListeners("plugins:changed");
-    ipcRenderer.on("plugins:changed", (_, result) => callback(result));
+    const handler = (_event, result) => callback(result);
+    ipcRenderer.on("plugins:changed", handler);
+    return () => ipcRenderer.removeListener("plugins:changed", handler);
   },
 
   // UPDATES (Section 16 Specification)
@@ -103,8 +97,9 @@ contextBridge.exposeInMainWorld("navigationAPI", {
   removeItem: (id, pluginId) => ipcRenderer.invoke("navigation:removeItem", id, pluginId),
   removeSection: (id, pluginId) => ipcRenderer.invoke("navigation:removeSection", id, pluginId),
   onUpdated: (callback) => {
-    ipcRenderer.removeAllListeners("navigation:updated");
-    ipcRenderer.on("navigation:updated", (_, tree) => callback(tree));
+    const handler = (_event, tree) => callback(tree);
+    ipcRenderer.on("navigation:updated", handler);
+    return () => ipcRenderer.removeListener("navigation:updated", handler);
   }
 });
 
@@ -112,8 +107,9 @@ contextBridge.exposeInMainWorld("navigationAPI", {
 contextBridge.exposeInMainWorld("pluginAPI", {
   log: (level, context, msg) => ipcRenderer.send("log", level, context, msg),
   onPluginToggled: (callback) => {
-    ipcRenderer.removeAllListeners("plugin:toggled");
-    ipcRenderer.on("plugin:toggled", (_, data) => callback(data));
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("plugin:toggled", handler);
+    return () => ipcRenderer.removeListener("plugin:toggled", handler);
   },
 
   // HISTORY
@@ -137,8 +133,18 @@ contextBridge.exposeInMainWorld("radioAPI", {
   stopStream: () => ipcRenderer.invoke("radio:stop"),
   onMetadata: (callback) => ipcRenderer.on("radio:metadata", (_, data) => callback(data)),
   onPCM: (callback) => {
-    ipcRenderer.removeAllListeners("radio:pcm");
-    ipcRenderer.on("radio:pcm", (_, data) => callback(data));
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("radio:pcm", handler);
+    return () => ipcRenderer.removeListener("radio:pcm", handler);
+  },
+  getAudioDiagnostics: () => {
+    // Worklet-Zähler einmalig beim Renderer abfragen und mitliefern
+    const workletPromise = (typeof window !== "undefined" && window.__webradioAudioDiagnostics)
+      ? window.__webradioAudioDiagnostics()
+      : Promise.resolve(null);
+    return Promise.resolve(workletPromise).then(
+      (worklet) => ipcRenderer.invoke("radio:getAudioDiagnostics", worklet)
+    );
   }
 });
 
@@ -152,7 +158,10 @@ contextBridge.exposeInMainWorld("windowControls", {
 contextBridge.exposeInMainWorld("media", {
   onPlayPause: (cb) => ipcRenderer.on("media-play-pause", cb),
   onStop: (cb) => ipcRenderer.on("media-stop", cb),
-  onNext: (cb) => ipcRenderer.on("media-next", cb)
+  onNext: (cb) => ipcRenderer.on("media-next", cb),
+  onVolumeUp:   (cb) => ipcRenderer.on("media-volume-up",   (_, ...args) => cb(...args)),
+  onVolumeDown: (cb) => ipcRenderer.on("media-volume-down", (_, ...args) => cb(...args)),
+  onMute:       (cb) => ipcRenderer.on("media-volume-mute", (_, ...args) => cb(...args)),
 });
 
 // THEME API
@@ -161,8 +170,9 @@ contextBridge.exposeInMainWorld("themeAPI", {
   getActiveTheme: () => ipcRenderer.invoke("theme:getActive"),
   setActiveTheme: (id) => ipcRenderer.invoke("theme:setActive", id),
   onThemeChanged: (callback) => {
-    ipcRenderer.removeAllListeners("theme:changed");
-    ipcRenderer.on("theme:changed", (_, data) => callback(data));
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("theme:changed", handler);
+    return () => ipcRenderer.removeListener("theme:changed", handler);
   }
 });
 
@@ -172,8 +182,9 @@ contextBridge.exposeInMainWorld("updaterAPI", {
   install: () => ipcRenderer.invoke("updater:install"),
   getVersion: () => ipcRenderer.invoke("app:version"),
   onUpdateAvailable: (callback) => {
-    ipcRenderer.removeAllListeners("updater:available");
-    ipcRenderer.on("updater:available", (_, data) => callback(data));
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("updater:available", handler);
+    return () => ipcRenderer.removeListener("updater:available", handler);
   }
 });
 
@@ -210,4 +221,12 @@ contextBridge.exposeInMainWorld("diagnosticsAPI", {
 contextBridge.exposeInMainWorld("integrationsAPI", {
     get: () => ipcRenderer.invoke("integrations:get"),
     update: (data) => ipcRenderer.invoke("integrations:update", data)
+});
+
+// MEDIAHUB OAUTH API
+contextBridge.exposeInMainWorld("mediaHubAuth", {
+  status: () => ipcRenderer.invoke("mediahub:auth-status"),
+  signIn: () => ipcRenderer.invoke("mediahub:auth-sign-in"),
+  signOut: () => ipcRenderer.invoke("mediahub:auth-sign-out"),
+  search: (query) => ipcRenderer.invoke("mediahub:search", query)
 });

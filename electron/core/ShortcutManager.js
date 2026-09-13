@@ -63,6 +63,24 @@ class ShortcutManager {
             }
         });
 
+        this.registerGlobalShortcut("VolumeUp", () => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send("media-volume-up");
+            }
+        });
+
+        this.registerGlobalShortcut("VolumeDown", () => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send("media-volume-down");
+            }
+        });
+
+        this.registerGlobalShortcut("VolumeMute", () => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send("media-volume-mute");
+            }
+        });
+
         logger.debug("Media-Shortcuts registriert.");
     }
 
