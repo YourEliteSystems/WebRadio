@@ -144,7 +144,7 @@ jobs:
         env:
           UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist -- --publish=never -config.publish.channel=${{ needs.context.outputs.update_channel }}
+        run: npm run dist -- --publish=never -c.publish.channel=${{ needs.context.outputs.update_channel }}
 
       - name: Ensure Windows Update Metadata Files
         shell: pwsh
