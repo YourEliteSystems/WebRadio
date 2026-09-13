@@ -29,15 +29,25 @@ asar: true
 # ──────────────────────────────────────────────────────────────────
 # Update System v1 (electron-updater / GitHub Releases)
 #
-# Standard-Channel ist "latest". In CI-Workflows (release.yml) wird der
-# Channel bei Bedarf dynamisch über -c.publish.channel=<channel> übersteuert.
+# Der Release-Channel wird in CI-Workflows (release.yml) dynamisch
+# über die Umgebungsvariable UPDATE_CHANNEL gesetzt.
+#
+#   UPDATE_CHANNEL=latest  → Stable-Release
+#   UPDATE_CHANNEL=beta    → Beta-Release
+#   UPDATE_CHANNEL=alpha   → Alpha-Release
+#
+# Keine CLI-Übergabe über -c.publish.channel mehr, da electron-builder
+# unter npm/GitHub Actions/Windows diese Syntax intern so interpretiert,
+# dass versehentlich eine Datei wie
+#   D:\a\WebRadio\WebRadio.publish.channel=beta
+# geöffnet werden würde.
 # ──────────────────────────────────────────────────────────────────
 publish:
-  - provider: github
-    owner: YourEliteSystems
-    repo: WebRadio
-    releaseType: release
-    channel: latest
+  provider: github
+  owner: YourEliteSystems
+  repo: WebRadio
+  releaseType: release
+  channel: ${env.UPDATE_CHANNEL}
 
 generateUpdatesFilesForAllChannels: true
 
@@ -87,11 +97,11 @@ linux:
         - x64
 
   publish:
-    - provider: github
-      owner: YourEliteSystems
-      repo: WebRadio
-      releaseType: release
-      channel: latest
+    provider: github
+    owner: YourEliteSystems
+    repo: WebRadio
+    releaseType: release
+    channel: ${env.UPDATE_CHANNEL}
 
   # Synchronisiere den in package.json gesetzten desktopName automatisch
   # in die generierte .desktop-Datei. Damit passt der StartupWMClass zum

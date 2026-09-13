@@ -14,11 +14,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release-Version (optional, z.B. v1.0.5-rc.4). Muss mit package.json uebereinstimmen.'
+        description: 'Release-Version (optional, z.B. v1.0.5-rc.4). Muss mit package.json übereinstimmen.'
         required: false
         default: ''
       draft:
-        description: 'Release als Entwurf veroeffentlichen?'
+        description: 'Release als Entwurf veröffentlichen?'
         required: false
         default: 'false'
         type: choice
@@ -64,7 +64,14 @@ jobs:
         id: ctx
         shell: bash
         run: |
+          set -euo pipefail
+
           PKG_VERSION="$(node -p "require('./package.json').version")"
+
+          if [[ -z "$PKG_VERSION" ]]; then
+            echo "::error::package.json konnte nicht gelesen werden (kein Feld 'version')."
+            exit 1
+          fi
 
           # Ermittle den Tag
           TAG=""
@@ -85,23 +92,49 @@ jobs:
           echo "RELEASE_VERSION = $VERSION"
           echo "PACKAGE_VERSION = $PKG_VERSION"
 
-          # Warnung falls Tag und package.json nicht uebereinstimmen
+          # Version must match package.json exactly
           if [[ "$VERSION" != "$PKG_VERSION" ]]; then
-            echo "::warning::Release-Tag '$TAG' stimmt nicht mit package.json '$PKG_VERSION' ueberein."
+            echo "::error::Release-Tag '$TAG' stimmt nicht mit package.json '$PKG_VERSION' überein."
+            exit 1
           fi
 
-          # Pre-release erkennen (alpha, beta, rc, nightly)
+          # Valid SemVer
+          if ! node -e "
+            const semver = require('./scripts/release/semver');
+            if (!semver.isValid(process.argv[1])) {
+              console.error('::error::\"%s\" ist kein gültiges Semantic Version.', process.argv[1]);
+              process.exit(1);
+            }
+          " "$VERSION"; then
+            exit 1
+          fi
+
+          # Pre-release recognition
           IS_PRERELEASE="false"
           if [[ "$VERSION" =~ -(alpha|beta|rc|nightly)(\.[0-9]+)?$ ]]; then
             IS_PRERELEASE="true"
           fi
           echo "IS_PRERELEASE   = $IS_PRERELEASE"
 
-          # Update-Channel
+          # Update channel
+          #   latest, beta, alpha
+          #   rc and nightly are treated as release-eligible channels, but NOT
+          #   forwarded to electron-builder as non-latest update channels because
+          #   the existing electron-builder.yml currently defines only latest/beta.
           UPDATE_CHANNEL="latest"
           if [[ "$VERSION" =~ -beta(\.|$) ]]; then
             UPDATE_CHANNEL="beta"
           fi
+          if [[ "$VERSION" =~ -alpha(\.|$) ]]; then
+            UPDATE_CHANNEL="alpha"
+          fi
+
+          if [[ "$VERSION" =~ -(rc|nightly)(\.|$) ]]; then
+            # Release notes / GitHub pre-release still apply, but keep electron-updater
+            # channel on latest unless the publish config is extended explicitly.
+            UPDATE_CHANNEL="latest"
+          fi
+
           echo "UPDATE_CHANNEL  = $UPDATE_CHANNEL"
 
           # Outputs setzen
@@ -144,22 +177,44 @@ jobs:
         env:
           UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist -- --publish=never -c.publish.channel=${{ needs.context.outputs.update_channel }}
+        run: npm run dist -- --publish=never
 
       - name: Ensure Windows Update Metadata Files
         shell: pwsh
+        env:
+          UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
         run: |
-          Write-Host "UPDATE_CHANNEL = ${{ needs.context.outputs.update_channel }}"
-          if ((Test-Path "dist/latest.yml") -and -not (Test-Path "dist/beta.yml")) {
-            Copy-Item "dist/latest.yml" "dist/beta.yml"
-            Write-Host "  Created beta.yml from latest.yml"
+          Write-Host "UPDATE_CHANNEL = ${{ env.UPDATE_CHANNEL }}"
+
+          $ymlFiles = Get-ChildItem -Path dist -Filter '*.yml' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^latest.*\.yml$' -or $_.Name -match '^beta.*\.yml$' }
+
+          Write-Host "YAML-Dateien in dist/:"
+          if ($ymlFiles.Count -eq 0) {
+            Write-Host "  (keine Update-YAMLs gefunden)"
           }
-          if ((Test-Path "dist/beta.yml") -and -not (Test-Path "dist/latest.yml")) {
-            Copy-Item "dist/beta.yml" "dist/latest.yml"
-            Write-Host "  Created latest.yml from beta.yml"
+          foreach ($f in $ymlFiles) {
+            Write-Host "  $($f.Name)"
           }
-          Write-Host "Files in dist/:"
-          Get-ChildItem -Path dist -Filter "*.yml" | ForEach-Object { Write-Host "  $($_.Name)" }
+
+          # electron-builder erzeugt Update-YAMLs pro Channel. Keine künstliche
+          # Kopie zwischen latest.yml / beta.yml mehr, da das Stable- und Beta-Metadaten
+          # vermischen würde.
+          $expectedForChannel = @()
+          if ($env.UPDATE_CHANNEL -eq 'beta') {
+            $expectedForChannel = @('beta.yml', 'beta-linux.yml')
+          } elseif ($env.UPDATE_CHANNEL -eq 'alpha') {
+            $expectedForChannel = @('alpha.yml', 'alpha-linux.yml')
+          } else {
+            $expectedForChannel = @('latest.yml', 'latest-linux.yml')
+          }
+
+          foreach ($expected in $expectedForChannel) {
+            if (Test-Path "dist/$expected") {
+              Write-Host "  Erwartete Datei vorhanden: $expected"
+            } else {
+              Write-Host "::warning::$expected fehlt im dist/-Verzeichnis (Channel: $env.UPDATE_CHANNEL)"
+            }
+          }
 
       - name: Generate Checksums
         run: node scripts/release/checksums.js
@@ -193,6 +248,31 @@ jobs:
           Write-Host ""
           Write-Host "Windows Artefakte:"
           Get-ChildItem release-artifacts | ForEach-Object { Write-Host "  $($_.Name)" }
+
+      - name: Validate Windows Artifacts
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path release-artifacts -File
+          if ($files.Count -eq 0) {
+            Write-Error "Keine Windows Release-Artefakte gefunden."
+            exit 1
+          }
+
+          $expectedExtensions = @('.exe', '.zip', '.7z', '.blockmap', '.txt', '.yml', '.yaml', '.json')
+          $foundAnyExpected = $false
+          foreach ($f in $files) {
+            foreach ($ext in $expectedExtensions) {
+              if ($f.Name.EndsWith($ext)) {
+                $foundAnyExpected = $true
+                break
+              }
+            }
+          }
+
+          if (-not $foundAnyExpected) {
+            Write-Error "Windows Release-Artefakte wurden hochgeladen, aber keine erwarteten Erweiterungen (.exe/.zip/.7z/.blockmap/.txt/.yml/.yaml/.json) gefunden."
+            exit 1
+          }
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -232,29 +312,46 @@ jobs:
         env:
           UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux AppImage --x64 --publish=never -c.publish.channel=${{ needs.context.outputs.update_channel }}
+        run: npx electron-builder --linux AppImage --x64 --publish=never
 
       # ─────────────────────────────────────────────────────────────────────
-      # Ensure both latest-linux.yml and beta-linux.yml exist for
-      # electron-updater. With generateUpdatesFilesForAllChannels=true
-      # both files are generated, but as a safety net we copy/symlink
-      # if one is missing (e.g. older electron-builder versions).
+      # Ensure Linux Update Metadata Files
+      #
+      # electron-builder erzeugt die Update-YAMLs/JSOLN je nach Channel.
+      # Wir vermeiden künstliches Kopieren zwischen latest-linux.yml und
+      # beta-linux.yml, weil das Stable- und Beta-Metadaten vermischen würde.
       # ─────────────────────────────────────────────────────────────────────
       - name: Ensure Linux Update Metadata Files
         env:
           UPDATE_CHANNEL: ${{ needs.context.outputs.update_channel }}
         run: |
+          set -euo pipefail
+
           echo "UPDATE_CHANNEL = $UPDATE_CHANNEL"
-          if [ -f dist/latest-linux.yml ] && [ ! -f dist/beta-linux.yml ]; then
-            cp dist/latest-linux.yml dist/beta-linux.yml
-            echo "  Created beta-linux.yml from latest-linux.yml"
+
+          echo "YAML/JSON-Dateien in dist/:"
+          if compgen -G 'dist/*.y*ml' > /dev/null; then
+            ls -1 dist/*.yml dist/*.yaml 2>/dev/null || true
+          else
+            echo "  (keine .yml/.yaml Dateien gefunden)"
           fi
-          if [ -f dist/beta-linux.yml ] && [ ! -f dist/latest-linux.yml ]; then
-            cp dist/beta-linux.yml dist/latest-linux.yml
-            echo "  Created latest-linux.yml from beta-linux.yml"
+
+          expected_for_channel=()
+          if [[ "$UPDATE_CHANNEL" == "beta" ]]; then
+            expected_for_channel=(beta-linux.yml beta-linux.json)
+          elif [[ "$UPDATE_CHANNEL" == "alpha" ]]; then
+            expected_for_channel=(alpha-linux.yml alpha-linux.json)
+          else
+            expected_for_channel=(latest-linux.yml latest-linux.json)
           fi
-          echo "Files in dist/:"
-          ls -la dist/*.yml 2>/dev/null || echo "  (no .yml files found)"
+
+          for expected in "${expected_for_channel[@]}"; do
+            if [ -f "dist/$expected" ]; then
+              echo "  Erwartete Datei vorhanden: $expected"
+            else
+              echo "::warning::$expected fehlt im dist/-Verzeichnis (Channel: $UPDATE_CHANNEL)"
+            fi
+          done
 
       - name: Generate Checksums (Linux)
         run: node scripts/release/checksums.js
@@ -327,7 +424,10 @@ jobs:
             -o -name "*.blockmap" \
             -o -name "latest*.yml" \
             -o -name "beta*.yml" \
+            -o -name "alpha*.yml" \
             -o -name "latest*.json" \
+            -o -name "beta*.json" \
+            -o -name "alpha*.json" \
             -o -name "*.txt" \
           \) | while read f; do
             cp "$f" release-artifacts/
@@ -343,6 +443,44 @@ jobs:
           echo ""
           echo "Linux Artefakte:"
           ls -lh release-artifacts/
+
+      - name: Validate Linux Artifacts
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          files=( release-artifacts/* )
+          shopt -u nullglob
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::Keine Linux Release-Artefakte gefunden."
+            exit 1
+          fi
+
+          found_appimage=false
+          found_pkg=false
+          found_yml=false
+
+          for f in "${files[@]}"; do
+            case "$f" in
+              *.AppImage) found_appimage=true ;;
+              *.pkg.tar.zst) found_pkg=true ;;
+              *.yml|*.yaml) found_yml=true ;;
+            esac
+          done
+
+          if [ "$found_appimage" = false ]; then
+            echo "::error::AppImage nicht gefunden."
+            exit 1
+          fi
+
+          if [ "$found_pkg" = false ]; then
+            echo "::warning::Arch Linux Paket (.pkg.tar.zst) nicht gefunden."
+          fi
+
+          if [ "$found_yml" = false ]; then
+            echo "::warning::Keine Update-YAML-Dateien gefunden."
+          fi
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
@@ -385,6 +523,13 @@ jobs:
             console.log('Release Notes erzeugt fuer Version ' + process.env.RELEASE_VERSION);
           "
 
+      - name: Validate Release Notes Artifact
+        run: |
+          if [ ! -f release-notes.md ]; then
+            echo "::error::release-notes.md wurde nicht erzeugt."
+            exit 1
+          fi
+
       - name: Upload Release Notes
         uses: actions/upload-artifact@v4
         with:
@@ -393,10 +538,10 @@ jobs:
           if-no-files-found: error
 
   # ───────────────────────────────────────────────────────────────────────────
-  # Job 5: GitHub Release veroeffentlichen
+  # Job 5: GitHub Release veröffentlichen
   #
   # Wartet auf beide Build-Jobs und die Release-Notes.
-  # Laedt alle Artefakte (Windows + Linux) in denselben GitHub-Release hoch.
+  # Ladet alle Artefakte (Windows + Linux) in denselben GitHub-Release hoch.
   # ───────────────────────────────────────────────────────────────────────────
   publish:
     name: Publish GitHub Release
@@ -423,9 +568,25 @@ jobs:
           name: release-notes
           path: .
 
-      - name: List all Release Artifacts
+      - name: Validate Release Artifacts Exist
         run: |
-          echo "Alle Artefakte fuer den Release:"
+          set -euo pipefail
+
+          if [ ! -d release-artifacts ]; then
+            echo "::error::release-artifacts-Verzeichnis fehlt."
+            exit 1
+          fi
+
+          shopt -s nullglob
+          files=( release-artifacts/* )
+          shopt -u nullglob
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::Keine Release-Artefakte vorhanden."
+            exit 1
+          fi
+
+          echo "Alle Artefakte für den Release:"
           ls -lh release-artifacts/
 
       - name: Publish GitHub Release
