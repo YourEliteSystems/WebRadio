@@ -298,42 +298,64 @@ chmod +x WebRadio-*.AppImage
 
 ## Release Process & Update Channels
 
-### Update System v1 Architecture
+### Update System Architecture
 
-WebRadio uses an integrated update system based on `electron-updater` and GitHub Releases:
+WebRadio uses an integrated update system based on `electron-updater` and GitHub Releases.
+
+The current update layer is organized as a small core with supporting modules:
 
 - **Repository**: `YourEliteSystems/WebRadio`
+- **Core modules**:
+  - `UpdateManager` – central orchestration, state and channel handling.
+  - `UpdateChannel` – stable/beta/alpha channel logic.
+  - `UpdateState` – current update state.
+  - `RuntimeDetector` – detects OS, architecture and packaging type.
+  - `ProviderFactory` – selects the appropriate update provider.
+- **Providers**:
+  - `WindowsUpdateProvider` – wraps electron-updater for Windows builds.
+  - `LinuxAppImageUpdateProvider` – prepared for AppImageUpdate, currently GitHub fallback.
+  - `UnsupportedUpdateProvider` – used for deb, arch and other package types without automatic updates.
 - **Channels**:
-  - **Stable** (`latest`): Only official stable versions (e.g. `v1.0.5`, `v1.0.6`).
-  - **Beta** (`beta`): Pre-releases and stable versions (e.g. `v1.0.6-beta.1`, `v1.0.6-beta.2`). Users receive a clear warning before activating Beta.
-- **Downgrade Support**: Beta users can switch back to Stable at any time; `allowDowngrade` ensures that a stable release is accepted even if the beta version string is numerically higher.
-- **Auto-Check**: Optional toggle in Settings (`updates.autoCheckOnStart`). Checked on app startup (debounced by 4s) and throttled to once every 6 hours.
-- **Safety**: No GitHub tokens or secrets in the client, sanitized release notes, no forced restarts (`autoInstallOnAppQuit` / manual restart confirmation).
+  - **Stable** (`latest`): Official stable versions only (e.g. `v1.0.6`).
+  - **Beta** (`beta`): Stable and beta pre-releases (e.g. `v1.0.6-beta.4`).
+  - **Alpha** (`alpha`): Alpha pre-releases when used.
+- **Release workflow**:
+  - The release workflow sets `UPDATE_CHANNEL` from the Git tag.
+  - The build uses `electron-builder.yml` with `channel: ${env.UPDATE_CHANNEL}`.
+  - Builds use `--publish=never` and upload artifacts via `softprops/action-gh-release@v2`.
+  - Stable/Beta metadata is no longer copied artificially between update YAML files.
+- **Safety**:
+  - No GitHub tokens or secrets in the client.
+  - Sanitized release notes.
+  - No forced restarts.
+  - Manual restart confirmation for installs.
 
 ### Platform Auto-Update Matrix
 
 | Target | Auto-Update Capability | Mechanism |
 |---|---|---|
 | **Windows** (NSIS) | ✅ Supported | In-app download & background install via NSIS (`latest.yml` / `beta.yml`) |
-| **Linux AppImage** | ✅ Supported | In-app download & replacement via AppImage updater (`latest-linux.yml`) |
-| **Linux deb** | ✅ Supported | In-app download & update (`latest-linux.yml`) |
+| **Linux AppImage** | 🧪 Prepared | In-app download & replacement via AppImage updater (`latest-linux.yml`); automatic AppImage update tooling is prepared but not fully implemented |
+| **Linux deb** | ❌ Package Manager | Version check only; installation managed via `apt`/`dpkg` |
 | **Arch Linux** (`.pkg.tar.zst`) | ❌ Package Manager | Version check only; installation managed via `pacman -U` |
-| **macOS** | 🟡 Prepared | electron-builder config ready; requires macOS signing for distribution |
+| **macOS** | 🚧 Planned | electron-builder config ready; requires macOS signing for distribution |
 
 ### Release Workflow
 
-1. Update version in `package.json` (e.g. `1.0.6` for Stable or `1.0.6-beta.2` for Beta).
+1. Update version in `package.json` (e.g. `1.0.6` for Stable or `1.0.6-beta.4` for Beta).
 2. Create and push tag:
    ```bash
-   git tag v1.0.6-beta.2
-   git push origin v1.0.6-beta.2
+   git tag v1.0.6-beta.4
+   git push origin v1.0.6-beta.4
    ```
 3. GitHub Actions (`.github/workflows/release.yml`) automatically:
-   - Detects whether the tag is a pre-release (`-beta.*`).
-   - Sets `UPDATE_CHANNEL=beta` or `UPDATE_CHANNEL=latest`.
-   - Builds artifacts and update manifests (`latest*.yml` / `beta*.yml`).
+   - Resolves the release context from the tag and `package.json`.
+   - Validates that the tag matches `package.json` exactly.
+   - Validates the version as SemVer.
+   - Sets `UPDATE_CHANNEL=beta`, `UPDATE_CHANNEL=alpha` or `UPDATE_CHANNEL=latest`.
+   - Builds Windows and Linux artifacts with `--publish=never`.
    - Generates SHA256 checksums and release notes.
-   - Publishes GitHub Release with `prerelease: true` for beta tags.
+   - Publishes a GitHub Release with `prerelease: true` for pre-releases.
 
 ## Community Contributions
 

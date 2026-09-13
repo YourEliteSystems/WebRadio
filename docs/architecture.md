@@ -71,11 +71,50 @@ Application
     ├── Media Keys
     ├── Tray
     └── Updater
+
+Supporting core modules:
+    │
+    ├── StreamManager (FFmpeg stream handling)
+    ├── RadioBrowserService (station discovery)
+    ├── RuntimeDetector (platform & packaging detection)
+    ├── UpdateProviderFactory (provider selection)
+    ├── NavigationManager (plugin-driven navigation)
+    ├── ThemeManager (theme detection and activation)
+    ├── PluginManager (plugin lifecycle)
+    └── Diagnostics (logging and crash reporting)
 ```
 
 Each subsystem is responsible for a single area of the application.
 
 No component should perform responsibilities that belong to another subsystem.
+
+---
+
+# Core Module Overview
+
+WebRadio distinguishes between high-level managers and supporting core modules.
+
+## Managers (high-level)
+
+* **Application** – orchestrates startup and shutdown.
+* **StorageManager** – persists application and plugin data.
+* **WindowManager** – manages main window and lifecycle.
+* **IPC** – exposes a controlled bridge between main and renderer.
+* **PluginManager** – discovers and controls plugins.
+* **ThemeManager** – detects and applies themes.
+* **UpdateManager** – coordinates update checks and provider selection.
+* **Tray** – exposes system tray integration.
+* **Diagnostics** – collects logs, runtime info and crash context.
+
+## Supporting core modules (newer additions)
+
+* **StreamManager** – starts and controls FFmpeg-based audio streams.
+* **RadioBrowserService** – fetches station lists and metadata from the Radio Browser API.
+* **RuntimeDetector** – detects platform, architecture and packaging type at runtime.
+* **ProviderFactory** – selects the correct update provider for the detected runtime.
+* **NavigationManager** – manages sidebar and plugin-driven navigation entries.
+* **ThemeAPI / ThemeHandlers** – bridges theme selection and activation from UI to core.
+* **RadioHandlers / UpdaterHandlers** – expose radio playback and update operations via IPC.
 
 ---
 
@@ -130,6 +169,14 @@ Load Plugins
 
 ↓
 
+Initialize Update Manager
+
+↓
+
+Initialize Stream and Radio services
+
+↓
+
 Register Media Keys
 
 ↓
@@ -142,6 +189,8 @@ Application Ready
 ```
 
 Every subsystem is initialized only once and in a predefined order.
+
+The update and radio subsystems are initialized after the plugin and theme layer so that the application can make platform-specific and plugin-aware runtime decisions.
 
 ---
 
@@ -179,6 +228,18 @@ This philosophy keeps updates stable while allowing the community to extend the 
 
 ---
 
+# Runtime Services
+
+In addition to managers, WebRadio uses several core runtime services:
+
+* **StreamManager** – manages FFmpeg-based playback.
+* **RadioBrowserService** – searches and caches station metadata.
+* **RuntimeDetector** – detects platform, architecture and packaging type.
+* **ProviderFactory** – selects the correct update provider.
+* **NavigationManager** – manages sidebar and plugin navigation.
+
+---
+
 # Next Steps
 
 The following documents describe each subsystem in detail:
@@ -186,9 +247,12 @@ The following documents describe each subsystem in detail:
 * Application
 * Plugin System
 * Theme System
+* Update Architecture
 * Storage
 * Diagnostics
 * IPC
 * API Reference
+* StreamManager
+* RadioBrowserService
 
 Each guide builds upon the concepts introduced in this document.

@@ -94,6 +94,93 @@ Each category is documented separately.
 
 ---
 
+# API Categories
+
+The WebRadio SDK is organized into several categories.
+
+```text
+Application
+
+↓
+
+Plugin System
+
+↓
+
+Theme System
+
+↓
+
+Storage
+
+↓
+
+Events
+
+↓
+
+Hooks
+
+↓
+
+Settings
+
+↓
+
+Commands
+
+↓
+
+Windows
+
+↓
+
+Menus
+
+↓
+
+Notifications
+
+↓
+
+Audio & Radio Services
+
+↓
+
+Update & Runtime Diagnostics
+
+↓
+
+Utilities
+```
+
+Each category is documented separately.
+
+---
+
+# Core Managers
+
+* [Application](./Application.md)
+* [PluginManager](./PluginManager.md)
+* [ThemeManager](./ThemeManager.md)
+* [StorageManager](./StorageManager.md)
+
+---
+
+# Core Services
+
+* [StreamManager](./StreamManager.md)
+* [RadioBrowserService](./RadioBrowserService.md)
+
+---
+
+# Platform and Update Core
+
+* [RuntimeDetector](./RuntimeDetector.md)
+* [UpdateManager](./UpdateManager.md)
+
+---
+
 # Documentation Format
 
 Every API document follows the same structure.

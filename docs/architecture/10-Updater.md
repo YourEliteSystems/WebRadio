@@ -8,12 +8,24 @@ Its purpose is to inform users about updates while remaining independent from th
 
 # Responsibilities
 
+The Updater subsystem is organized as a small core layer with supporting modules:
+
+* **UpdateManager** – central orchestration, state and channel handling.
+* **UpdateChannel** – stable/beta/alpha channel logic.
+* **UpdateState** – current update state.
+* **ProviderFactory** – selects the correct update provider for the detected runtime.
+* **RuntimeDetector** – detects platform, architecture and packaging type.
+* Platform-specific providers – Windows, Linux AppImage, unsupported.
+
 The Updater is responsible for:
 
+* Detecting the current runtime environment
+* Selecting the appropriate update provider
 * Checking for updates
 * Comparing versions
 * Notifying the user
-* Preparing future update workflows
+* Handling release channels
+* Managing update state
 
 The Updater should never interfere with normal application operation.
 
@@ -45,15 +57,59 @@ Notify user
 
 ---
 
+# Runtime Detection
+
+Before checking for updates, the Updater determines the current runtime environment.
+
+This includes:
+
+* Operating system (Windows, Linux, macOS)
+* Architecture (x64, arm64, arm, ia32)
+* Packaging type (appimage, deb, arch, windows-installer, windows-portable, development)
+
+This information is used to select the correct update provider.
+
+---
+
+# Provider Architecture
+
+The Updater uses a provider-based architecture:
+
+```text
+UpdateManager
+
+↓
+
+RuntimeDetector
+
+↓
+
+ProviderFactory
+
+↓
+
+Selected Provider
+```
+
+Supported providers:
+
+* **WindowsUpdateProvider** – wraps electron-updater for Windows builds.
+* **LinuxAppImageUpdateProvider** – prepared for AppImageUpdate, currently GitHub fallback.
+* **UnsupportedUpdateProvider** – used for deb, arch and other package types without automatic updates.
+
+---
+
 # Update Process
 
 A typical update workflow consists of:
 
-1. Request version information.
-2. Compare installed version.
-3. Determine update availability.
-4. Notify the user.
-5. Start update process (future).
+1. Detect runtime environment.
+2. Select update provider.
+3. Request version information.
+4. Compare installed version.
+5. Determine update availability.
+6. Notify the user.
+7. Start update process when supported.
 
 ---
 
@@ -93,6 +149,8 @@ Future versions may support:
 
 ✔ Notify users only when necessary.
 
+✔ Keep provider selection separate from channel logic.
+
 ---
 
 # Related Documentation
@@ -100,3 +158,5 @@ Future versions may support:
 * Application
 * Tray
 * Diagnostics
+* Runtime Detection
+* Provider Architecture

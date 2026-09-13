@@ -159,6 +159,33 @@ The renderer should never have unrestricted filesystem or operating system acces
 
 ---
 
+# Current IPC Surface
+
+The current IPC surface includes handlers for:
+
+* Application lifecycle and platform info
+* Storage and settings
+* Plugin management and plugin events
+* Theme selection and theme events
+* Navigation tree and navigation registration
+* Update checks, download, install and channel management
+* Radio playback and stream status
+* System tray actions
+* Media keys
+* Diagnostics and logging
+
+---
+
+# Preload Hygiene
+
+Recent IPC improvements emphasize listener cleanup.
+
+* IPC event listeners are returned with a cleanup function.
+* `onPCM`, `onThemeChanged`, `onPluginsChanged`, `onPluginToggled` and `onUpdated` use explicit remove paths.
+* Navigation and theme listeners are tied to the renderer lifecycle to avoid stale listeners.
+
+---
+
 # Design Principles
 
 ## Thin Communication Layer
@@ -200,6 +227,8 @@ Every IPC endpoint follows the same request/response structure.
 ✔ Return consistent response objects.
 
 ✔ Delegate work to managers.
+
+✔ Clean up listeners when a renderer window is destroyed.
 
 ---
 

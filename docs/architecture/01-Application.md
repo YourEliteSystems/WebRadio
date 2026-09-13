@@ -18,6 +18,8 @@ The Application is responsible for:
 * Registering IPC handlers
 * Loading themes
 * Loading plugins
+* Initializing the update manager
+* Initializing radio and stream services
 * Initializing diagnostics
 * Registering media keys
 * Creating the system tray
@@ -25,7 +27,7 @@ The Application is responsible for:
 
 The Application **does not** implement the functionality of these systems itself.
 
-Instead, it delegates every responsibility to the corresponding manager.
+Instead, it delegates every responsibility to the corresponding manager or service.
 
 ---
 
@@ -56,6 +58,54 @@ shutdown()
 Every component should assume that the Application controls its lifetime.
 
 Components should never start themselves automatically.
+
+---
+
+# Core Services
+
+The Application initializes both high-level managers and supporting core services.
+
+## Managers
+
+| Manager | Responsibility |
+| --- | --- |
+| **StorageManager** | Persists application data. |
+| **WindowManager** | Manages windows. |
+| **PluginManager** | Manages plugins. |
+| **ThemeManager** | Manages themes. |
+| **UpdateManager** | Manages updates and provider selection. |
+| **Tray** | System tray integration. |
+| **Diagnostics** | Logging and crash reporting. |
+
+## Core services
+
+| Core service | Responsibility |
+| --- | --- |
+| **StreamManager** | Manages FFmpeg-based audio streams. |
+| **RadioBrowserService** | Discovers stations and metadata. |
+| **RuntimeDetector** | Detects platform and packaging type. |
+| **NavigationManager** | Manages sidebar navigation. |
+| **ProviderFactory** | Selects update providers. |
+
+---
+
+# Shutdown
+
+The shutdown process mirrors the startup process.
+
+Resources are released in a controlled order.
+
+Typical shutdown tasks include:
+
+* unregister media keys
+* destroy tray
+* stop plugins
+* stop stream playback
+* save pending data
+* close diagnostics
+* release application resources
+
+A clean shutdown reduces the risk of corrupted user data and improves application stability.
 
 ---
 

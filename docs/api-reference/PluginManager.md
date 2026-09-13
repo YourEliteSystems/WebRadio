@@ -277,6 +277,86 @@ re-started, to prevent duplicate event listeners or navigation entries.
 
 ---
 
+## getNavigationTree()
+
+Returns the current navigation tree, including plugin-registered sections and items.
+
+### Syntax
+
+```javascript
+const tree = pluginManager.getNavigationTree();
+```
+
+### Returns
+
+```javascript
+Array<NavigationSection>
+```
+
+This method is useful for plugin development and UI integration.
+
+---
+
+## registerNavigationSection()
+
+Registers a new navigation section for the plugin.
+
+### Syntax
+
+```javascript
+await pluginManager.registerNavigationSection(section, pluginId);
+```
+
+---
+
+## registerNavigationItem()
+
+Registers a new navigation item for the plugin.
+
+### Syntax
+
+```javascript
+await pluginManager.registerNavigationItem(item, pluginId);
+```
+
+---
+
+## updateNavigationItem()
+
+Updates an existing navigation item.
+
+### Syntax
+
+```javascript
+await pluginManager.updateNavigationItem(id, updates, pluginId);
+```
+
+---
+
+## removeNavigationItem()
+
+Removes a navigation item.
+
+### Syntax
+
+```javascript
+await pluginManager.removeNavigationItem(id, pluginId);
+```
+
+---
+
+## removeNavigationSection()
+
+Removes a navigation section.
+
+### Syntax
+
+```javascript
+await pluginManager.removeNavigationSection(id, pluginId);
+```
+
+---
+
 ## getPlugin()
 
 Returns a plugin by its unique identifier.
