@@ -4,9 +4,9 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
-## [v1.0.6-beta.4] – 2026-09-11
+## [v1.0.6-beta.4] – 2026-09-13
 
-> Provider-Architektur ist jetzt produktiv aktiv, Linux-AppImage-Updates werden über den LinuxAppImageUpdateProvider geroutet, Audio- und RadioBrowser-Tests ergänzt, Lint- und Release-Qualität verbessert.
+> Provider-Architektur ist jetzt produktiv aktiv, Linux-AppImage-Updates laufen über den LinuxAppImageUpdateProvider, **Audio-Ruckler behoben, MediaHub-OAuth in den Core integriert, Plugin-Persistenz korrigiert** und die Testbasis auf 335 Tests erweitert.
 
 ### 🔄 Update-System v1.1 (Provider-Architektur aktiviert)
 
@@ -39,6 +39,53 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 ### 🐛 Bugfixes
 
 - UpdateManager: Auto-Check & Listener-Wiring werden bei nicht unterstützten Packaging-Typen (deb/arch/macOS) nicht mehr gestartet.
+
+### 🎵 Audio-Hardening (Ruckler-Beseitigung)
+
+- **AudioWorklet (`pcm-processor.js`)**:
+  - Buffer-Unterlauf gibt jetzt **Stille** aus statt den letzten Block unverändert zu wiederholen (Chromium wiederholte sonst das alte Sample-Fenster → hörbares „Ruckeln“/Stottern).
+  - **200-ms-Vorpuffer** (`preBufferSamples`) puffert IPC-/Renderer-Jitter ab; die Wiedergabe startet erst nach ausreichendem Vorlauf.
+  - Kontrollnachrichten `flush` (Stream-Wechsel/Stop) und `stats` (Bedarfs-Diagnostik) – kein permanentes Polling.
+- **StreamManager**:
+  - Verlustbehaftetes „Backpressure“-Chunk-Verwerfen entfernt – PCM wird wieder vollständig und verlustfrei an den Renderer gesendet.
+  - Leichtgewichtige Diagnose-Zähler (`chunksReceived`, `chunksSent`, `ffmpegStarts`, `streamStartAt`, `lastDataAt`) und `getDiagnostics()`.
+  - Stream-/Worklet-Diagnostik unter `radio:getAudioDiagnostics` (Main-Zustand + Worklet-Zähler).
+- **Renderer (`playerService.js`)**:
+  - PCM wird immer an den AudioWorklet übergeben (kein stilles Verwerfen bei unerwarteten Typen).
+  - Worklet-Puffer wird bei **Station-Wechsel** und **Stop** geleert (`flush`) → keine Vermischung alter/neuer Stream-Daten.
+- **Visualizer (PlayerBar)**: erheblich reduzierte Renderer-Last – ein Verlauf und begrenzte Balkenzahl pro Frame statt ~1000 Gradienten-Objekten → weniger Jitter im Audiopfad.
+
+### 🔐 MediaHub OAuth (Core-Integration)
+
+- **Neuer Core-Service** `electron/core/services/MediaHubOAuth.js`:
+  - Google-Anmeldung über den Systembrowser (`shell.openExternal`).
+  - **PKCE (S256)** im Authorization-Code-Flow, Callback ausschließlich auf `127.0.0.1`.
+  - Kein Client-Secret im Code, kein Secret am Renderer.
+  - Token nur lokal in `userData/plugin-data/mediahub-oauth.json` mit restriktiven Dateirechten (`0o600`/`0o700`).
+- **IPC-Bridge** `electron/core/ipc/mediaHubHandlers.js`: `mediahub:auth-status`, `auth-sign-in`, `auth-sign-out`, `search` – registriert im zentralen `registerIpcHandlers.js`.
+- **Preload-API** `mediaHubAuth` (status/signIn/signOut/search) für das MediaHub-Plugin.
+
+### 🔌 Plugin-System: Disabled bleibt registriert
+
+- **Bugfix:** Nach einem Disable/Rescan fehlte dem registrierten Plugin der konsistente `loaded=false`-Status – `reloadPlugins()` setzt `loaded=false` für deaktivierte Plugins und hält sie registriert.
+- **Korrigiertes Verhalten:** Deaktivierte Plugins bleiben in `this.plugins` **und** in `plugins.json` mit `"enabled": false` erhalten; Disable (nicht laden) und Uninstall (entfernen) sind strikt getrennt.
+- Lifecycle: Aktivieren → `enabled=true` und laden; Deaktivieren → `enabled=false`, bleibt registriert, wird nicht gestartet; App-Neustart/Reinit behält den Status.
+
+### 🎛 UI / Renderer (Begleitarbeiten)
+
+- **Media-Key-Integration (VolumeUp/Down/Mute, Windows/Linux)** inkl. Stumm-Toggle in der PlayerBar.
+- **Navigation-Validierung:** ungültige `currentView` wird auf den ersten verfügbaren Navigationspunkt zurückgesetzt (asynchrone Navigations-Ladung).
+- **LogManager/FileTransport:** test-freundliche `transports`-Option, Lazy-Verzeichnis-Initialisierung mit ENOENT-Retry (keine Log-Ausfälle bei entfernten Temp-Verzeichnissen).
+- **Preload-Listener-Hygiene:** Cleanup über `removeListener`-Rückgaben für `onPCM`/`onThemeChanged`/`onPluginsChanged`/`onPluginToggled`/`onUpdated`.
+
+### 🧪 Tests (Erweiterung)
+
+- **MediaHub OAuth** (`mediahub-oauth.test.js`): 10 Tests – Status, SignOut, Preload-API, IPC-Registrierung, Sicherheit (kein Secret, PKCE, 127.0.0.1), Token-Pfad.
+- **Plugin-Persistenz** (`plugin-persistence.test.js`): 10 Tests – Installieren/Deaktivieren/Reinit/Reaktivieren/Uninstall, Disable ≠ Uninstall, mehrfaches Toggeln ohne Duplikate.
+- **Audio-Pfad** (`audio-backpressure.test.js`): 9 Tests – verlustfreier PCM-Versand, keine Drop-Obergrenzen, zerstörtes Fenster, Stop-Cleanup, Diagnostik, Fehlertoleranz.
+- **AudioWorklet-Verträge** (`audio-worklet.test.js`): 12 Vertragstests – Pre-Buffer, Stille bei Unterlauf, Flush/Stats, Diagnose-IPC.
+- **RadioBrowser-Tests:** auf sequenzielle Ausführung umgestellt (parallele async-Ausführung verursachte Races am geteilten Fetch-Mock).
+- Alle Suiten sind in `npm test` integriert: **335 passed / 0 failed / 5 skipped**, `build-react` PASS, Lint ohne Fehler.
 
 ---
 
