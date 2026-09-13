@@ -1,28 +1,11 @@
 const { Tray, Menu, app, nativeImage } = require("electron");
-const fs = require("fs");
-const path = require("path");
+const { getTrayIcon } = require("../icons");
 
 let tray = null;
 
 function getTrayIconPath() {
-  // Plattformabhängige Icon-Auswahl:
-  //   • Windows: .ico (nativ)
-  //   • Linux/macOS: PNG
-  const iconDir = path.join(__dirname, "..", "..", "..", "assets", "icons");
-  const candidates =
-    process.platform === "win32"
-      ? ["tray.ico", "tray.png"]
-      : ["tray.png", "tray.ico"];
-
-  for (const name of candidates) {
-    const p = path.join(iconDir, name);
-    if (fs.existsSync(p)) {
-      return p;
-    }
-  }
-
-  // Fallback: leeres Image (sollte nie greifen, da Assets vorhanden sind).
-  return null;
+  // Icon aus zentraler Icon-Verwaltung beziehen
+  return getTrayIcon();
 }
 
 function createTray(mainWindow, { openSettings, checkForUpdates }) {

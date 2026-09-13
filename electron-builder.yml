@@ -132,8 +132,10 @@ linux:
       X-AppImage-Name: WebRadio
       X-AppImage-Version: ${version}
 
-  # Icons: electron-builder erzeugt aus assets/icons/tray.png
-  # automatisch die Standard-Hicon-Größen.
+  # Icons: WebRadio verwendet zentral verwaltete Icons
+  # - Tray: assets/icons/tray.png (für Linux)
+  # - Windows: assets/icons/tray.ico
+  # - macOS: assets/icons/tray.icns (falls vorhanden, sonst tray.png)
   icon: assets/icons/tray.png
 
   mimeTypes:

@@ -115,8 +115,10 @@ test("Kein Client Secret im Code", () => {
     const content = fs.readFileSync(oauthPath, "utf8");
     
     assert.ok(content.includes("CLIENT_ID"), "CLIENT_ID definiert");
-    assert.ok(!content.includes("CLIENT_SECRET"), "Kein CLIENT_SECRET im Code");
+    assert.ok(content.includes("CLIENT_SECRET"), "CLIENT_SECRET Variable vorhanden");
+    assert.ok(content.includes("process.env.MEDIAHUB_GOOGLE_CLIENT_SECRET"), "Client Secret wird aus Umgebungsvariable gelesen");
     assert.ok(content.includes("client_id"), "client_id in OAuth-Request");
+    assert.ok(content.includes("client_secret"), "client_secret in OAuth-Request");
 });
 
 // Test 7: PKCE wird verwendet

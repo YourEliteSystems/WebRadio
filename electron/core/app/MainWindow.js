@@ -1,13 +1,17 @@
 const { BrowserWindow } = require("electron");
 const path = require("path");
+const { getWindowIcon } = require("../icons");
 
 function createMainWindow(isDev) {
+  // Icon aus zentraler Icon-Verwaltung beziehen
+  const iconPath = getWindowIcon();
+
   const window = new BrowserWindow({
     width: 1100,
     height: 700,
     frame: false,
     titleBarStyle: "hidden",
-    icon: path.join(__dirname, "../../../assets/icons/tray.ico"),
+    ...(iconPath ? { icon: iconPath } : {}),
 
     webPreferences: {
       preload: path.join(__dirname, "../../preload.js"),

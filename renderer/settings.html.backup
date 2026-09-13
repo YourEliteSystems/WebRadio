@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src *; img-src *;">
+  <title>WebRadio – Einstellungen</title>
+  <link rel="stylesheet" href="styles/fonts.css">
+  <link rel="stylesheet" href="styles/core.css">
+  <link rel="stylesheet" id="theme-style">
+  <style>
+    /* ── Settings-spezifische Styles ── */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 70% -10%, rgba(99, 102, 241, 0.12), transparent 55%);
+    }
+
+    .settings-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Linke Nav */
+    .settings-nav {
+      width: 200px;
+      background: var(--bg-sidebar);
+      backdrop-filter: blur(10px);
+      border-right: var(--glass-border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .settings-nav-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 8px 12px 4px;
+      font-weight: 600;
+    }
+
+    .settings-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      transition: var(--transition);
+    }
+
+    .settings-nav-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    .settings-nav-item.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-color);
+    }
+
+    .settings-nav-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* Rechte Inhaltsbereich */
+    .settings-content {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+
+    .settings-page {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .settings-page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .settings-page-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: var(--glass-border);
+    }
+
+    .settings-page-header h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      background: linear-gradient(to right, #fff, var(--text-muted));
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .settings-page-header p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Karten */
+    .settings-card {
+      background: var(--bg-card);
+      border: var(--glass-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .settings-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .settings-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    /* Plugin Item */
+    .plugin-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border: var(--glass-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: var(--transition);
+    }
+
+    .plugin-item:hover {
+      background: rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .plugin-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .plugin-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    /* Toggle Switch */
+    .toggle-wrap {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .toggle-wrap input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 34px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .toggle-wrap input:checked+.toggle-slider {
+      background: var(--accent-color);
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+    }
+
+    .toggle-wrap input:checked+.toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    /* Theme Karten */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .theme-card {
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .theme-card:hover {
+      background: rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .theme-card.active {
+      border-color: var(--accent-color);
+      background: rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .theme-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      flex-shrink: 0;
+    }
+
+    /* Update Sektion */
+    .update-status-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border: var(--glass-border);
+      margin-bottom: 16px;
+    }
+
+    .update-status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .update-status-icon.current {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .update-status-icon.available {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--accent-color);
+      animation: pulseGlow 2s infinite;
+    }
+
+    .update-status-icon.checking {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    @keyframes pulseGlow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+      }
+    }
+
+    .update-status-text strong {
+      font-size: 14px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .update-status-text span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .update-release-notes {
+      background: rgba(0, 0, 0, 0.25);
+      border: var(--glass-border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      white-space: pre-line;
+      margin-bottom: 16px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .update-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-update {
+      padding: 10px 20px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-update:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Version Info am Boden */
+    .version-info {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: var(--glass-border);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Diagnostics ── */
+    .health-check-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.15);
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .health-dot.ok   { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+    .health-dot.fail { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+
+    .sysinfo-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .sysinfo-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sysinfo-table td:first-child {
+      color: var(--text-muted);
+      width: 45%;
+      font-weight: 500;
+    }
+
+    .crash-report-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.2);
+      border: var(--glass-border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      gap: 10px;
+    }
+
+    .crash-report-name {
+      font-family: monospace;
+      color: var(--text-muted);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .crash-report-date {
+      color: var(--text-muted);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon-sm {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 12px;
+      line-height: 1;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .btn-icon-sm:hover {
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+      border-color: rgba(239,68,68,0.3);
+    }
+
+    .diag-open-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .diag-open-btn:hover {
+      background: rgba(99,102,241,0.12);
+      border-color: rgba(99,102,241,0.3);
+      color: var(--accent-color);
+    }
+
+    .diag-folder-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    /* Channel Badge */
+    .channel-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-radius: 4px;
+      background: rgba(34, 197, 94, 0.18);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      vertical-align: middle;
+    }
+
+    .channel-badge.beta {
+      background: rgba(245, 158, 11, 0.18);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    /* Channel-Auswahl Radio-Karten */
+    .channel-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .channel-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .channel-option:hover {
+      background: rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .channel-option input[type="radio"] {
+      margin-top: 4px;
+      accent-color: var(--accent-color);
+      cursor: pointer;
+    }
+
+    .channel-option.selected {
+      border-color: var(--accent-color);
+      background: rgba(99, 102, 241, 0.10);
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25) inset;
+    }
+
+    .channel-option-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .channel-option-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .channel-option-desc strong {
+      color: #f59e0b;
+    }
+
+    .beta-hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.10);
+      border: 1px solid rgba(245, 158, 11, 0.30);
+      color: #f59e0b;
+      font-size: 12px;
+    }
+
+    .beta-hint svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Modal (Beta-Warnung) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 460px;
+      max-width: 90vw;
+      background: var(--bg-card);
+      border: var(--glass-border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    }
+
+    .modal h2 {
+      margin: 0 0 12px;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text-main);
+    }
+
+    .modal .modal-warning {
+      background: rgba(245, 158, 11, 0.10);
+      border: 1px solid rgba(245, 158, 11, 0.30);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #f59e0b;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-primary {
+      padding: 8px 18px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary.danger {
+      background: #f59e0b;
+    }
+
+    .btn-primary.danger:hover {
+      background: #ea8909;
+    }
+
+    .btn-secondary {
+      padding: 8px 18px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:disabled,
+    .btn-primary:disabled,
+    .btn-update:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <div class="app-logo"></div>
+      <span class="app-title">WebRadio</span>
+      <span style="font-size:11px; color: var(--text-muted); margin-left: 4px;">· Einstellungen</span>
+    </div>
+    <div class="titlebar-right">
+      <button class="window-btn" id="btnMinimize">
+        <svg viewBox="0 0 10 1">
+          <rect width="10" height="1" />
+        </svg>
+      </button>
+      <button class="window-btn" id="btnMaximize">
+        <svg viewBox="0 0 10 10">
+          <rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" />
+        </svg>
+      </button>
+      <button class="window-btn close" id="btnClose">
+        <svg viewBox="0 0 10 10">
+          <path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="settings-layout">
+
+    <!-- Linke Nav -->
+    <nav class="settings-nav">
+      <span class="settings-nav-label">Allgemein</span>
+      <button class="settings-nav-item active" data-page="integrations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        Integrationen
+      </button>
+      <button class="settings-nav-item" data-page="plugins">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        Plugins
+      </button>
+      <button class="settings-nav-item" data-page="themes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+        Themes
+      </button>
+      <button class="settings-nav-item" data-page="updates">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10" />
+          <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+        </svg>
+        Updates
+        <span id="nav-update-dot"
+          style="display:none; width:7px; height:7px; border-radius:50%; background:var(--accent-color); margin-left:auto; box-shadow:0 0 6px rgba(99,102,241,0.7);"></span>
+      </button>
+
+      <!-- About Button -->
+      <button class="settings-nav-item" data-page="about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
+        </svg>
+        Über
+      </button>
+
+      <span class="settings-nav-label settings-nav-label-group">System</span>
+
+      <!-- Diagnostics Button -->
+      <button class="settings-nav-item" data-page="diagnostics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        Diagnostics
+      </button>
+    </nav>
+
+    <!-- Rechts: Inhalt -->
+    <div class="settings-content">
+
+      <!-- INTEGRATIONS -->
+      <div class="settings-page active" id="page-integrations">
+        <div class="settings-page-header">
+          <h1>Integrationen</h1>
+          <p>Externe Dienste verbinden</p>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Discord Rich Presence</span>
+          </div>
+          <div class="plugin-item">
+            <div class="plugin-item-info">
+              <span class="plugin-item-name">Discord Rich Presence aktivieren</span>
+              <span style="font-size: 11px; color: var(--text-muted);">Zeigt aktuellen Song in Discord Status</span>
+            </div>
+            <label class="toggle-wrap" title="Discord Rich Presence aktivieren">
+              <input type="checkbox" id="discordRpcToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLUGINS -->
+      <div class="settings-page" id="page-plugins">
+        <div class="settings-page-header">
+          <h1>Plugins</h1>
+          <p>Erweiterungen aktivieren oder deaktivieren</p>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Installierte Plugins</span>
+            <div style="display:flex; gap:8px;">
+              <button id="openPluginsFolderBtn" class="diag-open-btn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                Ordner öffnen
+              </button>
+              <button id="reloadPluginsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+            </div>
+          </div>
+          <div id="pluginList"></div>
+        </div>
+      </div>
+
+      <!-- THEMES -->
+      <div class="settings-page" id="page-themes">
+        <div class="settings-page-header">
+          <h1>Themes</h1>
+          <p>Aussehen der App anpassen</p>
+        </div>
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Verfügbare Themes</span>
+            <div style="display:flex; gap:8px;">
+              <button id="openThemesFolderBtn" class="diag-open-btn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                Ordner öffnen
+              </button>
+              <button id="reloadThemesBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+            </div>
+          </div>
+          <div class="theme-grid" id="themeList"></div>
+        </div>
+      </div>
+
+      <!-- UPDATES -->
+      <div class="settings-page" id="page-updates">
+        <div class="settings-page-header">
+          <h1>Updates</h1>
+          <p>WebRadio auf dem neuesten Stand halten</p>
+        </div>
+
+        <div class="settings-card">
+          <!-- Status Box -->
+          <div class="update-status-box" id="updateStatusBox">
+            <div class="update-status-icon checking" id="updateIcon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+              </svg>
+            </div>
+            <div class="update-status-text">
+              <strong id="updateStatusTitle">Prüfe...</strong>
+              <span id="updateStatusSub">Verbindung zum Update-Server wird hergestellt</span>
+            </div>
+          </div>
+
+          <!-- Download Progress (nur sichtbar während Download) -->
+          <div id="downloadProgressWrap" style="display:none; margin: 12px 0 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span id="downloadProgressLabel" style="font-size:12px; color:var(--text-muted);">Wird heruntergeladen…</span>
+              <span id="downloadProgressPercent" style="font-size:12px; color:var(--text-main); font-weight:600;">0%</span>
+            </div>
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden;">
+              <div id="downloadProgressBar" style="width:0%; height:100%; background:var(--accent-color); transition: width 200ms ease;"></div>
+            </div>
+            <div id="downloadProgressBytes" style="margin-top:4px; font-size:11px; color:var(--text-muted);"></div>
+          </div>
+
+          <!-- Downloaded: Benutzer muss Installation bestätigen -->
+          <div id="downloadedWrap" style="display:none; margin-top:14px;">
+            <div
+              style="padding:14px 16px; border-radius:10px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); display:flex; gap:12px; align-items:flex-start;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-color); margin-top:2px; flex-shrink:0;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <div style="flex:1;">
+                <strong style="font-size:13px; color:var(--text-main); display:block; margin-bottom:2px;">Update bereit</strong>
+                <span id="downloadedMessage" style="font-size:12px; color:var(--text-muted);">Das Update wird installiert, sobald WebRadio neu gestartet wird.</span>
+              </div>
+            </div>
+            <div class="update-actions" style="margin-top:12px; gap:8px;">
+              <button id="restartLaterBtn" class="btn-secondary" style="display:inline-flex; width:auto; padding:10px 18px; font-size:13px;">Später neu starten</button>
+              <button id="installNowBtn" class="btn-update" style="display:inline-flex;">↻ Jetzt neu starten</button>
+            </div>
+          </div>
+
+          <!-- Release Notes (nur sichtbar wenn Update da) -->
+          <div id="releaseNotesWrap" style="display:none;">
+            <p
+              style="font-size:12px; color:var(--text-muted); margin:16px 0 8px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px;">
+              Was ist neu</p>
+            <div class="update-release-notes" id="releaseNotes"></div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="update-actions" id="updateActionsRow">
+            <button id="checkUpdateBtn" class="btn-secondary"
+              style="width:auto; padding:10px 18px; font-size:13px;">Jetzt prüfen</button>
+            <button id="dismissUpdateBtn" class="btn-secondary" style="display:none; width:auto; padding:10px 18px; font-size:13px;">Später</button>
+            <button id="installUpdateBtn" class="btn-update" style="display:none;">⬇ Update herunterladen</button>
+          </div>
+
+          <!-- Auto-Check Option -->
+          <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06);">
+            <label style="display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--text-main); cursor:pointer; user-select:none;">
+              <input type="checkbox" id="autoCheckOnStart" style="accent-color:var(--accent-color); cursor:pointer;" checked />
+              <span>Beim Start nach Updates suchen</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Channel-Auswahl -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Update-Kanal</span>
+            <span id="channelBadge" class="channel-badge stable" style="display:none;">Stable</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px;">
+            Wähle, welche Versionen dir angeboten werden.
+          </p>
+          <div class="channel-options">
+            <label class="channel-option" data-channel="stable">
+              <input type="radio" name="updateChannel" value="stable" id="channelStable" />
+              <div class="channel-option-content">
+                <div class="channel-option-title">Stable</div>
+                <div class="channel-option-desc">Nur offiziell veröffentlichte stabile Versionen.</div>
+              </div>
+            </label>
+            <label class="channel-option" data-channel="beta">
+              <input type="radio" name="updateChannel" value="beta" id="channelBeta" />
+              <div class="channel-option-content">
+                <div class="channel-option-title">Beta</div>
+                <div class="channel-option-desc">
+                  Neue Funktionen früher testen. <strong>Kann Fehler und Instabilitäten enthalten.</strong>
+                </div>
+              </div>
+            </label>
+          </div>
+          <div id="betaHint" class="beta-hint" style="display:none;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
+          </div>
+        </div>
+
+        <div class="version-info">
+          <span>Aktuelle Version: <strong id="currentVersion">–</strong> <span id="currentVersionBadge" class="channel-badge" style="display:none;"></span></span>
+          <span>WebRadio by Your Elite Systems</span>
+        </div>
+      </div>
+
+      <!-- ABOUT – NEU -->
+      <div class="settings-page" id="page-about">
+        <div class="settings-page-header">
+          <h1>Über WebRadio</h1>
+          <p>Informationen zur App</p>
+        </div>
+
+        <div class="settings-card">
+          <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+            <div class="app-logo" style="width:48px; height:48px; border-radius:12px; background:var(--accent-color);">
+            </div>
+            <div>
+              <h2 style="margin:0; font-size:20px; font-weight:600;">WebRadio</h2>
+              <p style="margin:4px 0 0; font-size:13px; color:var(--text-muted);">Dein modernes Radioerlebnis</p>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; color:var(--text-muted);">Version</span>
+              <strong id="currentVersionAbout" style="font-size:13px;">–</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; color:var(--text-muted);">Entwickler</span>
+              <strong style="font-size:13px;">YourEliteSystems</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; color:var(--text-muted);">Plattform</span>
+              <strong style="font-size:13px;">Electron</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.6; margin:0;">
+            WebRadio wurde entwickelt, um deine Lieblingssender einfach und stilvoll zu hören. Mit Plugin-Unterstützung,
+            anpassbaren Themes und automatischen Updates bleibst du immer auf dem neuesten Stand.
+          </p>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:12px;">
+            © 2025 YourEliteSystems. Alle Rechte vorbehalten.
+          </p>
+        </div>
+      </div>
+
+      <!-- DIAGNOSTICS -->
+      <div class="settings-page" id="page-diagnostics">
+        <div class="settings-page-header">
+          <h1>Diagnostics</h1>
+          <p>System-Gesundheit, Logs und Absturzberichte</p>
+        </div>
+
+        <!-- Ordner-Buttons -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Ordner</span>
+          </div>
+          <div class="diag-folder-row">
+            <button class="diag-open-btn" id="openLogsFolderBtn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Logs-Ordner
+            </button>
+            <button class="diag-open-btn" id="openCrashFolderBtn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Crash-Ordner
+            </button>
+            <button class="diag-open-btn" id="openUserDataFolderBtn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              App-Daten
+            </button>
+          </div>
+        </div>
+
+        <!-- Health Check -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Health Check</span>
+            <button id="reloadHealthBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu prüfen</button>
+          </div>
+          <div id="healthCheckList">
+            <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px 0;">Wird geladen...</p>
+          </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">System Info</span>
+          </div>
+          <table class="sysinfo-table" id="systemInfoTable">
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <!-- Crash Reports -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <span class="settings-card-title">Crash Reports</span>
+            <div style="display:flex; gap:8px;">
+              <button id="clearCrashReportsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; color:#ef4444;">🗑 Alle löschen</button>
+              <button id="reloadCrashReportsBtn" class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">↺ Neu laden</button>
+            </div>
+          </div>
+          <div id="crashReportList">
+            <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px 0;">Wird geladen...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Beta-Warnung -->
+  <div class="modal-backdrop" id="betaWarningModal" role="dialog" aria-modal="true" aria-labelledby="betaWarningTitle">
+    <div class="modal">
+      <h2 id="betaWarningTitle">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:#f59e0b;">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Beta-Versionen aktivieren
+      </h2>
+      <p>
+        Du möchtest WebRadio auf den <strong>Beta-Kanal</strong> umstellen.
+      </p>
+      <p>
+        Beta-Versionen befinden sich noch in Entwicklung und wurden möglicherweise nicht vollständig getestet.
+        Sie können <strong>Fehler, Abstürze, Funktionsprobleme oder andere unerwartete Probleme</strong> enthalten.
+      </p>
+      <div class="modal-warning">
+        Der Beta-Kanal sollte nur aktiviert werden, wenn du bereit bist, mögliche Fehler zu melden
+        und mit instabileren Versionen zu arbeiten.
+      </div>
+      <p style="font-size:12px; color:var(--text-muted);">
+        Möchtest du den Beta-Kanal wirklich aktivieren?
+      </p>
+      <div class="modal-actions">
+        <button id="betaWarningCancel" class="btn-secondary" type="button">Abbrechen</button>
+        <button id="betaWarningConfirm" class="btn-primary danger" type="button">Beta aktivieren</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="settings.js"></script>
+</body>
+
+</html>
