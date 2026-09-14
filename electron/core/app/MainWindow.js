@@ -12,6 +12,9 @@ function createMainWindow(isDev) {
     frame: false,
     titleBarStyle: "hidden",
     ...(iconPath ? { icon: iconPath } : {}),
+    // WM_CLASS für Linux Desktop-Integration (verhindert Chromium-Instanz-Gruppierung)
+    // Muss mit StartupWMClass in .desktop-Datei übereinstimmen
+    ...(process.platform === 'linux' ? { title: 'WebRadio' } : {}),
 
     webPreferences: {
       preload: path.join(__dirname, "../../preload.js"),

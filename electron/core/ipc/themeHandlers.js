@@ -1,4 +1,4 @@
-const { ipcMain, BrowserWindow } = require("electron");
+const { ipcMain, BrowserWindow, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
@@ -11,9 +11,8 @@ const LogManager = require("../diagnostics/logging/LogManager");
 const logger = LogManager.getLogger("ThemeHandlers");
 
 function registerThemeHandlers(windowManager) {
-  const getThemesPath = () => {
-    // ThemeLoader.getThemesPath() für konsistente Pfad-Ermittlung
-    return ThemeLoader.getThemesPath();
+  const getUserThemesPath = () => {
+    return ThemeLoader.getUserThemesPath();
   };
 
   ipcMain.handle("theme:get", async () => {
@@ -23,12 +22,13 @@ function registerThemeHandlers(windowManager) {
       return themes.map(t => ({
         id: t.id,
         name: t.name,
-        css: t.css
+        css: t.css,
+        source: t.source
       }));
     }
 
     // Fallback: Direkt aus Dateisystem laden (für Abwärtskompatibilität)
-    const themesPath = getThemesPath();
+    const themesPath = ThemeLoader.getBuiltinThemesPath();
     if (!fs.existsSync(themesPath)) {
       return [];
     }
@@ -52,7 +52,8 @@ function registerThemeHandlers(windowManager) {
         themes.push({
           id: folder.name,
           name: data.name,
-          css: cssAbsPath
+          css: cssAbsPath,
+          source: "builtin"
         });
       } catch (err) {
         logger.error(`Theme konnte nicht geladen werden: ${folder.name}`, err);
@@ -79,19 +80,6 @@ function registerThemeHandlers(windowManager) {
     let cssPath = "";
     if (ThemeManager.isInitialized() && ThemeManager.hasTheme(themeId)) {
       cssPath = ThemeManager.getTheme(themeId).css;
-    } else {
-      const themesPath = getThemesPath();
-      if (fs.existsSync(themesPath)) {
-        const themeJsonPath = path.join(themesPath, themeId, "theme.json");
-        if (fs.existsSync(themeJsonPath)) {
-          try {
-            const data = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
-            cssPath = path.join(themesPath, themeId, data.css);
-          } catch (err) {
-            logger.error(`Theme CSS konnte nicht aufgelöst werden: ${themeId}`, err);
-          }
-        }
-      }
     }
 
     // Broadcast an alle Renderer-Fenster
@@ -107,6 +95,75 @@ function registerThemeHandlers(windowManager) {
     });
 
     return true;
+  });
+
+  /**
+   * Globaler Theme-Rescan.
+   *
+   * Request:  theme:reload
+   * Broadcast: themes:changed
+   *
+   * Analog zu plugins:reload - scannt Built-in und User-Theme-Verzeichnisse
+   * und liefert ein strukturiertes Ergebnis mit added/removed/changed/
+   * unchanged/errors-Listen.
+   */
+  ipcMain.handle("theme:reload", () => {
+    let result;
+    try {
+      result = ThemeManager.reloadThemes();
+    } catch (err) {
+      logger.error(`Globaler Theme-Rescan fehlgeschlagen: ${err.message}`);
+      result = {
+        success: false,
+        added: [],
+        removed: [],
+        changed: [],
+        unchanged: [],
+        errors: [{ id: "*", error: err.message }]
+      };
+    }
+
+    // Broadcast an alle Renderer-Fenster
+    try {
+      BrowserWindow.getAllWindows().forEach(win => {
+        if (!win.isDestroyed()) {
+          win.webContents.send("themes:changed", result);
+        }
+      });
+    } catch (broadcastErr) {
+      logger.warn(`Konnte themes:changed nicht broadcasten: ${broadcastErr.message}`);
+    }
+
+    return result;
+  });
+
+  /**
+   * User-Theme-Ordner öffnen.
+   *
+   * Analog zu Plugin-Ordner öffnen.
+   */
+  ipcMain.handle("theme:openFolder", () => {
+    const userThemesPath = getUserThemesPath();
+
+    // Ordner erstellen, falls nicht vorhanden
+    if (!fs.existsSync(userThemesPath)) {
+      try {
+        fs.mkdirSync(userThemesPath, { recursive: true });
+        logger.info(`User-Theme-Verzeichnis erstellt: ${userThemesPath}`);
+      } catch (err) {
+        logger.error(`Konnte User-Theme-Verzeichnis nicht erstellen: ${err.message}`);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // Ordner im Explorer öffnen
+    try {
+      shell.openPath(userThemesPath);
+      return { success: true };
+    } catch (err) {
+      logger.error(`Konnte User-Theme-Verzeichnis nicht öffnen: ${err.message}`);
+      return { success: false, error: err.message };
+    }
   });
 
 }

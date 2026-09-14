@@ -12,57 +12,71 @@ const SettingsApp = () => {
   const [activeTheme, setActiveTheme] = useState(null);
   const [themes, setThemes] = useState([]);
 
+  const loadThemes = useCallback(async () => {
+    if (window.themeAPI) {
+      try {
+        const [themesList, activeId] = await Promise.all([
+          window.themeAPI.getThemes(),
+          window.themeAPI.getActiveTheme()
+        ]);
+        setThemes(themesList);
+        setActiveTheme(activeId);
+        
+        // Theme anwenden
+        const found = themesList.find(t => t.id === activeId) || themesList[0];
+        if (found?.css) {
+          const link = document.getElementById("theme-style");
+          const url = found.css.startsWith("file://") 
+            ? found.css 
+            : "file:///" + found.css.replace(/\\/g, "/");
+          if (link) link.href = url;
+        }
+      } catch (err) {
+        console.warn("Could not load themes:", err);
+      }
+    }
+  }, []);
+
   // Lade aktives Theme beim Mounten
   useEffect(() => {
-    const loadTheme = async () => {
-      if (window.themeAPI) {
-        try {
-          const [themesList, activeId] = await Promise.all([
-            window.themeAPI.getThemes(),
-            window.themeAPI.getActiveTheme()
-          ]);
-          setThemes(themesList);
-          setActiveTheme(activeId);
-          
-          // Theme anwenden
-          const found = themesList.find(t => t.id === activeId) || themesList[0];
-          if (found?.css) {
-            const link = document.getElementById("theme-style");
-            const url = found.css.startsWith("file://") 
-              ? found.css 
-              : "file:///" + found.css.replace(/\\/g, "/");
-            if (link) link.href = url;
-          }
-        } catch (err) {
-          console.warn("Could not load themes:", err);
-        }
-      }
-    };
-    
-    loadTheme();
-    
+    loadThemes();
+
     // Theme-Änderungen von anderen Fenstern empfangen
     if (window.themeAPI?.onThemeChanged) {
       const handler = (data) => {
         if (data?.css) {
           const link = document.getElementById("theme-style");
-          const url = data.css.startsWith("file://") 
-            ? data.css 
+          const url = data.css.startsWith("file://")
+            ? data.css
             : "file:///" + data.css.replace(/\\/g, "/");
           if (link) link.href = url;
-          
-          setThemes(data.allThemes || []);
-          setActiveTheme(data.id);
+
+          setActiveTheme(data.themeId);
         }
       };
-      window.themeAPI.onThemeChanged(handler);
+      const removeListener = window.themeAPI.onThemeChanged(handler);
       return () => {
-        if (window.themeAPI?.onThemeChanged) {
-          window.themeAPI.onThemeChanged(handler);
+        if (removeListener) {
+          removeListener();
         }
       };
     }
-  }, []);
+  }, [loadThemes]);
+
+  // Auf Theme-Rescan reagieren (themes:changed Event)
+  useEffect(() => {
+    if (window.themeAPI?.onThemesChanged) {
+      const handler = () => {
+        loadThemes();
+      };
+      const removeListener = window.themeAPI.onThemesChanged(handler);
+      return () => {
+        if (removeListener) {
+          removeListener();
+        }
+      };
+    }
+  }, [loadThemes]);
 
   const renderPage = () => {
     switch (currentPage) {

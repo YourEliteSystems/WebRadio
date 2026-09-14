@@ -1,13 +1,12 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const ThemesSettings = ({ themes, activeTheme, setActiveTheme }) => {
+  const [reloading, setReloading] = useState(false);
+
   const openThemesFolder = async () => {
-    if (window.diagnosticsAPI?.getPaths) {
+    if (window.themeAPI?.openThemeFolder) {
       try {
-        const paths = await window.diagnosticsAPI.getPaths();
-        if (paths?.themes) {
-          window.shellAPI?.openPath(paths.themes);
-        }
+        await window.themeAPI.openThemeFolder();
       } catch (err) {
         console.error("Failed to open themes folder:", err);
       }
@@ -15,17 +14,15 @@ const ThemesSettings = ({ themes, activeTheme, setActiveTheme }) => {
   };
 
   const handleReloadThemes = async () => {
-    // Themes neu laden
-    if (window.themeAPI?.getThemes) {
-      try {
-        const [themesList, activeId] = await Promise.all([
-          window.themeAPI.getThemes(),
-          window.themeAPI.getActiveTheme()
-        ]);
-        setActiveTheme(activeId);
-      } catch (err) {
-        console.error("Failed to reload themes:", err);
+    try {
+      setReloading(true);
+      if (window.themeAPI?.reloadThemes) {
+        await window.themeAPI.reloadThemes();
       }
+    } catch (err) {
+      console.error("Failed to reload themes:", err);
+    } finally {
+      setReloading(false);
     }
   };
 
@@ -68,8 +65,9 @@ const ThemesSettings = ({ themes, activeTheme, setActiveTheme }) => {
               onClick={handleReloadThemes}
               className="btn-secondary" 
               style={{width: 'auto', padding: '6px 14px', fontSize: '12px'}}
+              disabled={reloading}
             >
-              ↺ Neu laden
+              {reloading ? '↺ Rescan läuft…' : '↺ Neu laden'}
             </button>
           </div>
         </div>

@@ -169,10 +169,17 @@ contextBridge.exposeInMainWorld("themeAPI", {
   getThemes: () => ipcRenderer.invoke("theme:get"),
   getActiveTheme: () => ipcRenderer.invoke("theme:getActive"),
   setActiveTheme: (id) => ipcRenderer.invoke("theme:setActive", id),
+  reloadThemes: () => ipcRenderer.invoke("theme:reload"),
+  openThemeFolder: () => ipcRenderer.invoke("theme:openFolder"),
   onThemeChanged: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("theme:changed", handler);
     return () => ipcRenderer.removeListener("theme:changed", handler);
+  },
+  onThemesChanged: (callback) => {
+    const handler = (_event, result) => callback(result);
+    ipcRenderer.on("themes:changed", handler);
+    return () => ipcRenderer.removeListener("themes:changed", handler);
   }
 });
 

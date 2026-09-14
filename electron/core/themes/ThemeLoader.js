@@ -13,38 +13,84 @@ class ThemeLoader {
     this.validator = new ThemeValidator();
   }
 
-  getThemesPath() {
+  getBuiltinThemesPath() {
     // Development: Projektverzeichnis themes/
-    // Production: resources/themes (gepackt) oder userData/themes (user themes)
+    // Production: resources/themes (gepackt)
     if (!app || typeof app.isPackaged !== "boolean" || !app.isPackaged) {
       return path.join(process.cwd(), "themes");
     }
 
-    // Production: Zuerst resources/themes prüfen, dann userData/themes
+    // Production: resources/themes
     const resourcesPath = path.join(process.resourcesPath, "themes");
     if (fs.existsSync(resourcesPath)) {
       return resourcesPath;
     }
 
-    // Fallback: userData/themes
-    const userDataPath = path.join(app.getPath("userData"), "themes");
-    return userDataPath;
+    // Fallback: Wenn keine built-in Themes existieren, leeren String zurückgeben
+    return "";
+  }
+
+  getUserThemesPath() {
+    // User-Verzeichnis: userData/themes
+    return path.join(app.getPath("userData"), "themes");
   }
 
   discoverThemes() {
-    const themesPath = this.getThemesPath();
+    const themes = [];
+
+    // 1. Built-in Themes scannen
+    const builtinPath = this.getBuiltinThemesPath();
+    if (builtinPath && fs.existsSync(builtinPath)) {
+      const builtinThemes = this.scanDirectory(builtinPath, "builtin");
+      themes.push(...builtinThemes);
+      logger.info(`[ThemeLoader] Built-in Themes aus ${builtinPath} geladen`);
+    } else {
+      logger.warn(`[ThemeLoader] Built-in Themes Pfad nicht gefunden: ${builtinPath}`);
+    }
+
+    // 2. User Themes scannen
+    const userPath = this.getUserThemesPath();
+    // User-Verzeichnis erstellen falls nicht vorhanden
+    if (!fs.existsSync(userPath)) {
+      try {
+        fs.mkdirSync(userPath, { recursive: true });
+        logger.info(`[ThemeLoader] User-Theme-Verzeichnis erstellt: ${userPath}`);
+      } catch (err) {
+        logger.error(`[ThemeLoader] Konnte User-Theme-Verzeichnis nicht erstellen: ${err.message}`);
+      }
+    }
+
+    if (fs.existsSync(userPath)) {
+      const userThemes = this.scanDirectory(userPath, "user");
+      themes.push(...userThemes);
+      logger.info(`[ThemeLoader] User Themes aus ${userPath} geladen`);
+    }
+
+    // 3. User Themes override Built-in Themes mit gleicher ID
+    const themeMap = new Map();
+    for (const theme of themes) {
+      // User-Theme überschreibt Built-in Theme
+      if (!themeMap.has(theme.id) || theme.source === "user") {
+        themeMap.set(theme.id, theme);
+      }
+    }
+
+    const finalThemes = [...themeMap.values()];
+    logger.info(`[ThemeLoader] ${finalThemes.length} Themes gefunden (Built-in + User)`);
+    return finalThemes;
+  }
+
+  scanDirectory(themesPath, source) {
+    const themes = [];
 
     if (!fs.existsSync(themesPath)) {
-      logger.warn(`[ThemeLoader] Theme-Verzeichnis nicht gefunden: ${themesPath}`);
-      return [];
+      return themes;
     }
 
     const folders = fs.readdirSync(
       themesPath,
       { withFileTypes: true }
     );
-
-    const themes = [];
 
     for (const folder of folders) {
       if (!folder.isDirectory()) {
@@ -88,7 +134,9 @@ class ThemeLoader {
             themesPath,
             folder.name,
             cssFile
-          )
+          ),
+          source: source,
+          path: path.join(themesPath, folder.name)
         });
 
       } catch (err) {
@@ -99,7 +147,6 @@ class ThemeLoader {
       }
     }
 
-    logger.info(`[ThemeLoader] ${themes.length} Themes gefunden in ${themesPath}`);
     return themes;
   }
 

@@ -4,6 +4,87 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.6-beta.5] – 2026-09-14
+
+> Theme-System stabilisiert (Built-in/User-Theme-Support, Reload, Override), Volume-System optimiert, MediaHub OAuth Client-Secret-Fix, Linux Desktop-Integration verbessert und Tests erweitert.
+
+### 🎨 Theme-System Stabilisierung
+
+- **Built-in und User Themes:**
+  - `ThemeLoader` umgebaut um zwei separate Theme-Quellen zu scannen:
+    - `getBuiltinThemesPath()`: Built-in Themes aus `themes/` (Development) oder `resources/themes` (Production)
+    - `getUserThemesPath()`: User Themes aus `<userData>/themes/`
+  - `discoverThemes()` scannt nun beide Verzeichnisse und merge die Ergebnisse
+  - User Themes überschreiben Built-in Themes mit gleicher ID (Priority: User > Built-in)
+  - Themes erhalten ein `source`-Feld ("builtin" oder "user") zur Identifikation
+- **Theme-Reload:**
+  - `ThemeManager.reloadThemes()` implementiert (analog zu `PluginManager.reloadPlugins()`)
+  - Reload scannt Built-in und User-Verzeichnisse erneut
+  - Liefert strukturiertes Ergebnis mit added/removed/changed/unchanged/errors
+  - Broadcastet `themes:changed` Event an alle Renderer-Fenster
+  - Aktives Theme wird während Reload beibehalten (in Settings gespeichert)
+- **Theme-Ordner öffnen:**
+  - `themeHandlers.js` um `theme:openFolder` IPC-Handler erweitert
+  - Erstellt User-Theme-Verzeichnis falls nicht vorhanden
+  - Öffnet Ordner im System-Explorer via `shell.openPath()`
+  - `preload.js` um `themeAPI.openThemeFolder()` erweitert
+  - `ThemesSettings.jsx` Button nutzt neue API mit Loading-State
+
+### 🔊 Volume-System Optimierung
+
+- **Volume-Preservation bei Station-Wechsel:**
+  - `playerService.switchStream()` erweitert um sicherzustellen dass `gainNode` den aktuellen `currentVolume` während Crossfade beibehält
+  - Verhindert unerwartete Lautstärkeänderungen bei Stream-Wechseln
+- **Volume-Architektur verifiziert:**
+  - UI → usePlayer hook → playerService.setVolume → gainNode.gain → Audio Output
+  - Volume in localStorage persistiert
+  - Volume beim Start wiederhergestellt
+
+### 🔐 MediaHub OAuth Client-Secret Fix
+
+- **Client-Secret aus Umgebungsvariable:**
+  - `CLIENT_SECRET = process.env.MEDIAHUB_GOOGLE_CLIENT_SECRET` in `MediaHubOAuth.js`
+  - Authorization-Code-Austausch erweitert um `client_secret` Parameter
+  - Refresh-Token-Austausch erweitert um `client_secret` Parameter
+  - Fehlerbehandlung für fehlendes Secret mit klarer Fehlermeldung
+- **Sicherheitsmaßnahmen:**
+  - Secret wird nur aus Umgebungsvariable gelesen (nicht im Code hardcoded)
+  - Secret wird nicht geloggt
+  - Secret wird nicht an Renderer weitergegeben
+  - Secret wird nicht in Plugin- oder Theme-Dateien gespeichert
+
+### 🐧 Linux Desktop-Integration
+
+- **WM_CLASS Fix:**
+  - `MainWindow.js` erweitert um `title: 'WebRadio'` auf Linux
+  - Verhindert dass die App als Chromium-Instanz gruppiert wird
+  - Ermöglicht korrekte Desktop-Integration (Launcher-Zuordnung)
+  - Titel muss mit `StartupWMClass` in .desktop-Datei übereinstimmen
+
+### 🧪 Tests
+
+- **Theme-Tests erweitert** (`theme.test.js`):
+  - 18 Tests bestanden (10 bestehende + 8 neue)
+  - Neue Tests für Built-in/User-Theme-Scan, User-Override, Reload-Struktur
+  - Tests die Electron app benötigen werden im Test-Environment übersprungen
+- **Volume-Tests neu erstellt** (`volume.test.js`):
+  - 11 Tests bestanden
+  - Prüft Volume-Flow-Architektur, Persistenz, Preservation bei Operationen
+  - Verifiziert AudioWorklet und StreamManager Integration
+- **MediaHub OAuth Tests erweitert** (`mediahub-oauth.test.js`):
+  - 11 Tests bestanden (10 bestehende + 1 neuer)
+  - Neuer Test: "Fehlendes Client Secret wird sauber behandelt"
+  - Verifiziert: Prüfung auf fehlendes Secret, klare Fehlermeldung, kein Logging des Secrets
+
+### 🔧 Build-Konfiguration
+
+- **Version auf beta.5 aktualisiert** (`package.json`)
+- **Build-Command korrekt:**
+  - `"build": "npm run build-react && npm run build-settings"`
+  - Baut sowohl renderer.jsx als auch settings.jsx (separate Dateien)
+
+---
+
 ## [v1.0.6-beta.4] – 2026-09-13
 
 > Provider-Architektur ist jetzt produktiv aktiv, Linux-AppImage-Updates laufen über den LinuxAppImageUpdateProvider, **Audio-Ruckler behoben, MediaHub-OAuth in den Core integriert, Plugin-Persistenz korrigiert** und die Testbasis auf 335 Tests erweitert.

@@ -152,11 +152,21 @@ test("Token-Datei-Pfad ist korrekt", () => {
 test("IPC Handlers definieren alle Kanäle", () => {
     const handlersPath = path.join(__dirname, "../../electron/core/ipc/mediaHubHandlers.js");
     const content = fs.readFileSync(handlersPath, "utf8");
-    
+
     assert.ok(content.includes("mediahub:auth-status"), "auth-status Handler");
     assert.ok(content.includes("mediahub:auth-sign-in"), "auth-sign-in Handler");
     assert.ok(content.includes("mediahub:auth-sign-out"), "auth-sign-out Handler");
     assert.ok(content.includes("mediahub:search"), "search Handler");
+});
+
+// Test 11: Fehlendes Client Secret wird sauber behandelt
+test("Fehlendes Client Secret wird sauber behandelt", () => {
+    const oauthPath = path.join(__dirname, "../../electron/core/services/MediaHubOAuth.js");
+    const content = fs.readFileSync(oauthPath, "utf8");
+
+    assert.ok(content.includes("if (!CLIENT_SECRET)"), "Prüfung auf fehlendes Client Secret");
+    assert.ok(content.includes("MEDIAHUB_GOOGLE_CLIENT_SECRET ist nicht gesetzt"), "Klare Fehlermeldung für fehlendes Secret");
+    assert.ok(!content.includes("console.log(CLIENT_SECRET)"), "Client Secret wird nicht geloggt");
 });
 
 console.log("\n==========================================");

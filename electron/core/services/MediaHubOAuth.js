@@ -9,6 +9,7 @@ const http = require("http");
 const path = require("path");
 
 const CLIENT_ID = "628381290989-lg85lho3becjlmn38s6hgka36f8ohggh.apps.googleusercontent.com";
+const CLIENT_SECRET = process.env.MEDIAHUB_GOOGLE_CLIENT_SECRET;
 const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
 const TOKEN_FILE = () => path.join(app.getPath("userData"), "plugin-data", "mediahub-oauth.json");
 
@@ -36,11 +37,15 @@ async function accessToken() {
   if (!tokens) throw new Error("Nicht mit Google angemeldet.");
   if (tokens.expiresAt > Date.now() + 60_000) return tokens.accessToken;
   if (!tokens.refreshToken) throw new Error("Die Google-Anmeldung ist abgelaufen. Bitte erneut anmelden.");
-  const fresh = await post({ client_id: CLIENT_ID, grant_type: "refresh_token", refresh_token: tokens.refreshToken });
+  const fresh = await post({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "refresh_token", refresh_token: tokens.refreshToken });
   const next = { ...tokens, accessToken: fresh.access_token, expiresAt: Date.now() + fresh.expires_in * 1000 };
   write(next); return next.accessToken;
 }
 async function signIn() {
+  if (!CLIENT_SECRET) {
+    throw new Error("MEDIAHUB_GOOGLE_CLIENT_SECRET ist nicht gesetzt. Bitte setzen Sie die Umgebungsvariable.");
+  }
+
   const verifier = base64url(crypto.randomBytes(48));
   const challenge = base64url(crypto.createHash("sha256").update(verifier).digest());
   const state = base64url(crypto.randomBytes(24));
@@ -64,7 +69,7 @@ async function signIn() {
     shell.openExternal(authorize.toString());
   }).finally(() => server.close());
   if (!code) throw new Error("Google hat keinen Anmeldecode geliefert.");
-  const token = await post({ client_id: CLIENT_ID, code, code_verifier: verifier, grant_type: "authorization_code", redirect_uri: callback });
+  const token = await post({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code, code_verifier: verifier, grant_type: "authorization_code", redirect_uri: callback });
   write({ accessToken: token.access_token, refreshToken: token.refresh_token, expiresAt: Date.now() + token.expires_in * 1000 });
   return { connected: true };
 }

@@ -92,7 +92,7 @@ export async function switchStream(url, station = null) {
   try {
     if(ctx.state !== "running") await ctx.resume();
 
-    // Crossfade über 3 Sekunden
+    // Crossfade über 0.3 Sekunden
     const now = ctx.currentTime;
     const fadeTime = 0.3;
 
@@ -105,6 +105,12 @@ export async function switchStream(url, station = null) {
 
     nextGainNode.gain.setValueAtTime(0, now);
     nextGainNode.gain.linearRampToValueAtTime(1.0, now + fadeTime);
+
+    // Ensure main volume gainNode maintains current volume during switch
+    if (gainNode) {
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(currentVolume, now);
+    }
 
     await window.radioAPI.startStream(url, station);
     // Alten Stream-Puffer im Worklet verwerfen, damit keine Samples der
