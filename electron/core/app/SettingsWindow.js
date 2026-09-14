@@ -10,8 +10,10 @@ function createSettingsWindow(isDev) {
     width: 600,
     height: 500,
     frame: false,
-    resizable: false,
-    
+    resizable: true,
+    minHeight: 400,
+    minWidth: 500,
+
     // Icon nur setzen, wenn der Pfad gültig ist
     ...(iconPath ? { icon: iconPath } : {}),
 
