@@ -4,6 +4,43 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.6-beta.6] – 2026-09-16
+
+> Google OAuth Client Secret direkt integriert, Credential-Management für Secret entfernt, Settings vereinfacht, MediaHub OAuth Flow finalisiert.
+
+### 🔐 MediaHub OAuth Client-Secret – Direkte Integration
+
+- **Feste Client-Secret-Integration:**
+  - `CLIENT_SECRET` als Konstante direkt in `MediaHubOAuth.js` integriert
+  - Keine Abhängigkeit mehr von `process.env.MEDIAHUB_GOOGLE_CLIENT_SECRET`
+  - Keine Benutzereingabe des Secrets mehr erforderlich
+- **Token-Austausch korrigiert:**
+  - Authorization-Code-Austausch sendet jetzt `client_secret` an Google OAuth Endpoint
+  - Refresh-Token-Austausch sendet jetzt `client_secret` an Google OAuth Endpoint
+  - Behebt den Fehler "client_secret is missing"
+- **Sicherheitsarchitektur:**
+  - Secret bleibt ausschließlich im Electron Main Process
+  - Secret gelangt niemals in Renderer, Plugins oder IPC-Payloads
+  - Kein Logging des Secrets
+
+### ⚙️ Credential-Management Bereitnigung
+
+- **Google Client Secret Handler entfernt:**
+  - `credentialHandlers.js`: Alle 4 IPC Handler für Google Client Secret entfernt
+  - `preload.js`: `credentialsAPI` auskommentiert (nicht mehr benötigt)
+- **Settings-Seite vereinfacht:**
+  - Google Client Secret Sektion aus `IntegrationsSettings.jsx` entfernt
+  - Keine Benutzereingabe des Secrets mehr möglich/erforderlich
+
+### 🧪 Tests
+
+- **MediaHub OAuth Tests aktualisiert:**
+  - Test "Client Secret ist direkt integriert" ersetzt alten Test
+  - Test "Client Secret ist direkt in den Code integriert" ersetzt alten Fehlermeldungs-Test
+  - Alle 11 Tests bestehen
+
+---
+
 ## [v1.0.6-beta.5] – 2026-09-14
 
 > Theme-System stabilisiert (Built-in/User-Theme-Support, Reload, Override), Volume-System optimiert, MediaHub OAuth Client-Secret-Fix, Linux Desktop-Integration verbessert und Tests erweitert.
