@@ -101,9 +101,8 @@ input, select, button {
 .app-logo {
   width: 20px;
   height: 20px;
-  background: var(--accent-color);
-  border-radius: 6px;
-  box-shadow: var(--shadow-glow);
+  display: block;
+  border-radius: 4px;
 }
 
 .app-title {

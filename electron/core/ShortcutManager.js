@@ -9,7 +9,7 @@ class ShortcutManager {
 
     constructor() {
         this.initialized = false;
-        this.isDev = !app.isPackaged;
+        this.isDev = false; // Wird in initialize() gesetzt
         this.registeredGlobalShortcuts = new Map();
         this.mainWindow = null;
         this.inputEventHandler = null;
@@ -21,9 +21,10 @@ class ShortcutManager {
         }
 
         this.mainWindow = mainWindow;
-        
+        this.isDev = !app.isPackaged;
+
         this.registerMediaShortcuts();
-        
+
         if (this.isDev) {
             this.registerDevelopmentShortcuts();
         }

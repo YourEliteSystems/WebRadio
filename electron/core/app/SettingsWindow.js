@@ -6,19 +6,21 @@ function createSettingsWindow(isDev) {
   // Icon aus zentraler Icon-Verwaltung beziehen
   const iconPath = getWindowIcon();
 
+  const preloadPath = path.join(__dirname, "../../preload.js");
+  
   const window = new BrowserWindow({
-    width: 600,
-    height: 500,
+    width: 800,
+    height: 600,
     frame: false,
     resizable: true,
-    minHeight: 400,
-    minWidth: 500,
+    minHeight: 500,
+    minWidth: 600,
 
     // Icon nur setzen, wenn der Pfad gültig ist
     ...(iconPath ? { icon: iconPath } : {}),
 
     webPreferences: {
-      preload: path.join(__dirname, "../../preload.js"),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false

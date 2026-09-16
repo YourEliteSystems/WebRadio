@@ -11,6 +11,7 @@ const registerIntegrationHandlers = require("./integrationHandlers");
 const registerNavigationHandlers = require("./navigationHandlers");
 const registerUiHandlers = require("./uiHandlers");
 const registerMediaHubHandlers = require("./mediaHubHandlers");
+const registerCredentialHandlers = require("./credentialHandlers");
 
 function registerAllIpc(window) {
   registerPluginHandlers(window);
@@ -24,6 +25,7 @@ function registerAllIpc(window) {
   registerNavigationHandlers();
   registerUiHandlers(window);
   registerMediaHubHandlers();
+  registerCredentialHandlers();
 }
 
 module.exports = { registerAllIpc };

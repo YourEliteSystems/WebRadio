@@ -57,6 +57,8 @@ const ASSET_EXTENSIONS = Object.freeze([
     '.deb',
     '.rpm',
     '.tar.gz',
+    '.tar.zst',
+    '.pkg.tar.zst',
     '.dmg'
 ]);
 

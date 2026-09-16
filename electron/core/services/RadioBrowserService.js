@@ -8,7 +8,9 @@ const logger = LogManager.getLogger("RadioBrowser");
 let activeMirror = null;
 let mirrorCache = null;
 
-const cache_file = path.join(app.getPath("userData"), "radiobrowser-servers.json");
+function getCacheFile() {
+  return path.join(app.getPath("userData"), "radiobrowser-servers.json");
+}
 
 const RADIO_MIRRORS = [
   "https://de1.api.radio-browser.info/json",
@@ -31,8 +33,8 @@ async function getMirrors() {
     return mirrorCache;
   }
   try {
-    if (fs.existsSync(cache_file)) {
-      const cache = JSON.parse(fs.readFileSync(cache_file, "utf8"));
+    if (fs.existsSync(getCacheFile())) {
+      const cache = JSON.parse(fs.readFileSync(getCacheFile(), "utf8"));
       const age = Date.now() - cache.updated;
       if (age < 24 * 60 * 60 * 1000) {
         return cache.servers;
@@ -47,8 +49,8 @@ async function getMirrors() {
       servers.map(
         s => `https://${s.name}/json`
       ))];
-    fs.mkdirSync(path.dirname(cache_file), { recursive: true });
-    fs.writeFileSync(cache_file, JSON.stringify({
+    fs.mkdirSync(path.dirname(getCacheFile()), { recursive: true });
+    fs.writeFileSync(getCacheFile(), JSON.stringify({
       updated: Date.now(),
       servers: mirrors
     }));

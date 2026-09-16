@@ -9,6 +9,7 @@ let primed = false; // Flag, um zu verhindern, dass ctx.resume() mehrfach aufger
 let initialized = false;
 let currentStation = null;
 let switching = false;
+let currentVolume = 1.0;
 
 let limiter;
 
@@ -21,6 +22,12 @@ export async function initPlayer() {
   if (initialized) return;
 
   initialized = true;
+
+  // Volume aus localStorage laden
+  const savedVolume = localStorage.getItem('webradio_volume');
+  if (savedVolume !== null) {
+    currentVolume = Math.max(0, Math.min(1, parseFloat(savedVolume)));
+  }
 
   ctx = new AudioContext({ sampleRate: 48000 });
 
@@ -127,13 +134,12 @@ export async function switchStream(url, station = null) {
   },800); // Sicherstellen, dass der Wechsel
 }
 
-let currentVolume = 1.0;
-
 export async function playStream(url, station = null) {
   if (!started) throw new Error("Player not initialized");
   if (ctx.state !== "running") {
     await ctx.resume();
   }
+  gainNode.gain.cancelScheduledValues(ctx.currentTime);
   gainNode.gain.setValueAtTime(currentVolume, ctx.currentTime);
   await window.radioAPI.startStream(url, station);
   flushAudioBuffer();
@@ -179,11 +185,13 @@ export async function getAudioDiagnostics() {
 window.__webradioAudioDiagnostics = getAudioDiagnostics;
 
 export function setVolume(value) {
-  if (!ctx || ctx.state !== "running" || !gainNode) return;
   const vol = Math.max(0, Math.min(1, value));
   currentVolume = vol;
-  gainNode.gain.cancelScheduledValues(ctx.currentTime);
-  gainNode.gain.setTargetAtTime(vol, ctx.currentTime, 0.01);
+  if (!ctx || !gainNode) return;
+  if (ctx.state === "running") {
+    gainNode.gain.cancelScheduledValues(ctx.currentTime);
+    gainNode.gain.setTargetAtTime(vol, ctx.currentTime, 0.01);
+  }
 }
 
 export function getAnalyser() {

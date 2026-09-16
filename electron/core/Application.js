@@ -59,6 +59,7 @@ const { updateManager } = require("./updates");
 // Services
 // ─────────────────────────────────────────────
 
+const CredentialManager = require("./services/CredentialManager");
 const DiscordRichPresence = require("./services/DiscordRichPresence");
 
 const LogManager = require("./diagnostics/logging/LogManager");
@@ -162,6 +163,9 @@ class Application {
     async initializeStorage() {
 
         StorageManager.initialize();
+        
+        // CredentialManager initialisieren (benötigt StorageManager Pfade)
+        CredentialManager.initialize();
 
     }
 
@@ -256,6 +260,7 @@ class Application {
 
     async shutdownServices() {
         await DiscordRichPresence.shutdown();
+        CredentialManager.shutdown();
     }
     
     async checkForUpdates() {

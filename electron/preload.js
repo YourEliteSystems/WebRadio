@@ -152,7 +152,21 @@ contextBridge.exposeInMainWorld("radioAPI", {
 contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
   maximize: () => ipcRenderer.send("window:maximize"),
-  close: () => ipcRenderer.send("window:close")
+  close: () => ipcRenderer.send("window:close"),
+  // Window State Queries (für Settings-Fenster)
+  isMaximized: () => ipcRenderer.invoke("window:isMaximized"),
+  isMinimized: () => ipcRenderer.invoke("window:isMinimized"),
+  // Event-Listener für Fensterzustandsänderungen
+  onMaximized: (callback) => {
+    const handler = () => callback(true);
+    ipcRenderer.on("window:onMaximized", handler);
+    return () => ipcRenderer.removeListener("window:onMaximized", handler);
+  },
+  onUnmaximized: (callback) => {
+    const handler = () => callback(false);
+    ipcRenderer.on("window:onUnmaximized", handler);
+    return () => ipcRenderer.removeListener("window:onUnmaximized", handler);
+  }
 });
 
 contextBridge.exposeInMainWorld("media", {
@@ -237,3 +251,13 @@ contextBridge.exposeInMainWorld("mediaHubAuth", {
   signOut: () => ipcRenderer.invoke("mediahub:auth-sign-out"),
   search: (query) => ipcRenderer.invoke("mediahub:search", query)
 });
+
+// CREDENTIALS API
+// Google Client Secret Handler wurden entfernt, da der Secret jetzt
+// direkt in MediaHubOAuth.js integriert ist und nicht mehr
+// vom Benutzer konfiguriert werden muss.
+// contextBridge.exposeInMainWorld("credentialsAPI", {
+//   setGoogleClientSecret: (secret) => ipcRenderer.invoke("credentials:set-google-client-secret", secret),
+//   hasGoogleClientSecret: () => ipcRenderer.invoke("credentials:has-google-client-secret"),
+//   deleteGoogleClientSecret: () => ipcRenderer.invoke("credentials:delete-google-client-secret")
+// });

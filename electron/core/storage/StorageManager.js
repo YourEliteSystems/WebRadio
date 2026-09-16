@@ -53,6 +53,8 @@ class StorageManager {
             }, null, 2)
         );
 
+        // Credentials-Datei wird vom CredentialManager verwaltet
+
         // Migration: Falls altes storage.json noch existiert, Daten übernehmen
         this._migrateFromLegacyStorage();
 
@@ -180,6 +182,18 @@ class StorageManager {
 
     getReportsPath() {
         return path.join(this.userData, "reports");
+    }
+
+    // ---------------------------------------------------------
+    // Credentials
+    // ---------------------------------------------------------
+
+    getCredentialsPath() {
+        return path.join(this.userData, "credentials.enc");
+    }
+
+    getEncryptionKeyPath() {
+        return path.join(this.userData, ".encryption-key");
     }
 
     // ---------------------------------------------------------

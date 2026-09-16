@@ -109,14 +109,15 @@ test("registerIpcHandlers importiert mediaHubHandlers", () => {
     assert.ok(content.includes("registerMediaHubHandlers()"), "registerMediaHubHandlers() aufgerufen");
 });
 
-// Test 6: Kein Client Secret im Code
-test("Kein Client Secret im Code", () => {
+// Test 6: Client Secret ist direkt integriert
+test("Client Secret ist direkt integriert", () => {
     const oauthPath = path.join(__dirname, "../../electron/core/services/MediaHubOAuth.js");
     const content = fs.readFileSync(oauthPath, "utf8");
     
     assert.ok(content.includes("CLIENT_ID"), "CLIENT_ID definiert");
-    assert.ok(content.includes("CLIENT_SECRET"), "CLIENT_SECRET Variable vorhanden");
-    assert.ok(content.includes("process.env.MEDIAHUB_GOOGLE_CLIENT_SECRET"), "Client Secret wird aus Umgebungsvariable gelesen");
+    assert.ok(content.includes("CLIENT_SECRET"), "CLIENT_SECRET Konstante definiert");
+    assert.ok(!content.includes("process.env.MEDIAHUB_GOOGLE_CLIENT_SECRET"), "Keine Environment Variable Abhängigkeit");
+    assert.ok(!content.includes("getClientSecret"), "Keine getClientSecret Funktion");
     assert.ok(content.includes("client_id"), "client_id in OAuth-Request");
     assert.ok(content.includes("client_secret"), "client_secret in OAuth-Request");
 });
@@ -159,13 +160,14 @@ test("IPC Handlers definieren alle Kanäle", () => {
     assert.ok(content.includes("mediahub:search"), "search Handler");
 });
 
-// Test 11: Fehlendes Client Secret wird sauber behandelt
-test("Fehlendes Client Secret wird sauber behandelt", () => {
+// Test 11: Client Secret ist direkt in den Code integriert
+test("Client Secret ist direkt in den Code integriert", () => {
     const oauthPath = path.join(__dirname, "../../electron/core/services/MediaHubOAuth.js");
     const content = fs.readFileSync(oauthPath, "utf8");
 
-    assert.ok(content.includes("if (!CLIENT_SECRET)"), "Prüfung auf fehlendes Client Secret");
-    assert.ok(content.includes("MEDIAHUB_GOOGLE_CLIENT_SECRET ist nicht gesetzt"), "Klare Fehlermeldung für fehlendes Secret");
+    assert.ok(content.includes("const CLIENT_SECRET"), "CLIENT_SECRET Konstante definiert");
+    assert.ok(!content.includes("if (clientSecret)"), "Keine bedingte Prüfung - Secret ist immer vorhanden");
+    assert.ok(!content.includes("MEDIAHUB_GOOGLE_CLIENT_SECRET"), "Keine Environment Variable mehr");
     assert.ok(!content.includes("console.log(CLIENT_SECRET)"), "Client Secret wird nicht geloggt");
 });
 

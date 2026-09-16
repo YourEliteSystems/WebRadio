@@ -98,7 +98,7 @@ export default function App() {
     <>
       <div className="titlebar">
         <div className="titlebar-left">
-          <div className="app-logo"></div>
+          <img className="app-logo" src="../assets/icons/tray.png" alt="WebRadio" />
           <span className="app-title">WebRadio</span>
           {version && (
             <span

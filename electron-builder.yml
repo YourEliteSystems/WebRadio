@@ -74,6 +74,13 @@ win:
         - x64
 
   icon: assets/icons/tray.ico
+  
+  publish:
+    provider: github
+    owner: YourEliteSystems
+    repo: WebRadio
+    releaseType: release
+    channel: ${env.UPDATE_CHANNEL}
 
 # ──────────────────────────────────────────────────────────────────
 # Linux x86_64 / amd64

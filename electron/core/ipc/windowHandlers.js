@@ -18,7 +18,25 @@ function registerWindowHandlers(windowManager) {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
 
-    win.isMaximized() ? win.unmaximize() : win.maximize();
+    if (win.isMaximized()) {
+      win.unmaximize();
+      win.webContents.send("window:onUnmaximized", false);
+    } else {
+      win.maximize();
+      win.webContents.send("window:onMaximized", true);
+    }
+  });
+
+  // ── Window State Queries ──────────────────────────────────────
+  // Wird von Settings-Fenster verwendet, um den Fensterzustand zu synchronisieren
+  ipcMain.handle("window:isMaximized", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return win ? win.isMaximized() : false;
+  });
+
+  ipcMain.handle("window:isMinimized", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return win ? win.isMinimized() : false;
   });
 
   // ── Shell / Filesystem ────────────────────────────────────
