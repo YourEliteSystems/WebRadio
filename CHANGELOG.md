@@ -4,6 +4,46 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.6-beta.7] – 2026-09-17
+
+> Vollständiger Dependency-, Security- und Update-Audit vor Release. Kritische Security-Lücken in @xmldom/xmldom, js-yaml und fast-uri behoben. Register-scheme Überride für npm-ci-Kompatibilität hinzugefügt.
+
+### 🔒 Security Updates
+
+- **@xmldom/xmldom:** 0.8.13 → 0.8.15
+  - Behebt multiple XML-Injection-Schwachstellen (GHSA-6gmq-8vp8-gcm6, GHSA-w2rr-34g9-rvrj, GHSA-4w3w-2rp5-g8jm, GHSA-c7q8-3ch8-vqpv, GHSA-27p8-2357-5qqv, GHSA-6h8r-xr42-gp59, GHSA-8344-3jmq-59r6, GHSA-x4fp-j954-r2f4, GHSA-965w-775f-mr7g, GHSA-93r5-fhx6-vmg9)
+  - Transitive Dependency über electron-builder → app-builder-lib → plist
+- **js-yaml:** 4.3.1 → 4.3.2
+  - Behebt CPU-Exhaustion-Schwachstelle (GHSA-2883-xcg3-v3hh)
+  - Transitive Dependency über electron-builder, electron-updater, eslint
+- **fast-uri:** → 3.1.8
+  - Behebt multiple URI-Parsing-Schwachstellen (GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf, GHSA-jqff-g426-hqxp)
+  - Transitive Dependency über electron-builder
+
+### 📦 Dependency Updates
+
+- **Electron:** 40.7.0 → 40.10.6 (innerhalb semver-Range)
+- **esbuild:** 0.28.1 → 0.28.2
+- **fs-extra:** 11.3.4 → 11.4.0
+- **react/react-dom:** 19.2.6 → 19.3.0
+- **prettier:** 3.6.2 → 3.9.7
+- **@eslint/js:** 9.39.5 → 9.39.5 (kein Update innerhalb Range)
+- **eslint:** 9.39.5 → 9.39.5 (kein Update innerhalb Range)
+
+### ⚙️ Konfiguration
+
+- **npm overrides:** `register-scheme: 1.0.0` hinzugefügt für npm ci-Kompatibilität (ersetzt git+ssh Referenz)
+- **package-lock.json:** Version auf 1.0.6-beta.6 synchronisiert
+
+### 📊 Audit-Ergebnis
+
+- **Vor npm update:** 23 Vulnerabilities (1 low, 3 moderate, 19 high)
+- **Nach npm update:** 20 Vulnerabilities (1 low, 3 moderate, 16 high)
+- **Verbleibende Lücken:** Alle in Build-Time Dependencies (npm@10.9.9 bundled mit semantic-release, electron 40.10.6)
+- **Bewertung:** Keine Runtime-kritischen Security-Lücken. Verbleibende Lücken erfordern Major-Upgrades (electron 40.x→44.x, semantic-release 24.x→25.x)
+
+---
+
 ## [v1.0.6-beta.6] – 2026-09-16
 
 > Google OAuth Client Secret direkt integriert, Credential-Management für Secret entfernt, Settings vereinfacht, MediaHub OAuth Flow finalisiert.
