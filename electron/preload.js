@@ -235,7 +235,8 @@ contextBridge.exposeInMainWorld("diagnosticsAPI", {
     clearLogs:           ()         => ipcRenderer.invoke("diagnostics:clearLogs"),
     getPaths:            ()         => ipcRenderer.invoke("diagnostics:getPaths"),
     getMemory:           ()         => ipcRenderer.invoke("diagnostics:getMemory"),
-    getEventBusStats:    ()         => ipcRenderer.invoke("diagnostics:getEventBusStats")
+    getEventBusStats:    ()         => ipcRenderer.invoke("diagnostics:getEventBusStats"),
+    getBootupState:      ()         => ipcRenderer.invoke("diagnostics:getBootupState")
 });
 
 // INTEGRATIONS API

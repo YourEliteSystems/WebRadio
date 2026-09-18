@@ -1,6 +1,6 @@
 {
   "name": "webradio",
-  "version": "1.0.6-beta.7",
+  "version": "1.0.6",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systems",
@@ -14,7 +14,7 @@
     "build": "npm run build-react && npm run build-settings",
     "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm --minify",
     "build-settings": "esbuild renderer/settings.jsx --bundle --outfile=renderer/dist/settings.js --format=esm --minify",
-    "test": "node scripts/tests/navigation.test.js && node scripts/tests/theme.test.js && node scripts/tests/pluginManager.test.js && node scripts/tests/paths.test.js && node scripts/tests/updater.test.js && node scripts/tests/artifact-audit.test.js && node scripts/tests/discord-rpc.test.js && node scripts/tests/eventbus.test.js && node scripts/tests/plugin-fingerprint.test.js && node scripts/tests/metadataParser.test.js && node scripts/tests/runtime-detector.test.js && node scripts/tests/provider-routing.test.js && node scripts/tests/streamManager.test.js && node scripts/tests/radioBrowser.test.js && node scripts/tests/plugin-persistence.test.js && node scripts/tests/audio-backpressure.test.js && node scripts/tests/audio-worklet.test.js && node scripts/tests/mediahub-oauth.test.js",
+    "test": "node scripts/tests/navigation.test.js && node scripts/tests/theme.test.js && node scripts/tests/pluginManager.test.js && node scripts/tests/paths.test.js && node scripts/tests/updater.test.js && node scripts/tests/artifact-audit.test.js && node scripts/tests/discord-rpc.test.js && node scripts/tests/eventbus.test.js && node scripts/tests/plugin-fingerprint.test.js && node scripts/tests/metadataParser.test.js && node scripts/tests/runtime-detector.test.js && node scripts/tests/provider-routing.test.js && node scripts/tests/streamManager.test.js && node scripts/tests/radioBrowser.test.js && node scripts/tests/plugin-persistence.test.js && node scripts/tests/audio-backpressure.test.js && node scripts/tests/audio-worklet.test.js && node scripts/tests/mediahub-oauth.test.js && node scripts/tests/diagnostics.test.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
@@ -40,7 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "@types/node": "^25.6.0",
-    "electron": "^40.7.0",
+    "electron": "^44.4.1",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
     "eslint": "^9.39.0",

@@ -9,6 +9,7 @@ const StorageManager = require("../storage/StorageManager");
 const LogManager     = require("../diagnostics/logging/LogManager");
 const LogReader      = require("../diagnostics/logging/LogReader");
 const MemoryMonitor  = require("../diagnostics/memory/MemoryMonitor");
+const BootupDiagnostics = require("../diagnostics/BootupDiagnostics");
 
 function registerDiagnosticsHandlers() {
 
@@ -98,6 +99,11 @@ function registerDiagnosticsHandlers() {
 
     ipcMain.handle("diagnostics:getEventBusStats", () => {
         return MemoryMonitor.getEventBusStats();
+    });
+
+    // ── Bootup State ──────────────────────────────────────────
+    ipcMain.handle("diagnostics:getBootupState", () => {
+        return BootupDiagnostics.getState();
     });
 
 }

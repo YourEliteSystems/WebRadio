@@ -4,11 +4,45 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
-## [v1.0.6-beta.7] – 2026-09-17
+## [v1.0.6] – 2026-09-18
 
-> Vollständiger Dependency-, Security- und Update-Audit vor Release. Kritische Security-Lücken in @xmldom/xmldom, js-yaml und fast-uri behoben. Register-scheme Überride für npm-ci-Kompatibilität hinzugefügt.
+> Stabile Release-Version v1.0.6. Build-Infrastruktur-Updates: Electron 40.7.0 → 44.4.1, package-lock.json synchronisiert, Worktree-Pfade korrigiert und Diagnose-Infrastruktur für Boot-Time-Metriken erweitert. **Hinweis:** Die Security-Lückenbehebungen aus v1.0.6-beta.7 sind in dieser Version enthalten (siehe beta.7 Changelog).
 
-### 🔒 Security Updates
+### 🔒 Security & Dependencies
+
+- **Electron:** 40.7.0 → 44.4.1 (Major-Upgrade in devDependency; mögliche Brechpunkte in electron-updater/electron-builder-Integrationen prüfen)
+- **package-lock.json:** Vollständig auf v1.0.6 synchronisiert und von node_modules-Status bereinigt
+- **npm overrides:** `register-scheme: 1.0.0` beibehalten (npm-ci-Kompatibilität)
+- **Security-Lückenbehebungen (aus v1.0.6-beta.7):**
+  - @xmldom/xmldom 0.8.13 → 0.8.15
+  - js-yaml 4.3.1 → 4.3.2
+  - fast-uri → 3.1.8
+
+### ⚙️ Build & Release-Infrastruktur
+
+- **GitHub Actions Permissions:** Workflow-Berechtigungen für Releases und GitHub Actions aktualisiert
+- **Dist-Verzeichnis:** Build-Artefakte bereinigt
+- **Worktree-Kompatibilität:** Pfade und require()-Aufrufe für parallele Arbeitsverzeichnisse korrigiert
+
+### 🧠 Diagnostics & Boot-Time-Metriken
+
+- **BootupDiagnostics:** Neues Modul für Startzeit-Messung und Boot-State-Exposition
+- **DiagnosticsManager:** Zentrale Initialisierung/shutdown-Schnittstelle für das Diagnosesystem
+- **IPC:** Neuer Channel `diagnostics:getBootupState` für Renderer
+- **CrashHandler-Architektur:** Zentraler CrashHandler unter `electron/core/diagnostics/CrashHandler.js`, re-exportierter Wrapper unter `electron/core/diagnostics/crash/CrashHandler.js` entfernt Doppel-Initialisierung und konkurrierende Listener
+- **Application.js:** Bootup-Markierungen um jeden Initialisierungsschritt ergänzt (`core-init`, `storage-init`, `diagnostics-init`, `window-created`, `ipc-init`, `navigation-init`, `plugins-init`, `integrations-init`, `themes-init`, `shortcuts-init`, `tray-init`, `updater-init`, `services-init`, `app-ready`)
+- **main.js:** Diagnostics-Initialisierung vor `app.whenReady()` verschoben, saubere Einrückung und Trennung von Aufträgen
+
+### 🐛 Bugfixes & Konsistenz
+
+- **Electron-Pfad-Konsistenz:** `CrashHandler`-Import von `./diagnostics/crash/CrashHandler` auf `./diagnostics/CrashHandler` korrigiert
+- **Preload-JSON-Konsistenz:** IPC-Diagnostics-Liste mit abschließendem Komma und neuer `getBootupState`-Methode aktualisiert
+
+### 🧪 Tests
+
+- **Diagnostics-Tests:** `scripts/tests/diagnostics.test.js` ergänzt für Bootup-, CrashHandler- und DiagnosticsManager-Integration
+
+---
 
 - **@xmldom/xmldom:** 0.8.13 → 0.8.15
   - Behebt multiple XML-Injection-Schwachstellen (GHSA-6gmq-8vp8-gcm6, GHSA-w2rr-34g9-rvrj, GHSA-4w3w-2rp5-g8jm, GHSA-c7q8-3ch8-vqpv, GHSA-27p8-2357-5qqv, GHSA-6h8r-xr42-gp59, GHSA-8344-3jmq-59r6, GHSA-x4fp-j954-r2f4, GHSA-965w-775f-mr7g, GHSA-93r5-fhx6-vmg9)
@@ -493,6 +527,8 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - NavigationManager Default-Parameter-Inkonsistenz behoben
 - ThemeRuntime fehlende Referenzen entfernt
 - Theme-System Duplikation bereinigt
+- **HealthCheck.js: `StorageManager.getStorageFile()` behoben** – Die Methode existiert nicht mehr seit der Storage-Aufteilung in history.json/favorites.json/settings.json. Ersetzt durch drei separate Prüfungen für die individuellen Dateien.
+- **integrationHandlers.js: Fehlender `integrations:update` IPC-Handler** – Preload expose `integrations:update` aber kein Handler registriert. Handler hinzugefügt der an `toggleIntegration()` delegiert.
 
 ---
 

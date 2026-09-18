@@ -63,10 +63,11 @@ const CredentialManager = require("./services/CredentialManager");
 const DiscordRichPresence = require("./services/DiscordRichPresence");
 
 const LogManager = require("./diagnostics/logging/LogManager");
-const CrashHandler = require("./diagnostics/crash/CrashHandler");
+const CrashHandler = require("./diagnostics/CrashHandler");
 const CrashReportManager = require("./diagnostics/crash/CrashReportManager");
 const HealthCheck = require("./diagnostics/health/HealthCheck");
 const MemoryMonitor = require("./diagnostics/memory/MemoryMonitor");
+const { DiagnosticsManager, BootupDiagnostics } = require("./diagnostics");
 
 const logger = LogManager.getLogger("Application");
 
@@ -89,35 +90,64 @@ class Application {
             return;
         }
 
+        BootupDiagnostics.markStart("core-init");
+
         logger.separator();
         logger.info("Starting WebRadio...");
         logger.separator();
 
+        BootupDiagnostics.markStart("storage-init");
         await this.initializeStorage();
+        BootupDiagnostics.markComplete("storage-init");
 
+        BootupDiagnostics.markStart("diagnostics-init");
         await this.initializeDiagnostics();
+        BootupDiagnostics.markComplete("diagnostics-init");
 
+        BootupDiagnostics.markStart("window-created");
         await this.initializeWindow();
+        BootupDiagnostics.markComplete("window-created");
 
+        BootupDiagnostics.markStart("ipc-init");
         await this.initializeIPC();
+        BootupDiagnostics.markComplete("ipc-init");
 
+        BootupDiagnostics.markStart("navigation-init");
         await this.initializeNavigation();
+        BootupDiagnostics.markComplete("navigation-init");
 
+        BootupDiagnostics.markStart("plugins-init");
         await this.initializePlugins();
+        BootupDiagnostics.markComplete("plugins-init");
 
+        BootupDiagnostics.markStart("integrations-init");
         await this.initializeIntegrations();
+        BootupDiagnostics.markComplete("integrations-init");
 
+        BootupDiagnostics.markStart("themes-init");
         await this.initializeThemes();
+        BootupDiagnostics.markComplete("themes-init");
 
+        BootupDiagnostics.markStart("shortcuts-init");
         await this.initializeShortcuts();
+        BootupDiagnostics.markComplete("shortcuts-init");
 
+        BootupDiagnostics.markStart("tray-init");
         await this.initializeTray();
+        BootupDiagnostics.markComplete("tray-init");
 
+        BootupDiagnostics.markStart("updater-init");
         await this.initializeUpdater();
+        BootupDiagnostics.markComplete("updater-init");
 
+        BootupDiagnostics.markStart("services-init");
         await this.initializeServices();
+        BootupDiagnostics.markComplete("services-init");
 
         this.initialized = true;
+
+        BootupDiagnostics.markComplete("core-init");
+        BootupDiagnostics.markComplete("app-ready");
 
         logger.info("WebRadio successfully started.");
 
@@ -132,6 +162,8 @@ class Application {
         logger.separator();
         logger.info("Stopping WebRadio...");
         logger.separator();
+
+        DiagnosticsManager.stop();
         MemoryMonitor.shutdown();
         HealthCheck.shutdown();
         CrashReportManager.shutdown();
