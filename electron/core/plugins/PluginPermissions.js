@@ -10,7 +10,8 @@ const VALID_PERMISSIONS = [
     "navigation.register",
     "audio",
     "notifications",
-    "network"
+    "network",
+    "player"
 ];
 
 function validatePermissions(permissions = []) {

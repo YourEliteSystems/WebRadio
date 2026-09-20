@@ -10,3 +10,4 @@ export { default as ThemesSettings } from './ThemesSettings';
 export { default as UpdatesSettings } from './UpdatesSettings';
 export { default as AboutSettings } from './AboutSettings';
 export { default as DiagnosticsSettings } from './DiagnosticsSettings';
+export { default as PlayerSettings } from './PlayerSettings';

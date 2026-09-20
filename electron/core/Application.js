@@ -62,6 +62,16 @@ const { updateManager } = require("./updates");
 const CredentialManager = require("./services/CredentialManager");
 const DiscordRichPresence = require("./services/DiscordRichPresence");
 
+// ─────────────────────────────────────────────
+// Player
+// ─────────────────────────────────────────────
+
+const playerManager          = require("./player/PlayerManager");
+const radioProvider          = require("./player/RadioProvider");
+const mediaHubProvider        = require("./player/MediaHubProvider");
+const discordPresenceAdapter = require("./player/DiscordPresenceAdapter");
+const PluginHttpServer       = require("./plugins/PluginHttpServer");
+
 const LogManager = require("./diagnostics/logging/LogManager");
 const CrashHandler = require("./diagnostics/CrashHandler");
 const CrashReportManager = require("./diagnostics/crash/CrashReportManager");
@@ -112,6 +122,14 @@ class Application {
         await this.initializeIPC();
         BootupDiagnostics.markComplete("ipc-init");
 
+        BootupDiagnostics.markStart("plugin-http-init");
+        await this.initializePluginHttpServer();
+        BootupDiagnostics.markComplete("plugin-http-init");
+
+        BootupDiagnostics.markStart("plugin-http-init");
+        await this.initializePluginHttpServer();
+        BootupDiagnostics.markComplete("plugin-http-init");
+
         BootupDiagnostics.markStart("navigation-init");
         await this.initializeNavigation();
         BootupDiagnostics.markComplete("navigation-init");
@@ -119,6 +137,10 @@ class Application {
         BootupDiagnostics.markStart("plugins-init");
         await this.initializePlugins();
         BootupDiagnostics.markComplete("plugins-init");
+
+        BootupDiagnostics.markStart("player-init");
+        await this.initializePlayer();
+        BootupDiagnostics.markComplete("player-init");
 
         BootupDiagnostics.markStart("integrations-init");
         await this.initializeIntegrations();
@@ -143,6 +165,10 @@ class Application {
         BootupDiagnostics.markStart("services-init");
         await this.initializeServices();
         BootupDiagnostics.markComplete("services-init");
+
+        BootupDiagnostics.markStart("discord-adapter-init");
+        await this.initializeDiscordAdapter();
+        BootupDiagnostics.markComplete("discord-adapter-init");
 
         this.initialized = true;
 
@@ -175,9 +201,9 @@ class Application {
         streamManager.stop();
         LogManager.shutdown();
         ShortcutManager.shutdown();
+        await this.shutdownDiscordAdapter();
         await this.shutdownServices();
-        await this.shutdownIntegrations();
-        await this.shutdownPlugins();
+        await this.shutdownPlayer();
         await this.shutdownNavigation();
         await this.shutdownThemes();
         destroyTray();
@@ -219,13 +245,48 @@ class Application {
 
     }
 
+    async initializePluginHttpServer() {
+        // Start wird von initializePlugins() übernommen.
+        // Diese Methode bleibt aus Kompatibilitätsgründen erhalten.
+    }
+
+    // ─────────────────────────────────────────
+    // Legacy: initializePluginHttpServer wurde in initializePlugins()
+    // integriert. Diese Markierungen bleiben aus Kompatibilitätsgründen.
+    // ─────────────────────────────────────────
+
     async initializePlugins() {
+        BootupDiagnostics.markStart("plugins-init");
 
-        // Aktuell besitzt der PluginManager noch loadPlugins().
-        // Sobald wir ihn umbauen, wird daraus initialize().
+        logger.info("Initialisiere Plugins...");
 
-        PluginManager.loadPlugins();
+        // 1) PluginManager initialisieren (entdeckt und lädt Plugins)
+        await PluginManager.initialize();
 
+        // 2) PluginHttpServer starten (für Plugins mit "http-origin": true)
+        await PluginHttpServer.start();
+
+        // 3) Für jedes Plugin mit http-origin: Plugin-Ordner beim HTTP-Server registrieren
+        for (const [id, plugin] of PluginManager.plugins) {
+            const manifest = plugin.manifest || plugin;
+            if (manifest["http-origin"]) {
+                PluginHttpServer.servePlugin(id, plugin.path);
+            }
+        }
+
+        BootupDiagnostics.markComplete("plugins-init");
+
+        logger.info("Plugins initialisiert");
+    }
+
+    async shutdownPlugins() {
+        // PluginHttpServer stoppt zuerst – damit Renderer-Skripte nicht mehr
+        // verfügbar sind, bevor Plugins selbst beendet werden.
+        await PluginHttpServer.stop();
+
+        await PluginManager.shutdown();
+
+        logger.info("Plugins heruntergefahren");
     }
 
     async initializeIntegrations() {
@@ -288,11 +349,45 @@ class Application {
 
     async initializeServices() {
         DiscordRichPresence.initialize();
+        // DiscordPresenceAdapter wird in initializeDiscordAdapter() initialisiert,
+        // nachdem PlayerManager und RadioProvider bereit sind.
+    }
+
+    async initializePlayer() {
+        // RadioProvider als ersten Core-Provider registrieren
+        playerManager.registerProvider("radio", radioProvider);
+        radioProvider.activate();
+        playerManager.setActiveProvider("radio");
+
+        // MediaHubProvider registrieren (wird aktiv, wenn MediaHub-Plugin startet)
+        playerManager.registerProvider("mediahub", mediaHubProvider);
+
+        // DiscordPresenceAdapter initialisieren – abonniert ab sofort
+        // PlayerState-Änderungen über playerManager.subscribe()
+        discordPresenceAdapter.initialize(playerManager, DiscordRichPresence);
+
+        logger.info("Unified Player API initialisiert (RadioProvider aktiv, MediaHubProvider registriert)");
+    }
+
+    // Discord-Presence-Adapter wird in initializePlayer() initialisiert.
+    // Diese Methode bleibt aus kompatiblen Gründen, ist aber kein no-op mehr.
+    async initializeDiscordAdapter() {
+        // Initialisierung bereits in initializePlayer() erfolgt.
     }
 
     async shutdownServices() {
         await DiscordRichPresence.shutdown();
         CredentialManager.shutdown();
+    }
+
+    async shutdownPlayer() {
+        radioProvider.deactivate();
+        await discordPresenceAdapter.shutdown();
+        logger.info("Player heruntergefahren");
+    }
+
+    async shutdownDiscordAdapter() {
+        await discordPresenceAdapter.shutdown();
     }
     
     async checkForUpdates() {

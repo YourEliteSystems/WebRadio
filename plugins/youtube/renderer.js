@@ -59,6 +59,17 @@
   function onPlayerReady(event) {
     console.log('[YouTube Plugin] Player ready');
     playerState = 'ready';
+
+    // Video-Metadaten abrufen und melden
+    if (ytPlayer && ytPlayer.getVideoData && window.playerAPI) {
+      const videoData = ytPlayer.getVideoData();
+      if (videoData && videoData.title) {
+        window.playerAPI.reportProviderState('mediahub', {
+          title: videoData.title,
+          artwork: `https://img.youtube.com/vi/${videoData.video_id}/mqdefault.jpg`
+        });
+      }
+    }
   }
 
   function onPlayerStateChange(event) {
@@ -74,6 +85,32 @@
       } else if (event.data === YT.PlayerState.ENDED) {
         window.pluginAPI.log('info', 'YouTubePlugin', 'Video ended');
       }
+    }
+
+    // Unified Player API State melden
+    if (window.playerAPI) {
+      const unifiedState = mapYouTubeStateToUnified(event.data);
+      if (unifiedState) {
+        window.playerAPI.reportProviderState('mediahub', unifiedState);
+      }
+    }
+  }
+
+  function mapYouTubeStateToUnified(ytState) {
+    switch(ytState) {
+      case YT.PlayerState.PLAYING:
+        return { state: 'playing' };
+      case YT.PlayerState.PAUSED:
+        return { state: 'paused' };
+      case YT.PlayerState.BUFFERING:
+        return { state: 'loading' };
+      case YT.PlayerState.ENDED:
+        return { state: 'stopped' };
+      case YT.PlayerState.UNSTARTED:
+      case YT.PlayerState.CUED:
+        return { state: 'idle' };
+      default:
+        return null;
     }
   }
 
@@ -100,18 +137,33 @@
   function playVideo() {
     if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
       ytPlayer.playVideo();
+      
+      // Unified Player API State melden
+      if (window.playerAPI) {
+        window.playerAPI.reportProviderState('mediahub', { state: 'playing' });
+      }
     }
   }
 
   function pauseVideo() {
     if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
       ytPlayer.pauseVideo();
+      
+      // Unified Player API State melden
+      if (window.playerAPI) {
+        window.playerAPI.reportProviderState('mediahub', { state: 'paused' });
+      }
     }
   }
 
   function stopVideo() {
     if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
       ytPlayer.stopVideo();
+      
+      // Unified Player API State melden
+      if (window.playerAPI) {
+        window.playerAPI.reportProviderState('mediahub', { state: 'stopped' });
+      }
     }
   }
 

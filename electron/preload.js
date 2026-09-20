@@ -262,3 +262,43 @@ contextBridge.exposeInMainWorld("mediaHubAuth", {
 //   hasGoogleClientSecret: () => ipcRenderer.invoke("credentials:has-google-client-secret"),
 //   deleteGoogleClientSecret: () => ipcRenderer.invoke("credentials:delete-google-client-secret")
 // });
+
+// ─────────────────────────────────────────────
+// UNIFIED PLAYER API
+// Erlaubt dem Renderer, den Unified Player State zu lesen, zu
+// steuern und State-Änderungen zu abonnieren.
+// ─────────────────────────────────────────────
+contextBridge.exposeInMainWorld("playerAPI", {
+  // State Query
+  getState: () => ipcRenderer.invoke("player:getState"),
+
+  // Controls
+  play:      ()      => ipcRenderer.invoke("player:play"),
+  pause:     ()      => ipcRenderer.invoke("player:pause"),
+  stop:      ()      => ipcRenderer.invoke("player:stop"),
+  toggle:    ()      => ipcRenderer.invoke("player:toggle"),
+  setVolume: (value) => ipcRenderer.invoke("player:setVolume", value),
+
+  // State Subscription – gibt Unsubscribe-Funktion zurück (kein Memory Leak)
+  onStateChanged: (callback) => {
+    const handler = (_event, state) => callback(state);
+    ipcRenderer.on("player:stateChanged", handler);
+    return () => ipcRenderer.removeListener("player:stateChanged", handler);
+  },
+
+  // Provider-State-Reporting (Renderer-seitige Provider, z.B. MediaHub YouTube)
+  // Erlaubt Plugin-Renderer-Scripts, ihren State an den Main-Prozess zu melden.
+  reportProviderState: (providerId, state) =>
+    ipcRenderer.invoke("player:reportProviderState", providerId, state)
+});
+
+// ─────────────────────────────────────────────
+// PLUGIN HTTP ORIGIN API
+// Gibt dem Renderer die URL des lokalen Plugin-HTTP-Servers.
+// Wird von MediaHub genutzt, um Assets über http:// zu laden.
+// ─────────────────────────────────────────────
+contextBridge.exposeInMainWorld("pluginHttpAPI", {
+  getOrigin:   ()                         => ipcRenderer.invoke("plugin:getHttpOrigin"),
+  getAssetUrl: (pluginId, relativePath)   => ipcRenderer.invoke("plugin:getAssetUrl", pluginId, relativePath)
+});
+

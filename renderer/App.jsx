@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
+import NowPlayingDisplay from './components/player/NowPlayingDisplay.jsx';
 import PluginView from './ui/PluginView.jsx';
 import PluginSlot from './ui/PluginSlot.jsx';
 import { useRadioSearch } from './hooks/useRadioSearch';
@@ -178,6 +179,8 @@ export default function App() {
       </div>
 
       <PluginSlot id="app-overlay" />
+
+      <NowPlayingDisplay />
 
       <PlayerBar
         station={nowPlayingStation}

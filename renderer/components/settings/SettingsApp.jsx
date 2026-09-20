@@ -6,6 +6,7 @@ import ThemesSettings from './ThemesSettings';
 import UpdatesSettings from './UpdatesSettings';
 import AboutSettings from './AboutSettings';
 import DiagnosticsSettings from './DiagnosticsSettings';
+import PlayerSettings from './PlayerSettings';
 
 const SettingsApp = () => {
   const [currentPage, setCurrentPage] = useState('integrations');
@@ -124,6 +125,8 @@ const SettingsApp = () => {
         return <ThemesSettings themes={themes} activeTheme={activeTheme} setActiveTheme={setActiveTheme} />;
       case 'updates':
         return <UpdatesSettings />;
+      case 'player':
+        return <PlayerSettings />;
       case 'about':
         return <AboutSettings />;
       case 'diagnostics':

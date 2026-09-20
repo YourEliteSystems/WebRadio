@@ -8,6 +8,8 @@ const NavigationManager = require("../navigation/NavigationManager");
 const PluginPermissions = require("./PluginPermissions");
 const LogManager = require("../diagnostics/logging/LogManager");
 const SettingsManager = require("../storage/SettingsManager");
+const playerManager = require("../player/PlayerManager");
+const PluginHttpServer = require("./PluginHttpServer");
 const { app } = require("electron");
 
 const PLUGIN_API_VERSION = "1.1.0";
@@ -19,6 +21,15 @@ function create(meta = {}) {
   function checkNavPermission() {
     if (!PluginPermissions.hasPermission(permissions, "navigation")) {
       const msg = `[PluginAPI] Plugin "${pluginId}" benötigt die Berechtigung "navigation", um auf die Navigation Extension API zuzugreifen.`;
+      const logger = LogManager.getLogger(`Plugin:${pluginId}`);
+      logger.error(msg);
+      throw new Error(msg);
+    }
+  }
+
+  function checkPlayerPermission() {
+    if (!PluginPermissions.hasPermission(permissions, "player")) {
+      const msg = `[PluginAPI] Plugin "${pluginId}" benötigt die Berechtigung "player", um auf die Player API zuzugreifen.`;
       const logger = LogManager.getLogger(`Plugin:${pluginId}`);
       logger.error(msg);
       throw new Error(msg);
@@ -136,6 +147,18 @@ function create(meta = {}) {
       }
     },
 
+    httpOrigin: {
+      getUrl() {
+        return PluginHttpServer.getUrl();
+      },
+      getPort() {
+        return PluginHttpServer.getPort();
+      },
+      getPluginUrl(pluginId, relativePath) {
+        return PluginHttpServer.getPluginUrl(pluginId, relativePath);
+      }
+    },
+
     settings: {
       get(key) {
         const settings = SettingsManager.get();
@@ -170,6 +193,72 @@ function create(meta = {}) {
       },
       unregister(id) {
         UIManager.unregister(id);
+      }
+    },
+
+    /**
+     * Player API – erlaubt Plugins, Provider zu registrieren und den
+     * Player-State zu abonnieren.
+     * Erfordert die Permission "player" im Plugin-Manifest.
+     */
+    player: {
+      /**
+       * Registriert einen Player-Provider.
+       * @param {object} spec  { id, name, play, pause, stop, setVolume, getState }
+       * @returns {{ unregister: Function }}
+       */
+      registerProvider(spec) {
+        checkPlayerPermission();
+        if (!spec || !spec.id) {
+          throw new Error(`[PluginAPI:${pluginId}] registerProvider: spec.id ist erforderlich.`);
+        }
+        return playerManager.registerProvider(spec.id, spec);
+      },
+
+      /**
+       * Entfernt einen zuvor registrierten Provider.
+       * @param {string} id  Provider-ID
+       */
+      unregisterProvider(id) {
+        checkPlayerPermission();
+        playerManager.unregisterProvider(id);
+      },
+
+      /**
+       * Aktiviert einen registrierten Provider als aktiven Player.
+       * @param {string} id  Provider-ID
+       */
+      setActiveProvider(id) {
+        checkPlayerPermission();
+        playerManager.setActiveProvider(id);
+      },
+
+      /**
+       * Gibt den aktuellen Player-State zurück.
+       * @returns {object}
+       */
+      getState() {
+        return playerManager.getState();
+      },
+
+      /**
+       * Abonniert Player-State-Änderungen.
+       * @param {Function} callback
+       * @returns {Function}  unsubscribe()
+       */
+      subscribe(callback) {
+        return playerManager.subscribe(callback);
+      },
+
+      /**
+       * Meldet einen Provider-State an den PlayerManager.
+       * Nur der aktive Provider darf den globalen State überschreiben.
+       * @param {string} providerId
+       * @param {object} state
+       */
+      updateProviderState(providerId, state) {
+        checkPlayerPermission();
+        playerManager.updateProviderState(providerId, state);
       }
     }
   };

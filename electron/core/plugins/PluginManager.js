@@ -421,6 +421,15 @@ class PluginManager {
                 continue;
             }
 
+            // Plugin hat http-origin → URL über PluginHttpServer
+            if (manifest["http-origin"]) {
+                const origin = PluginHttpServer.getUrl();
+                if (origin && manifest.renderer) {
+                    scripts.push(`${origin}/plugins/${pluginId}/${manifest.renderer}`);
+                }
+                continue;
+            }
+
             if (manifest.renderer) {
                 const rendererAbsPath = path.join(plugin.path, manifest.renderer);
                 if (fs.existsSync(rendererAbsPath)) {

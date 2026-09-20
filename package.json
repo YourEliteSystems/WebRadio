@@ -1,6 +1,6 @@
 {
   "name": "webradio",
-  "version": "1.0.6",
+  "version": "1.0.7.alpha.1",
   "description": "Plattformübergreifende WebRadio-App mit Electron",
   "main": "electron/main.js",
   "author": "Your Elite Systems",
@@ -14,7 +14,7 @@
     "build": "npm run build-react && npm run build-settings",
     "build-react": "esbuild renderer/renderer.jsx --bundle --outfile=renderer/dist/renderer.js --format=esm --minify",
     "build-settings": "esbuild renderer/settings.jsx --bundle --outfile=renderer/dist/settings.js --format=esm --minify",
-    "test": "node scripts/tests/navigation.test.js && node scripts/tests/theme.test.js && node scripts/tests/pluginManager.test.js && node scripts/tests/paths.test.js && node scripts/tests/updater.test.js && node scripts/tests/artifact-audit.test.js && node scripts/tests/discord-rpc.test.js && node scripts/tests/eventbus.test.js && node scripts/tests/plugin-fingerprint.test.js && node scripts/tests/metadataParser.test.js && node scripts/tests/runtime-detector.test.js && node scripts/tests/provider-routing.test.js && node scripts/tests/streamManager.test.js && node scripts/tests/radioBrowser.test.js && node scripts/tests/plugin-persistence.test.js && node scripts/tests/audio-backpressure.test.js && node scripts/tests/audio-worklet.test.js && node scripts/tests/mediahub-oauth.test.js && node scripts/tests/diagnostics.test.js",
+    "test": "node scripts/tests/navigation.test.js && node scripts/tests/theme.test.js && node scripts/tests/pluginManager.test.js && node scripts/tests/paths.test.js && node scripts/tests/updater.test.js && node scripts/tests/artifact-audit.test.js && node scripts/tests/discord-rpc.test.js && node scripts/tests/eventbus.test.js && node scripts/tests/plugin-fingerprint.test.js && node scripts/tests/metadataParser.test.js && node scripts/tests/runtime-detector.test.js && node scripts/tests/provider-routing.test.js && node scripts/tests/streamManager.test.js && node scripts/tests/radioBrowser.test.js && node scripts/tests/plugin-persistence.test.js && node scripts/tests/audio-backpressure.test.js && node scripts/tests/audio-worklet.test.js && node scripts/tests/mediahub-oauth.test.js && node scripts/tests/diagnostics.test.js && node scripts/tests/nowPlaying.test.js && node scripts/tests/unified-player.test.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
@@ -61,5 +61,8 @@
   },
   "overrides": {
     "register-scheme": "1.0.0"
+  },
+  "allowScripts": {
+    "ffmpeg-static@5.3.0": true
   }
 }

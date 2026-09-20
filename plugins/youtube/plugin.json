@@ -16,5 +16,6 @@
   ],
   "engines": {
     "webradio": ">=1.0.0"
-  }
+  },
+  "http-origin": true
 }
