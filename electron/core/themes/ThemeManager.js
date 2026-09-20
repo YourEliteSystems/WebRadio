@@ -124,6 +124,17 @@ class ThemeManager {
             }
         }
 
+        // 3) Sicherstellen, dass Built-in Themes immer vorhanden sind
+        // Wenn ein Built-in Theme entfernt wurde, wird es aus ThemeLoader neu geladen
+        const builtInThemes = ThemeLoader.getBuiltInThemes();
+        for (const builtIn of builtInThemes) {
+            if (!this.themes.has(builtIn.id)) {
+                this.themes.set(builtIn.id, builtIn);
+                logger.info(`Built-in Theme wiederhergestellt: ${builtIn.name || builtIn.id}`);
+                // Nicht zu result.added hinzufügen, da es eigentlich keine Änderung ist
+            }
+        }
+
         // Falls einzelne Operationen Fehler verursacht haben: success = false
         if (result.errors.length > 0) {
             result.success = false;

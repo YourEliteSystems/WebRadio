@@ -958,9 +958,17 @@ class UpdateManager {
     }
 
     _resolveChannel(raw) {
-        if (UpdateChannel.isValidChannel(raw)) return raw;
-        // Default = stable
-        return UpdateState.CHANNELS.STABLE;
+        // Settings lesen und Channel aus Settings extrahieren
+        const settings = this._readSettings();
+        const settingsChannel = settings?.updates?.channel;
+        
+        // Wenn Settings einen Channel haben, diesen verwenden
+        if (UpdateChannel.isValidChannel(settingsChannel)) {
+            return settingsChannel;
+        }
+        
+        // Fallback: Version-basierte Detection
+        return UpdateChannel.detectChannelFromVersion(app.getVersion());
     }
 
     _resetForChannelSwitch() {

@@ -49,7 +49,7 @@ function getStableBase(version) {
  * @returns {boolean}
  */
 function isValidChannel(channel) {
-    return channel === CHANNELS.STABLE || channel === CHANNELS.BETA;
+    return channel === CHANNELS.STABLE || channel === CHANNELS.BETA || channel === CHANNELS.ALPHA;
 }
 
 /**
@@ -66,9 +66,14 @@ function isValidChannel(channel) {
  *   allowPrerelease = true
  *   allowDowngrade = true (Beta-User können jederzeit auf Stable zurück)
  *
- * WICHTIG: allowPrerelease ist KEIN globaler Schalter. Alpha-Releases
- * werden über einen expliziten Filter (siehe getAllowedPreReleaseFilter)
- * zusätzlich ausgeschlossen.
+ * Alpha: alle pre-releases einschließlich alpha.
+ *   channel       = "alpha"
+ *   allowPrerelease = true
+ *   allowDowngrade = true (Alpha-User können jederzeit auf Stable/Beta zurück)
+ *
+ * WICHTIG: allowPrerelease ist KEIN globaler Schalter. Für Alpha-Channel
+ * werden alle Pre-Releases akzeptiert. Für Beta werden alpha-Releases
+ * zusätzlich über Filter ausgeschlossen.
  */
 function getUpdaterConfig(channel, currentVersion) {
     if (!isValidChannel(channel)) {
@@ -76,7 +81,7 @@ function getUpdaterConfig(channel, currentVersion) {
     }
 
     if (channel === CHANNELS.STABLE) {
-        // Wenn die aktuell installierte Version ein Pre-Release (z.B. Beta)
+        // Wenn die aktuell installierte Version ein Pre-Release (z.B. Beta/Alpha)
         // ist und der Benutzer auf Stable wechselt, muss allowDowngrade
         // aktiv sein, damit electron-updater auch eine Version akzeptiert,
         // die semver-seitig kleiner als die Beta-Version ist (z.B. 1.0.6-beta.2 -> 1.0.5).
@@ -88,11 +93,22 @@ function getUpdaterConfig(channel, currentVersion) {
         };
     }
 
-    // Beta
+    if (channel === CHANNELS.BETA) {
+        // Beta: stable + pre-releases außer alpha
+        const allowDowngrade = currentVersion ? isPrerelease(currentVersion) : false;
+        return {
+            channel: "beta",
+            allowPrerelease: true,
+            allowDowngrade: allowDowngrade
+        };
+    }
+
+    // Alpha: alle pre-releases einschließlich alpha
+    const allowDowngrade = currentVersion ? isPrerelease(currentVersion) : false;
     return {
-        channel: "beta",
+        channel: "alpha",
         allowPrerelease: true,
-        allowDowngrade: true
+        allowDowngrade: allowDowngrade
     };
 }
 
@@ -104,6 +120,7 @@ function getUpdaterConfig(channel, currentVersion) {
  *
  * Stable-Filter:  alles ablehnen, was Pre-Release ist.
  * Beta-Filter:    alle Pre-Releases außer "alpha" erlauben.
+ * Alpha-Filter:   alle Pre-Releases erlauben (inklusive alpha).
  *
  * Da electron-updater 6.x keinen direkten "includePrerelease"-Hook
  * hat, sondern nur allowPrerelease, prüfen wir die Pre-Release-
@@ -118,12 +135,16 @@ function getAllowedPreReleaseFilter(channel) {
     if (channel === CHANNELS.STABLE) {
         return (release) => !isPrerelease(release?.version);
     }
-    // Beta: alles außer alpha erlauben
-    return (release) => {
-        const v = release?.version;
-        if (typeof v !== "string") return true;
-        return !/-alpha(\.|$)/i.test(v);
-    };
+    if (channel === CHANNELS.BETA) {
+        // Beta: alles außer alpha erlauben
+        return (release) => {
+            const v = release?.version;
+            if (typeof v !== "string") return true;
+            return !/-alpha(\.|$)/i.test(v);
+        };
+    }
+    // Alpha: alles erlauben
+    return (release) => true;
 }
 
 /**
@@ -134,15 +155,48 @@ function getAllowedPreReleaseFilter(channel) {
 function detectChannelFromVersion(version) {
     if (isPrerelease(version)) {
         // Innerhalb der Pre-Releases unterscheiden wir zusätzlich.
-        // v1 kennt nur Stable und Beta. "beta" ist der einzige
-        // offiziell unterstützte Pre-Release-Channel.
+        // v1 kennt Stable, Beta und Alpha als separate Channels.
+        if (/-alpha(\.|$)/i.test(version)) {
+            return CHANNELS.ALPHA;
+        }
         if (/-beta(\.|$)/i.test(version)) {
             return CHANNELS.BETA;
         }
-        // rc / nightly / alpha -> wir behandeln sie als Beta-Kompatibel,
+        // rc / nightly -> wir behandeln sie als Beta-kompatibel,
         // aber nur, wenn der Benutzer explizit Beta aktiviert hat.
         return CHANNELS.BETA;
     }
+    return CHANNELS.STABLE;
+}
+
+/**
+ * Zentrale Funktion zur Ermittlung des aktuellen Update-Channel.
+ * Berücksichtigt User-Settings, aktuelle Version und Fallback-Logik.
+ * 
+ * Priorität:
+ * 1. Explizite User-Settings (aus SettingsManager)
+ * 2. Version-basierte Detection (für Default)
+ * 3. Stable als absoluter Fallback
+ * 
+ * @param {object} settings - SettingsManager Konfiguration
+ * @param {string} currentVersion - Aktuelle App-Version
+ * @returns {string} Channel (stable|beta|alpha)
+ */
+function getUpdateChannel(settings, currentVersion) {
+    // 1. User-Settings haben höchste Priorität
+    if (settings && settings.updates && settings.updates.channel) {
+        const userChannel = settings.updates.channel;
+        if (isValidChannel(userChannel)) {
+            return userChannel;
+        }
+    }
+    
+    // 2. Version-basierte Detection
+    if (currentVersion) {
+        return detectChannelFromVersion(currentVersion);
+    }
+    
+    // 3. Absoluter Fallback
     return CHANNELS.STABLE;
 }
 
@@ -152,5 +206,6 @@ module.exports = {
     isValidChannel,
     getUpdaterConfig,
     getAllowedPreReleaseFilter,
-    detectChannelFromVersion
+    detectChannelFromVersion,
+    getUpdateChannel
 };

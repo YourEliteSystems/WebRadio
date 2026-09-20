@@ -902,3 +902,121 @@ canvas#vu {
 .settings-card-info p:last-child {
   margin-bottom: 0;
 }
+
+/* Channel Badges */
+.channel-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.channel-badge.stable {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.channel-badge.beta {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.channel-badge.alpha {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Channel Options */
+.channel-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.channel-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.channel-option:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.channel-option.selected {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.channel-option input[type="radio"] {
+  margin-top: 2px;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+.channel-option-content {
+  flex: 1;
+}
+
+.channel-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.channel-option-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.channel-option.selected .channel-option-title {
+  color: var(--accent-color);
+}
+
+/* Channel Hints */
+.beta-hint,
+.alpha-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.beta-hint {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.beta-hint svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.alpha-hint {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.alpha-hint svg {
+  color: #ef4444;
+  flex-shrink: 0;
+}

@@ -121,6 +121,8 @@ class PlayerManager {
     if (this.activeProviderId && this.activeProviderId !== id) {
       logger.info(`Provider-Wechsel: ${this.activeProviderId} → ${id}`);
       this._safeProviderCall(this.activeProviderId, "stop");
+      // Bei Provider-Wechsel: State reset für sauberen Übergang
+      this._setState(createDefaultState());
     }
 
     this.activeProviderId = id;

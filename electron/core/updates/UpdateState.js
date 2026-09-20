@@ -38,7 +38,8 @@ const ERROR_CODES = Object.freeze({
 
 const CHANNELS = Object.freeze({
     STABLE: "stable",
-    BETA: "beta"
+    BETA: "beta",
+    ALPHA: "alpha"
 });
 
 /**

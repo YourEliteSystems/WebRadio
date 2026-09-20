@@ -20,14 +20,32 @@ export function useUnifiedPlayer() {
     source:  null
   });
 
+  const [apiAvailable, setApiAvailable] = useState(false);
+
   // Einmalig beim Mount: aktuellen State laden und Subscription aufbauen
   useEffect(() => {
-    if (!window.playerAPI) return;
+    if (!window.playerAPI) {
+      setApiAvailable(false);
+      return;
+    }
 
-    // Sofortiger State-Abruf
+    setApiAvailable(true);
+
+    // Sofortiger State-Abruf mit Error-Handling
     window.playerAPI.getState().then((state) => {
       if (state) setPlayerState(state);
-    }).catch(() => {/* PluginAPI evtl. nicht verfügbar */});
+    }).catch((err) => {
+      console.error('[useUnifiedPlayer] Failed to get initial state:', err);
+      // Fallback-State setzen
+      setPlayerState({
+        state: 'idle',
+        title: null,
+        artist: null,
+        artwork: null,
+        volume: 1.0,
+        source: null
+      });
+    });
 
     // State-Subscription (gibt Unsubscribe zurück → sauberes Cleanup)
     const unsubscribe = window.playerAPI.onStateChanged((state) => {
@@ -40,11 +58,45 @@ export function useUnifiedPlayer() {
   }, []);
 
   // ─── Controls ───────────────────────────────────────────
-  const play      = useCallback(() => window.playerAPI?.play(),        []);
-  const pause     = useCallback(() => window.playerAPI?.pause(),       []);
-  const stop      = useCallback(() => window.playerAPI?.stop(),        []);
-  const toggle    = useCallback(() => window.playerAPI?.toggle(),      []);
-  const setVolume = useCallback((v) => window.playerAPI?.setVolume(v), []);
+  const play = useCallback(() => {
+    if (window.playerAPI?.play) {
+      window.playerAPI.play().catch(err => {
+        console.error('[useUnifiedPlayer] Play failed:', err);
+      });
+    }
+  }, []);
+
+  const pause = useCallback(() => {
+    if (window.playerAPI?.pause) {
+      window.playerAPI.pause().catch(err => {
+        console.error('[useUnifiedPlayer] Pause failed:', err);
+      });
+    }
+  }, []);
+
+  const stop = useCallback(() => {
+    if (window.playerAPI?.stop) {
+      window.playerAPI.stop().catch(err => {
+        console.error('[useUnifiedPlayer] Stop failed:', err);
+      });
+    }
+  }, []);
+
+  const toggle = useCallback(() => {
+    if (window.playerAPI?.toggle) {
+      window.playerAPI.toggle().catch(err => {
+        console.error('[useUnifiedPlayer] Toggle failed:', err);
+      });
+    }
+  }, []);
+
+  const setVolume = useCallback((v) => {
+    if (window.playerAPI?.setVolume) {
+      window.playerAPI.setVolume(v).catch(err => {
+        console.error('[useUnifiedPlayer] SetVolume failed:', err);
+      });
+    }
+  }, []);
 
   // ─── Computed Helpers ────────────────────────────────────
 
@@ -71,6 +123,9 @@ export function useUnifiedPlayer() {
   return {
     // Full state object
     playerState,
+    
+    // API availability
+    apiAvailable,
 
     // Convenience flags
     isPlaying,

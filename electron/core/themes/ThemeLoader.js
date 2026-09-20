@@ -35,6 +35,14 @@ class ThemeLoader {
     return path.join(app.getPath("userData"), "themes");
   }
 
+  getBuiltInThemes() {
+    const builtinPath = this.getBuiltinThemesPath();
+    if (builtinPath && fs.existsSync(builtinPath)) {
+      return this.scanDirectory(builtinPath, "builtin");
+    }
+    return [];
+  }
+
   discoverThemes() {
     const themes = [];
 

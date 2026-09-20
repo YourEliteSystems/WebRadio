@@ -10,6 +10,7 @@ const UpdatesSettings = () => {
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(true);
   const [channel, setChannel] = useState('stable');
   const [showBetaWarning, setShowBetaWarning] = useState(false);
+  const [showAlphaWarning, setShowAlphaWarning] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState('');
   const [showReleaseNotes, setShowReleaseNotes] = useState(false);
 
@@ -71,7 +72,9 @@ const UpdatesSettings = () => {
         const info = await window.updatesAPI.getCurrentVersion();
         if (info?.ok) {
           setCurrentVersion(`v${info.version}`);
-          if (info.isPrerelease) {
+          if (info.channel === 'alpha') {
+            setCurrentChannel('alpha');
+          } else if (info.channel === 'beta' || info.isPrerelease) {
             setCurrentChannel('beta');
           }
         }
@@ -324,6 +327,12 @@ const UpdatesSettings = () => {
       return;
     }
 
+    // Beim Wechsel auf Alpha: Bestätigung verlangen
+    if (newChannel === 'alpha') {
+      setShowAlphaWarning(true);
+      return;
+    }
+
     commitChannelChange(newChannel);
   };
 
@@ -353,6 +362,15 @@ const UpdatesSettings = () => {
 
   const handleBetaWarningCancel = () => {
     setShowBetaWarning(false);
+  };
+
+  const handleAlphaWarningConfirm = async () => {
+    setShowAlphaWarning(false);
+    await commitChannelChange('alpha');
+  };
+
+  const handleAlphaWarningCancel = () => {
+    setShowAlphaWarning(false);
   };
 
   const getStatusIcon = () => {
@@ -419,7 +437,10 @@ const UpdatesSettings = () => {
           sub: `${currentVersion} ist die neueste Version`
         };
       case 'available':
-        return updateInfo?.channel === 'beta' ? {
+        return updateInfo?.channel === 'alpha' ? {
+          title: `Alpha-Update verfügbar – v${updateInfo?.version}`,
+          sub: 'Hinweis: Alpha-Version – experimentell, kann schwere Fehler enthalten.'
+        } : updateInfo?.channel === 'beta' ? {
           title: `Beta-Update verfügbar – v${updateInfo?.version}`,
           sub: 'Hinweis: Beta-Version – kann Fehler enthalten.'
         } : {
@@ -560,8 +581,8 @@ const UpdatesSettings = () => {
       <div className="settings-card">
         <div className="settings-card-header">
           <span className="settings-card-title">Update-Kanal</span>
-          <span id="channelBadge" className={`channel-badge ${channel === 'beta' ? 'beta' : 'stable'}`}>
-            {channel === 'beta' ? 'Beta' : 'Stable'}
+          <span id="channelBadge" className={`channel-badge ${channel === 'alpha' ? 'alpha' : channel === 'beta' ? 'beta' : 'stable'}`}>
+            {channel === 'alpha' ? 'Alpha' : channel === 'beta' ? 'Beta' : 'Stable'}
           </span>
         </div>
         <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 14px'}}>
@@ -596,6 +617,21 @@ const UpdatesSettings = () => {
               </div>
             </div>
           </label>
+          <label className={`channel-option ${channel === 'alpha' ? 'selected' : ''}`} data-channel="alpha">
+            <input 
+              type="radio" 
+              name="updateChannel" 
+              value="alpha" 
+              checked={channel === 'alpha'}
+              onChange={() => handleChannelChange('alpha')}
+            />
+            <div className="channel-option-content">
+              <div className="channel-option-title">Alpha</div>
+              <div className="channel-option-desc">
+                Experimentelle Builds vor Beta. <strong>Kann noch unbekannte Fehler enthalten – nur für Entwickler.</strong>
+              </div>
+            </div>
+          </label>
         </div>
         {channel === 'beta' && (
           <div className="beta-hint">
@@ -607,10 +643,20 @@ const UpdatesSettings = () => {
             <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
           </div>
         )}
+        {channel === 'alpha' && (
+          <div className="alpha-hint">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.</span>
+          </div>
+        )}
       </div>
 
       <div className="version-info">
-        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" style={{display: currentChannel === 'beta' ? 'inline-block' : 'none'}}>{currentChannel === 'beta' ? 'BETA' : ''}</span></span>
+        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className={`channel-badge ${currentChannel === 'alpha' ? 'alpha' : currentChannel === 'beta' ? 'beta' : 'stable'}`} style={{display: currentChannel !== 'stable' ? 'inline-block' : 'none'}}>{currentChannel === 'alpha' ? 'ALPHA' : currentChannel === 'beta' ? 'BETA' : ''}</span></span>
         <span>WebRadio by Your Elite Systems</span>
       </div>
 
@@ -643,6 +689,40 @@ const UpdatesSettings = () => {
             <div className="modal-actions">
               <button onClick={handleBetaWarningCancel} className="btn-secondary" type="button">Abbrechen</button>
               <button onClick={handleBetaWarningConfirm} className="btn-primary danger" type="button">Beta aktivieren</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alpha-Warnung Modal */}
+      {showAlphaWarning && (
+        <div className="modal-backdrop open" role="dialog" aria-modal="true" aria-labelledby="alphaWarningTitle">
+          <div className="modal">
+            <h2 id="alphaWarningTitle">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" style={{color: '#ef4444'}}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Alpha-Versionen aktivieren
+            </h2>
+            <p>
+              Du möchtest WebRadio auf den <strong>Alpha-Kanal</strong> umstellen.
+            </p>
+            <p>
+              Alpha-Versionen sind experimentelle Builds, die <strong>noch nicht einmal Beta-Stabilität</strong> erreicht haben.
+              Sie können <strong>schwere Fehler, Datenverlust, Abstürze oder andere kritische Probleme</strong> enthalten.
+            </p>
+            <div className="modal-warning" style={{background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)'}}>
+              Der Alpha-Kanal sollte nur von Entwicklern aktiviert werden, die bereit sind,
+              kritische Fehler zu melden und mit sehr instabilen Versionen zu arbeiten.
+            </div>
+            <p style={{fontSize: '12px', color: 'var(--text-muted)'}}>
+              Möchtest du den Alpha-Kanal wirklich aktivieren?
+            </p>
+            <div className="modal-actions">
+              <button onClick={handleAlphaWarningCancel} className="btn-secondary" type="button">Abbrechen</button>
+              <button onClick={handleAlphaWarningConfirm} className="btn-primary danger" type="button">Alpha aktivieren</button>
             </div>
           </div>
         </div>

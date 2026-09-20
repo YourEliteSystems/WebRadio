@@ -151,6 +151,15 @@ class PluginHttpServer {
       return;
     }
 
+    // Origin-Validation für Security
+    const origin = req.headers.origin;
+    if (origin && origin !== "http://127.0.0.1" && origin !== "http://localhost") {
+      // Nur localhost/127.0.0.1 erlauben
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("Forbidden: Invalid Origin");
+      return;
+    }
+
     // URL parsen: /plugins/<pluginId>/<...relativePath>
     const urlPath = req.url.split("?")[0]; // Query-String abschneiden
     const match   = urlPath.match(/^\/plugins\/([^/]+)\/(.+)$/);
@@ -193,8 +202,10 @@ class PluginHttpServer {
     res.writeHead(200, {
       "Content-Type":  mimeType,
       "Cache-Control": "no-cache",
-      // CORS für localhost erlauben (YouTube IFrame API benötigt das)
-      "Access-Control-Allow-Origin": "*"
+      // CORS strikt auf localhost beschränken
+      "Access-Control-Allow-Origin": origin || "http://127.0.0.1",
+      "Access-Control-Allow-Methods": "GET, HEAD",
+      "Access-Control-Allow-Headers": "Origin"
     });
 
     if (req.method === "HEAD") {

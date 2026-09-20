@@ -114,6 +114,27 @@ class StreamManager {
         this.ffmpegCommand.removeAllListeners();
         this.ffmpegCommand.on('error', () => {});
         this.ffmpegCommand.kill('SIGTERM');
+        
+        // Timeout-Sicherung für hängende FFmpeg-Prozesse
+        const killTimeout = setTimeout(() => {
+          if (this.ffmpegCommand) {
+            logger.warn("FFmpeg hat nicht auf SIGTERM reagiert, SIGKILL wird ausgeführt");
+            try {
+              this.ffmpegCommand.kill('SIGKILL');
+            } catch (killErr) {
+              logger.warn(`SIGKILL fehlgeschlagen: ${killErr.message}`);
+            }
+          }
+        }, 5000); // 5 Sekunden Timeout
+        
+        // Timeout aufräumen
+        const clearKillTimeout = () => {
+          clearTimeout(killTimeout);
+        };
+        
+        // Timeout aufräumen wenn FFmpeg sauber beendet wird
+        this.ffmpegCommand.once('end', clearKillTimeout);
+        
       } catch (err) {
         logger.warn(`Fehler beim Beenden von FFmpeg: ${err.message}`);
       }
