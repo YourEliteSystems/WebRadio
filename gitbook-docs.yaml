@@ -1,0 +1,65 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: WebRadio
+  structure:
+    - type: section
+      key: section-developer
+      title: Developer Documentation
+      path: developer
+      default: true
+      children:
+        - type: space
+          key: space-docs
+          title: Documentation
+          path: docs
+          default: true
+          content:
+            directory: ./docs
+        - type: space
+          key: space-api-reference
+          title: API Reference
+          path: api-reference
+          content:
+            directory: ./docs/api-reference
+        - type: space
+          key: space-architecture
+          title: Architecture
+          path: architecture
+          content:
+            directory: ./docs/architecture
+    - type: section
+      key: section-plugin-sdk
+      title: Plugin SDK
+      path: plugin-sdk
+      children:
+        - type: space
+          key: space-plugin-sdk
+          title: Plugin SDK
+          path: plugin-sdk
+          default: true
+          content:
+            directory: ./docs/plugin-sdk
+    - type: section
+      key: section-theme-sdk
+      title: Theme SDK
+      path: theme-sdk
+      children:
+        - type: space
+          key: space-theme-sdk
+          title: Theme SDK
+          path: theme-sdk
+          default: true
+          content:
+            directory: ./docs/theme-sdk
+    - type: section
+      key: section-legacy
+      title: Legacy Documentation
+      path: legacy
+      children:
+        - type: space
+          key: space-legacy
+          title: Legacy Docs
+          path: legacy
+          default: true
+          content:
+            directory: ./docs_legacy
