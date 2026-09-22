@@ -28,6 +28,7 @@ const NavigationManager = require("./navigation/NavigationManager");
 // ─────────────────────────────────────────────
 
 const PluginManager = require("./plugins/PluginManager");
+const PluginPermissions = require("./plugins/PluginPermissions");
 
 // ─────────────────────────────────────────────
 // Integrations
@@ -267,10 +268,29 @@ class Application {
         await PluginHttpServer.start();
 
         // 3) Für jedes Plugin mit http-origin: Plugin-Ordner beim HTTP-Server registrieren
+        //    Capabilities werden aus dem Manifest extrahiert und validiert
         for (const [id, plugin] of PluginManager.plugins) {
             const manifest = plugin.manifest || plugin;
             if (manifest["http-origin"]) {
-                PluginHttpServer.servePlugin(id, plugin.path);
+                // Capabilities aus Manifest extrahieren
+                const requestedCapabilities = manifest.capabilities || [];
+                
+                // Capabilities validieren
+                const permissions = manifest.permissions || [];
+                const capabilityValidation = PluginPermissions.validateCapabilities(
+                    requestedCapabilities,
+                    permissions
+                );
+
+                // Nur gewährte Capabilities registrieren
+                const grantedCapabilities = capabilityValidation.granted;
+                
+                logger.info(`Plugin ${id}: Capabilities gewährt: ${grantedCapabilities.join(", ")}`);
+                if (capabilityValidation.denied.length > 0) {
+                    logger.warn(`Plugin ${id}: Capabilities abgelehnt: ${capabilityValidation.denied.join(", ")}`);
+                }
+
+                PluginHttpServer.servePlugin(id, plugin.path, grantedCapabilities);
             }
         }
 
@@ -402,12 +422,6 @@ class Application {
     async shutdownTray() {
 
         destroyTray();
-
-    }
-
-    async shutdownPlugins() {
-
-        PluginManager.shutdown();
 
     }
 

@@ -2,7 +2,7 @@
 
 > Ein moderner, erweiterbarer Desktop-Radioplayer von **Your Elite Systems** – gebaut mit Electron, React 19 und FFmpeg.
 
-[![Version](https://img.shields.io/badge/version-1.0.6--beta.4-6366f1?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.7--alpha.1-6366f1?style=flat-square)](./CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=flat-square)](./LICENSE)
 
@@ -18,10 +18,10 @@ WebRadio ist ein plattformübergreifender Desktop-Radioplayer mit einem modernen
 | ▶️ **Wiedergabe** | FFmpeg dekodiert Streams direkt und gibt PCM-Daten an die Web Audio API weiter |
 | ⭐ **Favoriten & Verlauf** | Sender speichern und zuletzt gehörte Sender sofort wiederfinden |
 | 🎨 **Theme-Engine** | Komplett anpassbares Design über CSS-Variablen und Theme-Pakete |
-| 🧩 **Plugin-System** | Erweiterbar durch Vanilla-JS Plugins (eigene Seiten, Widgets & Overlays) |
+| 🧩 **Plugin-System** | Erweiterbar durch Vanilla-JS Plugins mit Capability-System und Plugin-HTTP-Umgebung |
 | 🎮 **Discord RPC** | Zeigt den aktuellen Sender und Songtitel live in Discord an |
 | ⚙️ **Einstellungen** | Plugins und Themes verwalten, Updates prüfen |
-| 🔄 **Auto-Updater** | GitHub-basierte Updates mit **Stable**- und **Beta**-Kanal |
+| 🔄 **Auto-Updater** | GitHub-basierte Updates mit **Alpha**-, **Beta**- und **Stable**-Kanal |
 
 ---
 
@@ -29,7 +29,7 @@ WebRadio ist ein plattformübergreifender Desktop-Radioplayer mit einem modernen
 
 ### Voraussetzungen
 
-- **Node.js** 20 oder neuer
+- **Node.js** 26 oder neuer
 - **npm** 10 oder neuer
 
 ### Installation & Start
@@ -53,7 +53,7 @@ npm run dev
 | UI | [React 19](https://react.dev/) |
 | Build / Bundle | [esbuild](https://esbuild.github.io/), [electron-builder](https://www.electron.build/) |
 | Audio | [fluent-ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg), ffmpeg-static, Web Audio API |
-| Plugins | Vanilla JavaScript (ES Modules) |
+| Plugins | Vanilla JavaScript (ES Modules), Capability-System |
 | Installer | electron-builder (NSIS / AppImage / deb / pkg.tar.zst / DMG) |
 
 ---
@@ -131,18 +131,31 @@ WebRadio/
 │   └── core/
 │       ├── app/                  # Fenster-Management
 │       ├── audio/                # Stream-Management & FFmpeg
-│       ├── ipc/                  # IPC-Handler (Favorites, History, ...)
-│       ├── plugins/              # Plugin-Loader, API, Context
-│       └── themes/               # Theme-Manager
+│       ├── diagnostics/          # Logging, Crash-Handler, Bootup-Diagnostics
+│       ├── integrations/         # Offizielle Integrationen
+│       ├── ipc/                  # IPC-Handler (Radio, Player, Plugins, ...)
+│       ├── navigation/           # Plugin-gesteuerte Navigation
+│       ├── platform/             # RuntimeDetector (OS/Packaging-Erkennung)
+│       ├── player/               # Unified Player (PlayerManager + Provider)
+│       ├── plugins/              # Plugin-System (Manager, Runtime, API, HTTP)
+│       ├── services/             # CredentialManager, Discord, RadioBrowser
+│       ├── storage/              # Settings, Favoriten, Verlauf
+│       ├── themes/               # Theme-Manager & Loader
+│       ├── ui/                   # UI-Registry & Renderer
+│       └── updates/              # UpdateManager & Provider
 │
 ├── renderer/                     # React-Frontend
-│   ├── App.jsx                   # Haupt-Komponente & View-Routing
-│   ├── components/               # UI-Bausteine (Sidebar, Player, Grid)
+│   ├── components/               # UI-Bausteine (Sidebar, PlayerBar, Grid)
+│   ├── hooks/                    # u. a. useUnifiedPlayer
+│   ├── models/                   # Datenmodelle
+│   ├── plugins/                  # RendererPluginManager
 │   ├── services/                 # Audio-Player-Logik
-│   └── ui/                       # Plugin-Registry (Views & Slots)
+│   ├── styles/                   # Basis-Styles
+│   ├── ui/                       # Plugin-Registry (Views & Slots)
+│   └── worklets/                 # Audio-Worklets
 │
 ├── plugins/                      # Plugins
-│   └── discordRPC/               # Discord Rich Presence Plugin
+│   └── youtube/                  # YouTube-Integration (MediaHub-Anwendungsfall)
 │
 ├── themes/                       # CSS-Themes
 │   ├── default/
@@ -153,7 +166,7 @@ WebRadio/
 │   └── arch/                     # PKGBUILD für Arch Linux
 │
 ├── scripts/
-│   ├── build-linux-arch.js       # Helfer für Arch-Build
+│   ├── release/                  # Release- & Validierungs-Skripte
 │   └── tests/                    # Automatisierte Tests
 │
 └── docs/                         # 📚 Dokumentation (hier findest du alles!)
@@ -163,28 +176,137 @@ WebRadio/
 
 ## 📚 Dokumentation
 
-Die vollständige Dokumentation liegt im [`docs/`](./docs/README.md) Ordner.
+Die vollständige Dokumentation liegt im [`docs/`](./docs/Readme.md) Ordner.
 
 | Dokument | Inhalt |
 | --- | --- |
-| [📖 Docs-Übersicht](./docs/README.md) | Zentrales Inhaltsverzeichnis aller Dokumentation |
-| [🔌 Plugin Development Guide](./docs/plugin-development-guide.md) | Plugin-API, Views, Slots, Lifecycle |
-| [🎨 Theme Development Guide](./docs/theme-development-guide.md) | Themes erstellen und anpassen |
-| [🤝 Contributing](./docs/CONTRIBUTING.md) | Wie du beitragen kannst |
-| [⚖️ Code of Conduct](./docs/CODE_OF_CONDUCT.md) | Community-Regeln |
-| [🔐 Security Policy](./docs/SECURITY.md) | Sicherheitslücken melden |
-| [🗺️ Roadmap](./docs/roadmap.md) | Geplante Versionen und Meilensteine |
+| [📖 Docs-Übersicht](./docs/Readme.md) | Zentrales Inhaltsverzeichnis aller Dokumentation |
+| [🏛️ Architektur](./docs/architecture.md) | Aufbau des Core, Lifecycle und Subsysteme |
+| [🧩 Plugin SDK](./docs/plugin-sdk/README.md) | Plugins entwickeln (Manifest, Lifecycle, API) |
+| [🔐 Capability System](./docs/plugin-sdk/13-Capabilities.md) | Capabilities, Validierung und Plugin-HTTP-Umgebung |
+| [🎨 Theme SDK](./docs/theme-sdk/README.md) | Themes erstellen und anpassen |
+| [📘 API Reference](./docs/api-reference/README.md) | Technische Referenz der öffentlichen APIs |
+| [🔌 Integration SDK](./docs/IntegrationSDK.md) | Offizielle Integrationen |
+| [🔄 Update-Architektur](./docs/UPDATE_ARCHITECTURE.md) | Runtime-Erkennung & Update-Provider |
 | [🛠 Cross-Platform Setup](./docs/CROSS_PLATFORM_SETUP.md) | Build & Distribution pro Plattform |
+| [🤝 Contributing](./CONTRIBUTING.md) | Wie du beitragen kannst |
+| [⚖️ Code of Conduct](./CODE_OF_CONDUCT.md) | Community-Regeln |
+| [🔐 Security Policy](./docs/SECURITY.md) | Sicherheitslücken melden |
+| [🗺️ Roadmap](./ROADMAP.md) | Geplante Versionen und Meilensteine |
 
 ---
 
-## 🧩 Erweiterbarkeit
+## 🧩 Plugin-System
 
-WebRadio ist als offene Plattform konzipiert:
+WebRadio lädt Plugins über einen zentralen `PluginManager`. Ein Plugin besteht aus einem Manifest
+(`plugin.json` oder `manifest.json`) und optional einem Renderer-Skript.
 
-- **Themes** ändern das komplette Aussehen der App über CSS-Variablen.
-- **Plugins** können eigene Seiten (`registerView`) oder Widgets (`registerSlot`) tief in die React-Oberfläche integrieren – in purem Vanilla JavaScript.
-- Das **Plugin-API** wächst mit jeder Version.
+```text
+Plugin
+   ↓
+Capability Request (Manifest)
+   ↓
+Core Validation (PluginPermissions + CapabilityRegistry)
+   ↓
+Core Security Policy
+   ↓
+Capability Granted / Denied
+   ↓
+PluginContext / PluginAPI
+   ↓
+Controlled Runtime
+```
+
+> **Wichtig:** Plugins können Fähigkeiten anfordern, aber keine Fähigkeiten gewähren, erweitern oder
+> Sicherheitsgrenzen verändern. Der Core enthält keine Plugin-ID-Sonderfälle.
+
+### Plugin-Komponenten
+
+| Komponente | Aufgabe |
+| --- | --- |
+| `PluginManager` | Entdeckung, Lifecycle, Enable/Disable, Rescan |
+| `PluginLoader` | Manifest-Discovery & Fingerprinting |
+| `PluginRuntime` | `init()` / `destroy()`, Event-Hooks, Cleanup |
+| `PluginContext` | Isolierter Kontext pro Plugin |
+| `PluginAPI` | Öffentliche API (logger, storage, settings, events, navigation, player, ui) |
+| `PluginPermissions` | Permission- und Capability-Validierung |
+| `CapabilityRegistry` | Zentrale Registry bekannter Capabilities |
+| `PluginHttpServer` | Lokaler HTTP-Server für Plugin-Ressourcen (127.0.0.1) |
+| `PluginStorage` | Plugin-spezifische Persistenz |
+
+### Capabilities
+
+| Capability | Benötigt | Erlaubte externe Origins |
+| --- | --- | --- |
+| `http-origin` | – | – (nur lokal) |
+| `local-assets` | `http-origin` | – |
+| `external-origin` | `http-origin` | – |
+| `youtube-iframe` | `external-origin` | youtube.com, youtube-nocookie.com, s.ytimg.com, i.ytimg.com |
+| `youtube-api` | `youtube-iframe` | wie `youtube-iframe` |
+| `player` | – | – |
+
+Unbekannte Capabilities werden immer abgelehnt. Details:
+[Capability System](./docs/plugin-sdk/13-Capabilities.md).
+
+### Plugin HTTP Environment
+
+- Lauscht ausschließlich auf `127.0.0.1` (localhost-only, dynamischer Port)
+- Nur registrierte Plugin-Pfade werden ausgeliefert
+- Path-Traversal-Schutz (Pfad darf Plugin-Root nicht verlassen)
+- Origin-Validation über die gewährten Capabilities
+- CORS: nur für erlaubte Origins
+- Nur `GET` und `HEAD` erlaubt
+- Sauberer Shutdown über den `Application`-Lifecycle
+
+### MediaHub als erster Anwendungsfall
+
+Das YouTube-Integrationsplugin (`plugins/youtube/`) nutzt dieses generische System:
+
+- Permissions: `player`, `http-origin`
+- Capabilities: `youtube-iframe`, `youtube-api`
+- Lädt Assets über `http://127.0.0.1:<port>/plugins/youtube/...`
+- Nutzt die YouTube IFrame API und meldet den State an den Unified Player
+
+---
+
+## 🎵 Unified Player
+
+Der Unified Player bündelt alle Wiedergabequellen hinter einer einheitlichen API.
+
+### PlayerManager
+
+- Provider-Registry (`registerProvider` / `unregisterProvider` / `setActiveProvider`)
+- Controls (`play` / `pause` / `stop` / `toggle` / `setVolume`)
+- State (`getState` / `subscribe` / `updateProviderState`)
+- Nur der aktive Provider darf den globalen State setzen
+
+### Provider
+
+| Provider | Quelle |
+| --- | --- |
+| `RadioProvider` | Internetradio über FFmpeg + Web Audio API (Core) |
+| `MediaHubProvider` | YouTube über das YouTube-Integrationsplugin |
+
+### Player State
+
+```javascript
+{
+  state:   "idle",       // idle | loading | playing | paused | stopped | error
+  title:   "Songtitel",
+  artist:  "Künstler",
+  artwork: "https://...",
+  volume:  0.7,
+  source:  {
+    id:       "mediahub",
+    name:     "MediaHub",
+    provider: "YouTube",
+    type:     "youtube"
+  }
+}
+```
+
+Im Renderer wird der State über `useUnifiedPlayer` / `playerAPI` konsumiert; die PlayerBar zeigt
+Titel, Artist, Artwork und Source an.
 
 ---
 
@@ -206,25 +328,27 @@ WebRadio bezieht Updates aus dem offiziellen GitHub-Repository und nutzt die int
 
 ### Kanäle
 
-In den Einstellungen kann zwischen zwei Kanälen gewählt werden:
+In den Einstellungen kann zwischen drei Kanälen gewählt werden:
 
 - **Stable** – Standard. Liefert ausschließlich stabile Releases.
 - **Beta** – Liefert Beta- und stabile Releases. Beim erstmaligen Aktivieren erscheint eine deutliche Sicherheitswarnung.
+- **Alpha** – Liefert Alpha-, Beta- und stabile Releases für frühe Tests.
 
-Der Wechsel ist jederzeit in beide Richtungen möglich. Beta → Stable funktioniert auch, wenn die installierte Beta-Version **numerisch neuer** ist als die stabile – die `allowDowngrade`-Option von electron-updater kümmert sich darum.
+Der Kanal wird zentral ermittelt (User-Setting → Versions-Fallback → Stable-Fallback). Der Wechsel ist jederzeit in beide Richtungen möglich. Beta → Stable funktioniert auch, wenn die installierte Beta-Version **numerisch neuer** ist als die stabile – die `allowDowngrade`-Option von electron-updater kümmert sich darum.
+
+> **Hinweis:** Channel und Severity sind unterschiedliche Konzepte. Die Severity (`normal` / `important` / `critical`) eines Updates ist unabhängig vom gewählten Channel.
 
 ### Versionen
 
 Releases folgen strikt [SemVer](https://semver.org/):
 
 ```
-v1.0.5          (stable)
-v1.0.6-beta.1   (beta)
-v1.0.6-beta.2   (beta)
-v1.0.6          (stable)
+v1.0.7-alpha.1   (alpha)
+v1.0.7-beta.1    (beta)
+v1.0.7           (stable)
 ```
 
-Stable-Releases werden als „Latest" auf GitHub veröffentlicht, Beta-Releases werden als **Pre-Release** markiert.
+Stable-Releases werden als „Latest" auf GitHub veröffentlicht, Alpha- und Beta-Releases werden als **Pre-Release** markiert.
 
 ### Verhalten
 
@@ -255,9 +379,9 @@ Arch-Linux-Benutzer sehen in der App verfügbare Updates, müssen das `.pkg.tar.
 
 ## 🤝 Beitragen
 
-Beiträge sind herzlich willkommen! Lies unseren [Contributing Guide](./docs/CONTRIBUTING.md) für Infos zu Branch-Konventionen, Commit-Nachrichten und dem PR-Prozess.
+Beiträge sind herzlich willkommen! Lies unseren [Contributing Guide](./CONTRIBUTING.md) für Infos zu Branch-Konventionen, Commit-Nachrichten und dem PR-Prozess.
 
-Bitte beachte unseren [Code of Conduct](./docs/CODE_OF_CONDUCT.md).
+Bitte beachte unseren [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ---
 
@@ -271,4 +395,4 @@ Sicherheitslücken bitte **nicht** über öffentliche Issues melden. Lies stattd
 
 Dieses Projekt steht unter der Lizenz, die in der [LICENSE](./LICENSE)-Datei beschrieben ist.
 
-© 2025 Your Elite Systems. Alle Rechte vorbehalten.
+© 2026 Your Elite Systems. Alle Rechte vorbehalten.

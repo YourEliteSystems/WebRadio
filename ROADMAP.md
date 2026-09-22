@@ -29,7 +29,7 @@ The project's primary goals are:
 Current Version
 
 ```text
-v1.1.0-alpha.1
+v1.0.7-alpha.1
 ```
 
 Current Release Stage
@@ -48,25 +48,46 @@ Active Development
 
 # Current Milestone
 
-## Version 1.1
+## Version 1.0.7 (alpha)
 
-Current focus:
+Implemented in the current development line:
 
-* Plugin System
-* Theme System
-* Plugin SDK
-* Theme SDK
-* API Reference
-* Documentation
-* Internal architecture improvements
+* Unified Player (PlayerManager, Provider system, RadioProvider, MediaHubProvider)
+* Plugin System (PluginManager, PluginLoader, PluginRuntime, PluginContext, PluginAPI)
+* Capability System (CapabilityRegistry, validation and enforcement)
+* Plugin HTTP Environment (core-controlled localhost HTTP server for plugins)
+* Update Channels (alpha / beta / latest with centralized channel detection)
+* Theme System (ThemeManager, ThemeLoader, ThemeValidator, built-in and user themes)
+* Diagnostics (BootupDiagnostics, crash reports, logging)
+* Plugin SDK, Theme SDK and API Reference documentation
+
+Still in progress:
+
+* Documentation consistency across all chapters
+* Examples and tutorials
 
 Status:
 
 ```text
-██████████░░░░░░░░░░ 50%
+████████████████░░░░ 80%
 ```
 
 ---
+
+# Explicitly Not Implemented (v1.0.7-alpha.1)
+
+The following features are **not** part of the current release. The Capability System is
+designed as the foundation for them, but the features themselves do not exist yet:
+
+* Plugin Store / Marketplace
+* Theme Store
+* Online package sources
+* Remote plugin or theme installation from within the app
+* Automatic plugin or theme updates
+* Cloud synchronization
+
+> The Capability System allows a future installer to show a permission and security overview
+> based on a plugin manifest. The installer and store themselves are **not implemented**.
 
 # Upcoming Milestones
 

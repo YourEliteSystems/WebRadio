@@ -17,5 +17,12 @@
   "engines": {
     "webradio": ">=1.0.0"
   },
-  "http-origin": true
+  "permissions": [
+    "player",
+    "http-origin"
+  ],
+  "capabilities": [
+    "youtube-iframe",
+    "youtube-api"
+  ]
 }
