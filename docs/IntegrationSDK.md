@@ -1,6 +1,6 @@
 # Integration SDK
 
-WebRadio besitzt ein modernes Plugin-System. Neben Community-Plugins gibt es auch **offizielle Integrationen**, die von WebRadio selbst entwickelt, ausgeliefert und gepflegt werden.
+WebRadio besitzt ein modernes Plugin-System. Die Dokumentation beschreibt das Konzept von **offiziellen Integrationen** als ein geplantes Erweiterungskonzept.
 
 ---
 
@@ -9,7 +9,7 @@ WebRadio besitzt ein modernes Plugin-System. Neben Community-Plugins gibt es auc
 ## Integrationen
 
 - **Offiziell**: Von WebRadio entwickelt
-- **Bestandteil des Projekts**: Im Repository unter `integrations/`
+- **Geplant**: Als eigene Ebene über Community-Plugins, aber nicht als separate Distribution über einen Store
 - **Automatisch verfügbar**: Werden mit der App ausgeliefert
 - **Aktivierbar/Deaktivierbar**: Zur Laufzeit ein-/ausschaltbar
 - **PluginAPI**: Nutzen dieselbe PluginAPI wie Plugins
@@ -32,30 +32,7 @@ WebRadio besitzt ein modernes Plugin-System. Neben Community-Plugins gibt es auc
 
 # Architektur
 
-Integrationen nutzen dieselbe Runtime wie Plugins:
-
-```text
-electron/
-    core/
-        plugins/
-            PluginManager.js
-            PluginRuntime.js
-            PluginAPI.js
-            PluginLoader.js
-        integrations/
-            IntegrationManager.js
-            IntegrationLoader.js
-
-integrations/
-    youtube/
-    discord-rpc/
-    podcasts/
-
-plugins/
-    ...
-```
-
-**Wichtig:** Es existiert nur eine Erweiterungsarchitektur. Integrationen und Plugins nutzen dieselben Komponenten:
+Integrationen nutzen konzeptionell dieselbe Runtime wie Plugins. Das bedeutet:
 
 - **PluginRuntime**: Lifecycle-Management
 - **PluginAPI**: Offizielle Schnittstelle
@@ -63,6 +40,9 @@ plugins/
 - **EventBus**: Event-Kommunikation
 
 Es gibt **kein zweites Runtime-System**.
+
+> **Hinweis:** Die `integrations/`-Struktur und ein separates `IntegrationManager`/`IntegrationLoader` sind nicht der aktuelle Standard für alle offiziellen Komponenten. Offizielle Komponenten werden in diesem Release über das Plugin-System und weitere Core-kompatible Stellen integriert.
+
 
 ---
 
@@ -250,12 +230,12 @@ Integrationen kommunizieren ausschließlich über die PluginAPI:
 
 - ✅ Logger
 - ✅ EventBus
-- ✅ Settings
-- ✅ Storage
-- ✅ Notifications
-- ✅ Player
-- ✅ Window
-- ✅ Dialoge
+- ✅ Settings (global, wo verfügbar)
+- ✅ Storage (plugin- bzw. komponentenbezogen)
+- ❌ Notifications (in 1.0.7-alpha.1 nicht als öffentliche Plugin-API verfügbar)
+- ✅ Player (wo die korrespondierende Berechtigung vorliegt)
+- ❌ Window (in 1.0.7-alpha.1 nicht als öffentliche Plugin-API verfügbar)
+- ❌ Dialoge (in 1.0.7-alpha.1 nicht als öffentliche Plugin-API verfügbar)
 
 ❌ **Direkte Core-Imports sind nicht erlaubt**
 
@@ -287,7 +267,9 @@ Die einzige Kommunikationsmöglichkeit bleibt die PluginAPI und der EventBus.
 
 ---
 
-# Projektstruktur
+# Projektstruktur (Konzept)
+
+Ein mögliches Layout für Integrationen könnte so aussehen:
 
 ```
 integrations/
@@ -296,13 +278,10 @@ integrations/
         index.js
         renderer.js
         assets/
-    discord-rpc/
-        manifest.json
-        index.js
-    podcasts/
-        manifest.json
-        index.js
 ```
+
+> Diese Struktur ist ein Planungskonzept und nicht zwingend der aktuelle Build-Aufbau für alle Komponenten.
+
 
 ---
 
@@ -344,7 +323,7 @@ const logger = context.logger("MyComponent");
 
 # Konfiguration
 
-Integrationen werden über `userData/integrations/integrations.json` konfiguriert:
+Integrationen werden konzeptionell über eine eigene Konfigurationsdatei verwaltet.
 
 ```json
 {
@@ -359,7 +338,8 @@ Integrationen werden über `userData/integrations/integrations.json` konfigurier
 }
 ```
 
-Integrationen können zur Laufzeit ein- und ausgeschaltet werden ohne Neustart.
+> Diese Konfigurationsform ist ein Konzept und nicht zwingend der einzige Konfigurationsweg für alle offiziellen Komponenten in 1.0.7-alpha.1.
+
 
 ---
 

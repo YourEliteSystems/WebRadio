@@ -39,45 +39,47 @@ Plugins should never instantiate the Storage service themselves.
 
 ---
 
-# Methods
+# Methods (1.0.7-alpha.1)
 
-## get()
+The current plugin-facing Storage API provides synchronous access to a plugin's isolated storage file.
+
+### get()
 
 Returns a stored value.
 
 ### Syntax
 
 ```javascript id="bp5ks9"
-const value = await storage.get(key);
+const value = storage.get(key);
 ```
 
-### Parameters
+#### Parameters
 
 | Name | Type   | Description |
 | ---- | ------ | ----------- |
 | key  | String | Storage key |
 
-### Returns
+#### Returns
 
 ```javascript id="xw3mke"
-Promise<any>
+any
 ```
 
 Returns `undefined` if the key does not exist.
 
 ---
 
-## set()
+### set()
 
 Stores a value.
 
 ### Syntax
 
 ```javascript id="k8zv5m"
-await storage.set(key, value);
+storage.set(key, value);
 ```
 
-### Parameters
+#### Parameters
 
 | Name  | Type   | Description    |
 | ----- | ------ | -------------- |
@@ -88,116 +90,137 @@ Existing values are overwritten.
 
 ---
 
-## has()
+### has()
 
 Checks whether a key exists.
 
 ### Syntax
 
 ```javascript id="q5pmh7"
-const exists = await storage.has(key);
+const exists = storage.has(key);
 ```
 
-### Returns
+#### Returns
 
 ```javascript id="q7xep3"
-Promise<Boolean>
+Boolean
 ```
 
 ---
 
-## delete()
+### delete()
 
 Removes a stored value.
 
 ### Syntax
 
 ```javascript id="m2wghk"
-await storage.delete(key);
+storage.delete(key);
 ```
 
 Returns successfully even if the key does not exist.
 
 ---
 
-## clear()
+### exists()
 
-Removes every stored value belonging to the current plugin.
+Checks whether the plugin storage file exists.
 
 ### Syntax
 
 ```javascript id="p2mdvs"
-await storage.clear();
+const exists = storage.exists();
 ```
 
-Use with care.
-
----
-
-## keys()
-
-Returns every stored key.
-
-### Syntax
-
-```javascript id="rk0ep9"
-const keys = await storage.keys();
-```
-
-### Returns
+#### Returns
 
 ```javascript id="d6fxzg"
-Promise<Array<String>>
+Boolean
 ```
 
 ---
 
-## values()
+### read()
 
-Returns every stored value.
+Returns the full plugin storage object.
 
 ### Syntax
 
 ```javascript id="w0zn4h"
-const values = await storage.values();
+const data = storage.read();
+```
+
+#### Returns
+
+```javascript id="sh91yr"
+Object
 ```
 
 ---
 
-## entries()
+### write()
 
-Returns key/value pairs.
+Replaces the full plugin storage object.
 
 ### Syntax
 
 ```javascript id="sh91yr"
-const entries = await storage.entries();
+storage.write(data);
 ```
 
-### Returns
+#### Parameters
 
-```javascript id="ps2yd7"
-Promise<Array<[String, Any]>>
+| Name | Type   | Description         |
+| ---- | ------ | ------------------- |
+| data | Object | New storage content |
+
+---
+
+### remove()
+
+Removes a key from the plugin storage object.
+
+### Syntax
+
+```javascript id="sh91yr"
+storage.remove(key);
 ```
 
 ---
 
-# Namespaces
+### clear()
 
-Storage is automatically isolated.
+Removes the plugin storage file entirely.
+
+### Syntax
+
+```javascript id="sh91yr"
+storage.clear();
+```
+
+Use with care.
+
+> **Note:** In WebRadio 1.0.7-alpha.1, Storage is not async and does not expose `keys()`, `values()` or `entries()`.
+
+
+---
+
+# Isolation
+
+Storage is automatically isolated per plugin.
 
 ```text id="f8yk32"
 Plugin A
 
 ↓
 
-Storage A
+Plugin Storage A
 
 Plugin B
 
 ↓
 
-Storage B
+Plugin Storage B
 ```
 
 Plugins cannot access another plugin's storage.
@@ -268,25 +291,24 @@ Persistent storage should remain clean and predictable.
 The Storage service commonly works together with:
 
 * PluginContext
-* Settings
 * Logger
 
 ---
 
-# Example
+# Example (1.0.7-alpha.1)
 
 ```javascript id="u9fphx"
-await context.storage.set("volume", 75);
+if (!context.storage.exists()) {
 
-const volume = await context.storage.get("volume");
+    context.storage.set("volume", 75);
 
-if (await context.storage.has("volume")) {
+}
 
-    context.logger.info(
+const volume = context.storage.get("volume");
 
-        `Volume: ${volume}`
+if (context.storage.has("volume")) {
 
-    );
+    context.logger.info(`Volume: ${volume}`);
 
 }
 ```
@@ -296,6 +318,7 @@ if (await context.storage.has("volume")) {
 # See Also
 
 * PluginContext
-* Settings
 * Logger
 * Application
+
+> In WebRadio 1.0.7-alpha.1, `context.storage` does not expose async methods and does not include `keys()`, `values()` or `entries()`.

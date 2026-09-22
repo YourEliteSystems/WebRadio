@@ -1,196 +1,62 @@
-# Windows
+# Windows Status
 
-The `Windows` service allows plugins to create and manage their own application windows.
+In WebRadio 1.0.7-alpha.1, the plugin-facing Windows service is **not** part of the current public Plugin API surface.
 
-Plugin windows provide dedicated user interfaces for settings, tools, dashboards and other plugin-specific functionality.
+Plugins can contribute UI through:
 
-All windows are managed by the WebRadio Window Manager to ensure a consistent user experience.
+* navigation entries
+* UI registration
 
----
-
-# Responsibilities
-
-The Windows service is responsible for:
-
-* Creating plugin windows
-* Managing the window lifecycle
-* Opening and closing windows
-* Focusing existing windows
-* Tracking registered windows
-* Integrating plugin windows into WebRadio
-
-Plugins should never create native Electron windows directly.
+but they do not get a public `context.windows.create(...)` API in this release.
 
 ---
 
-# Accessing Windows
+# Future Window Integration
 
-The Windows service is available through the `PluginContext`.
+A future SDK may introduce a window management API for plugin-dedicated windows.
 
-Example:
+Possible future concepts include:
 
-```javascript
-const windows = context.windows;
-```
+* window creation with unique identifiers
+* window show/hide/close lifecycle
+* window focus management
+* registration and cleanup tied to plugin lifecycle
 
-Plugins should never instantiate the Windows service themselves.
-
----
-
-# Window Lifecycle
-
-Every plugin window follows a predictable lifecycle.
-
-```text
-Plugin Loaded
-
-↓
-
-Register Window
-
-↓
-
-Create Window
-
-↓
-
-Show Window
-
-↓
-
-Hide / Close
-
-↓
-
-Destroy Window
-
-↓
-
-Plugin Unloaded
-```
-
-The Window Manager controls every stage.
+These are planned ideas, not implemented APIs.
 
 ---
 
-# Methods
+# Best Practices for Now
 
-## create()
+✔ Use only the currently documented plugin APIs.
 
-Creates a new plugin window.
+✔ Do not assume plugin window creation exists.
 
-### Syntax
-
-```javascript
-const window = await windows.create({
-
-    id: "plugin.settings",
-
-    title: "Plugin Settings",
-
-    width: 900,
-
-    height: 600
-
-});
-```
-
-### Parameters
-
-| Name   | Type   | Description              |
-| ------ | ------ | ------------------------ |
-| id     | String | Unique window identifier |
-| title  | String | Window title             |
-| width  | Number | Initial width            |
-| height | Number | Initial height           |
+✔ Watch the Plugin SDK and API Reference for future extension points.
 
 ---
 
-## show()
+# Related APIs
 
-Displays a registered window.
+The current plugin extension model works together with:
 
-### Syntax
-
-```javascript
-await windows.show("plugin.settings");
-```
-
----
-
-## hide()
-
-Hides a window without destroying it.
-
-### Syntax
-
-```javascript
-await windows.hide("plugin.settings");
-```
+* PluginContext
+* Events
+* Logger
+* Navigation
+* UI
+* Player
 
 ---
 
-## close()
+# See Also
 
-Closes a window.
+* PluginContext
+* Navigation
+* UI
+* Player
+* Capabilities & Plugin HTTP Environment
 
-### Syntax
-
-```javascript
-await windows.close("plugin.settings");
-```
-
-Closing a window releases its associated resources.
-
----
-
-## focus()
-
-Brings an existing window to the foreground.
-
-### Syntax
-
-```javascript
-await windows.focus("plugin.settings");
-```
-
-If the window is already open, it becomes the active window.
-
----
-
-## get()
-
-Returns a registered window.
-
-### Syntax
-
-```javascript
-const window = windows.get("plugin.settings");
-```
-
-### Returns
-
-```javascript
-Window | undefined
-```
-
----
-
-## getWindows()
-
-Returns every registered plugin window.
-
-### Syntax
-
-```javascript
-const windows = context.windows.getWindows();
-```
-
-### Returns
-
-```javascript
-Array<Window>
-```
 
 ---
 

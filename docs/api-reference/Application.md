@@ -221,12 +221,19 @@ These services together form the WebRadio Core.
 
 ---
 
+# Current Application Role (1.0.7-alpha.1)
+
+The current application is the central coordinator for startup, shutdown and subsystem lifecycle.
+
+The Application does not expose itself to plugins as a public `context.application` service in this release.
+
+---
+
 # Example
 
 ```javascript id="8q5xnf"
-const application = new Application();
-
-await application.start();
+// Application startup is managed by the core.
+// Plugins use the plugin context, not the application class directly.
 ```
 
 The Application initializes the complete WebRadio environment and prepares it for user interaction.
@@ -240,4 +247,4 @@ The Application initializes the complete WebRadio environment and prepares it fo
 * Storage
 * Logger
 * Events
-* Windows
+* Plugin Context

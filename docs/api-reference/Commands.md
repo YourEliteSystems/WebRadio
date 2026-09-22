@@ -1,194 +1,63 @@
-# Commands
+# Commands Status
 
-The `Commands` service provides a centralized way for plugins to register executable actions within WebRadio.
+In WebRadio 1.0.7-alpha.1, the plugin-facing Commands service is **not** part of the current public Plugin API surface.
 
-Commands allow plugins to expose functionality that can later be invoked by menus, keyboard shortcuts, toolbar buttons, context menus or other plugins.
+The current plugin extension points are:
 
-The Commands service acts as a central command registry for the entire application.
-
----
-
-# Responsibilities
-
-The Commands service is responsible for:
-
-* Registering commands
-* Executing commands
-* Removing commands
-* Discovering registered commands
-* Providing a unified command interface
-
-Commands separate application actions from the user interface.
+* events
+* navigation
+* UI registration
+* the Player API (where permitted)
+* the HTTP Origin API (where permitted)
 
 ---
 
-# Accessing Commands
+# Future Command Integration
 
-The Commands service is available through the `PluginContext`.
+A future SDK may introduce a command registry that allows plugins to expose actions for menus, shortcuts or other triggers.
 
-Example:
+Possible future concepts include:
 
-```javascript
-const commands = context.commands;
-```
+* command registration with unique identifiers
+* command execution through a central registry
+* command removal during plugin shutdown
 
-Plugins should never instantiate the Commands service directly.
-
----
-
-# Command Lifecycle
-
-Every command follows a simple lifecycle.
-
-```text
-Plugin Loaded
-
-↓
-
-Register Command
-
-↓
-
-Command Available
-
-↓
-
-Execute Command
-
-↓
-
-Unregister Command
-
-↓
-
-Plugin Unloaded
-```
-
-Commands exist only while the owning plugin is active.
+These are planned ideas, not implemented APIs.
 
 ---
 
-# Methods
+# Best Practices for Now
 
-## register()
+✔ Use only the currently documented plugin APIs.
 
-Registers a new command.
+✔ Do not assume command registration exists.
 
-### Syntax
-
-```javascript
-commands.register({
-
-    id: "hello.world",
-
-    title: "Hello World",
-
-    execute() {
-
-        console.log("Hello World");
-
-    }
-
-});
-```
-
-### Parameters
-
-| Name    | Type     | Description                 |
-| ------- | -------- | --------------------------- |
-| id      | String   | Unique command identifier   |
-| title   | String   | Human-readable command name |
-| execute | Function | Command callback            |
-
-Every command must have a unique identifier.
+✔ Watch the Plugin SDK and API Reference for future extension points.
 
 ---
 
-## unregister()
+# Related APIs
 
-Removes a registered command.
+The current plugin extension model works together with:
 
-### Syntax
-
-```javascript
-commands.unregister("hello.world");
-```
-
-Commands should always be removed when the plugin is disabled.
-
----
-
-## execute()
-
-Executes a command.
-
-### Syntax
-
-```javascript
-await commands.execute("hello.world");
-```
-
-### Parameters
-
-| Name | Type   | Description        |
-| ---- | ------ | ------------------ |
-| id   | String | Command identifier |
-
-Returns the value produced by the command, if any.
+* PluginContext
+* Events
+* Logger
+* Navigation
+* UI
+* Player
 
 ---
 
-## has()
+# See Also
 
-Checks whether a command exists.
+* PluginContext
+* Events
+* Navigation
+* UI
+* Player
+* Capabilities & Plugin HTTP Environment
 
-### Syntax
-
-```javascript
-commands.has("hello.world");
-```
-
-### Returns
-
-```javascript
-Boolean
-```
-
----
-
-## get()
-
-Returns a registered command.
-
-### Syntax
-
-```javascript
-const command = commands.get("hello.world");
-```
-
-### Returns
-
-```javascript
-Command | undefined
-```
-
----
-
-## getCommands()
-
-Returns every registered command.
-
-### Syntax
-
-```javascript
-const commands = context.commands.getCommands();
-```
-
-### Returns
-
-```javascript
-Array<Command>
-```
 
 ---
 

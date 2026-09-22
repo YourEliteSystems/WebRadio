@@ -1,153 +1,60 @@
-# Menus
+# Menus Status
 
-The `Menus` service allows plugins to extend the WebRadio user interface by registering menu entries.
+In WebRadio 1.0.7-alpha.1, the plugin-facing Menus service is **not** part of the current public Plugin API surface.
 
-Menus provide users with direct access to plugin functionality through the application's navigation system.
+The current plugin integration points for UI are:
 
-Plugins should use the Menus service instead of modifying the user interface directly.
-
----
-
-# Responsibilities
-
-The Menus service is responsible for:
-
-* Registering menu items
-* Removing menu items
-* Organizing menu hierarchies
-* Connecting menu items to commands
-* Managing menu visibility
-* Supporting plugin integration
-
-Menus provide a consistent way to expose plugin functionality.
+* navigation (sidebar sections and items)
+* UI registration
 
 ---
 
-# Accessing Menus
+# Future Menu Integration
 
-The Menus service is available through the `PluginContext`.
+A future SDK may introduce a menu registration API that connects plugin actions to menus or commands.
 
-Example:
+Possible future concepts include:
 
-```javascript
-const menus = context.menus;
-```
+* menu item registration with unique identifiers
+* linking menu items to commands
+* dynamic menu visibility
+* automatic cleanup during plugin deactivation
 
-Plugins should never instantiate the Menus service directly.
-
----
-
-# Menu Lifecycle
-
-Every menu entry follows a predictable lifecycle.
-
-```text
-Plugin Loaded
-
-↓
-
-Register Menu
-
-↓
-
-Menu Available
-
-↓
-
-User Interaction
-
-↓
-
-Execute Command
-
-↓
-
-Plugin Disabled
-
-↓
-
-Remove Menu
-```
-
-Menu entries exist only while the owning plugin is enabled.
+These are planned ideas, not implemented APIs.
 
 ---
 
-# Methods
+# Best Practices for Now
 
-## register()
+✔ Use only the currently documented plugin APIs.
 
-Registers a new menu item.
+✔ Do not assume menu or command registration exists.
 
-### Syntax
-
-```javascript
-menus.register({
-
-    id: "example.menu",
-
-    title: "Example",
-
-    command: "example.open"
-
-});
-```
-
-### Parameters
-
-| Name    | Type   | Description                    |
-| ------- | ------ | ------------------------------ |
-| id      | String | Unique menu identifier         |
-| title   | String | Display name                   |
-| command | String | Command executed when selected |
+✔ Watch the Plugin SDK and API Reference for future extension points.
 
 ---
 
-## unregister()
+# Related APIs
 
-Removes a registered menu.
+The current plugin extension model works together with:
 
-### Syntax
-
-```javascript
-menus.unregister("example.menu");
-```
-
----
-
-## get()
-
-Returns a menu by its identifier.
-
-### Syntax
-
-```javascript
-const menu = menus.get("example.menu");
-```
-
-### Returns
-
-```javascript
-Menu | undefined
-```
+* PluginContext
+* Events
+* Logger
+* Navigation
+* UI
+* Player
 
 ---
 
-## getMenus()
+# See Also
 
-Returns every registered menu.
+* PluginContext
+* Navigation
+* UI
+* Player
+* Capabilities & Plugin HTTP Environment
 
-### Syntax
-
-```javascript
-const registeredMenus = menus.getMenus();
-```
-
-### Returns
-
-```javascript
-Array<Menu>
-```
 
 ---
 

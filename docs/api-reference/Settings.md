@@ -36,45 +36,47 @@ Plugins should never create their own Settings instance.
 
 ---
 
-# Methods
+# Methods (1.0.7-alpha.1)
 
-## get()
+The current plugin-facing Settings API provides synchronous access to selected global settings.
+
+### get()
 
 Returns the current value of a setting.
 
-### Syntax
+#### Syntax
 
 ```javascript id="x1z8pf"
-const language = await settings.get("language");
+const language = settings.get("language");
 ```
 
-### Parameters
+#### Parameters
 
 | Name | Type   | Description        |
 | ---- | ------ | ------------------ |
 | key  | String | Setting identifier |
 
-### Returns
+#### Returns
 
 ```javascript id="e9cp7q"
-Promise<any>
+any
 ```
 
-If the setting does not exist, the default value may be returned.
+If the setting does not exist, `undefined` may be returned.
 
 ---
 
-## set()
+### set()
 
 Updates a setting.
 
-### Syntax
+#### Syntax
 
 ```javascript id="r4m8ya"
-await settings.set("language", "en");
+settings.set("language", "en");
 ```
 
-### Parameters
+#### Parameters
 
 | Name  | Type   | Description        |
 | ----- | ------ | ------------------ |
@@ -85,93 +87,54 @@ Changes are persisted automatically.
 
 ---
 
-## has()
+### has()
 
 Checks whether a setting exists.
 
-### Syntax
+#### Syntax
 
 ```javascript id="z7p4dw"
-const exists = await settings.has("language");
+const exists = settings.has("language");
 ```
 
-### Returns
+#### Returns
 
 ```javascript id="p6ax8g"
-Promise<Boolean>
+Boolean
 ```
 
 ---
 
-## reset()
+### delete()
 
-Resets a setting to its default value.
+Removes a setting.
 
-### Syntax
+#### Syntax
 
 ```javascript id="w3m7kt"
-await settings.reset("language");
-```
-
-Only the specified setting is reset.
-
----
-
-## resetAll()
-
-Resets every plugin setting.
-
-### Syntax
-
-```javascript id="y1ck9h"
-await settings.resetAll();
-```
-
-This operation should be used carefully.
-
----
-
-## getDefaults()
-
-Returns the default settings defined by the plugin.
-
-### Syntax
-
-```javascript id="n5ev4r"
-const defaults = await settings.getDefaults();
-```
-
-### Returns
-
-```javascript id="c8qp3f"
-Promise<Object>
+settings.delete("language");
 ```
 
 ---
 
-# Default Values
+> **Note:** In WebRadio 1.0.7-alpha.1, the plugin-facing Settings API does not expose `reset()`, `resetAll()` or `getDefaults()`.
 
-Plugins should always provide sensible defaults.
-
-Example:
-
-```javascript id="j7kh5m"
-{
-
-    language: "en",
-
-    autoplay: true,
-
-    volume: 75
-
-}
-```
-
-Default values ensure predictable behaviour.
 
 ---
 
-# Data Types
+# Settings Scope (1.0.7-alpha.1)
+
+The plugin-facing Settings API gives plugins access to selected global settings, not to a separate per-plugin settings namespace.
+
+That means:
+
+* plugins should use settings for shared configuration values where appropriate
+* plugins should still use Storage for plugin-specific persistent data
+* plugins should not assume a built-in per-plugin settings UI or defaults system
+
+---
+
+# Data Types (1.0.7-alpha.1)
 
 Settings commonly store:
 
@@ -221,7 +184,7 @@ Plugins should handle these situations gracefully.
 
 # Best Practices
 
-✔ Provide default values.
+✔ Provide default values inside the plugin when needed.
 
 ✔ Validate user input.
 
@@ -259,20 +222,14 @@ The Settings service commonly works together with:
 
 ---
 
-# Example
+# Example (1.0.7-alpha.1)
 
 ```javascript id="v9nq2e"
-const autoplay =
-
-await context.settings.get("autoplay");
+const autoplay = context.settings.get("autoplay");
 
 if (autoplay) {
 
-    context.logger.info(
-
-        "Autoplay enabled."
-
-    );
+    context.logger.info("Autoplay enabled.");
 
 }
 ```

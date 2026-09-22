@@ -151,6 +151,10 @@ Plugin Context
 
 ↓
 
+Plugin API
+
+↓
+
 Storage
 
 ↓
@@ -168,6 +172,10 @@ UI Integration
 ↓
 
 Navigation (Sidebar & Sections)
+
+↓
+
+Capabilities & Plugin HTTP Environment
 
 ↓
 

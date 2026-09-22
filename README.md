@@ -191,7 +191,7 @@ Die vollständige Dokumentation liegt im [`docs/`](./docs/Readme.md) Ordner.
 | [🛠 Cross-Platform Setup](./docs/CROSS_PLATFORM_SETUP.md) | Build & Distribution pro Plattform |
 | [🤝 Contributing](./CONTRIBUTING.md) | Wie du beitragen kannst |
 | [⚖️ Code of Conduct](./CODE_OF_CONDUCT.md) | Community-Regeln |
-| [🔐 Security Policy](./docs/SECURITY.md) | Sicherheitslücken melden |
+| [🔐 Security Policy](./SECURITY.md) | Sicherheitslücken melden |
 | [🗺️ Roadmap](./ROADMAP.md) | Geplante Versionen und Meilensteine |
 
 ---
@@ -219,6 +219,8 @@ Controlled Runtime
 
 > **Wichtig:** Plugins können Fähigkeiten anfordern, aber keine Fähigkeiten gewähren, erweitern oder
 > Sicherheitsgrenzen verändern. Der Core enthält keine Plugin-ID-Sonderfälle.
+> Für den aktuellen Stand der Capabilities und der Plugin-HTTP-Umgebung siehe
+> [Capability System](./docs/plugin-sdk/13-Capabilities.md).
 
 ### Plugin-Komponenten
 
@@ -306,7 +308,8 @@ Der Unified Player bündelt alle Wiedergabequellen hinter einer einheitlichen AP
 ```
 
 Im Renderer wird der State über `useUnifiedPlayer` / `playerAPI` konsumiert; die PlayerBar zeigt
-Titel, Artist, Artwork und Source an.
+Sender, interpret und Titel an. Technische Provider-Felder werden nicht als sichtbarer Musik-Inhalt
+verwendet.
 
 ---
 

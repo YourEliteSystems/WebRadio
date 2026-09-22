@@ -45,24 +45,28 @@ The context should be stored if it is needed later.
 
 ---
 
-# What the Context Provides
+# What the Context Provides (1.0.7-alpha.1)
 
-Depending on the SDK version, the context may provide access to:
+In WebRadio 1.0.7-alpha.1, the public plugin context provides:
 
 ```text id="te3k6w"
 Context
 
-├── Storage
-├── Events
-├── Hooks
-├── Logger
-├── Settings
-├── UI
-├── Notifications
-└── Utilities
+├── plugin
+├── version
+├── logger
+├── events
+├── storage
+├── settings
+├── ui
+├── navigation
+├── httpOrigin
+└── player
 ```
 
 Additional APIs may be introduced in future WebRadio releases.
+
+In this release there is **no** `context.hooks`, `context.commands`, `context.notifications` and `context.windows` as public plugin APIs.
 
 ---
 
@@ -70,13 +74,18 @@ Additional APIs may be introduced in future WebRadio releases.
 
 Provides access to plugin-specific persistent data.
 
+In WebRadio 1.0.7-alpha.1, the plugin-facing Storage API is synchronous and operates on a plugin's isolated storage file.
+
 Example:
 
 ```javascript id="c5t9zf"
-await context.storage.set("volume", 75);
+if (!context.storage.exists()) {
 
-const value =
-    await context.storage.get("volume");
+    context.storage.set("volume", 75);
+
+}
+
+const value = context.storage.get("volume");
 ```
 
 Each plugin has its own isolated storage area.
@@ -94,7 +103,7 @@ context.events.on(
     "stationChanged",
     station => {
 
-        console.log(station.name);
+        context.logger.info(station.name);
 
     }
 );
@@ -106,18 +115,9 @@ Events allow plugins to react to application activity.
 
 # Hooks
 
-Hooks allow plugins to extend or modify application behavior.
+Hooks are **not** part of the current plugin-facing context in WebRadio 1.0.7-alpha.1.
 
-Example:
-
-```javascript id="g7y2xr"
-context.hooks.register(
-    "beforePlayback",
-    callback
-);
-```
-
-Unlike events, hooks can actively participate in application workflows.
+Plugins should not rely on `context.hooks` in this release.
 
 ---
 
@@ -139,53 +139,36 @@ Using the shared logger ensures consistent diagnostics and log formatting.
 
 # Settings
 
-Plugins may expose configurable settings through the Settings API.
+Plugins can read and write selected global settings through `context.settings`.
+
+In WebRadio 1.0.7-alpha.1, the plugin-facing Settings API is synchronous.
 
 Example:
 
 ```javascript id="n9r4lu"
-const enabled =
-    await context.settings.get(
-        "enabled"
-    );
+const enabled = context.settings.get("enabled");
 ```
 
 Settings are managed independently from plugin storage.
 
 ---
 
-# UI
+# Navigation and UI
 
-Plugins may contribute user interface elements.
+Plugins may contribute user interface elements through:
 
-Examples include:
+* navigation (sidebar sections and items)
+* UI registration
 
-* Sidebar pages
-* Settings pages
-* Toolbar buttons
-* Dialogs
-
-UI integration is covered in a dedicated chapter.
+These are the current public UI integration points for plugins.
 
 ---
 
 # Notifications
 
-Plugins may display notifications to the user.
+Notifications are **not** part of the current plugin-facing context in WebRadio 1.0.7-alpha.1.
 
-Example:
-
-```javascript id="h8w3ye"
-context.notifications.show({
-
-    title: "Plugin",
-
-    message: "Operation completed."
-
-});
-```
-
-Notification behavior depends on the operating system and future SDK capabilities.
+Even though `notifications` may appear in the current permission set, there is no public `context.notifications` API to use in this release.
 
 ---
 
@@ -199,7 +182,7 @@ Notification behavior depends on the operating system and future SDK capabilitie
 
 ✔ Keep plugins independent from implementation details.
 
-✔ Expect new context features in future SDK versions.
+✔ Do not assume future context features already exist.
 
 ---
 

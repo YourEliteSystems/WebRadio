@@ -1,269 +1,52 @@
-# Notifications
+# Notifications Status
 
-The `Notifications` service provides a unified way for plugins to display notifications to the user.
+In WebRadio 1.0.7-alpha.1, the plugin-facing Notifications service is **not** part of the current public Plugin API surface.
 
-Notifications are intended to communicate important information, warnings, errors and successful operations without interrupting the user workflow.
+Although `notifications` is listed as a valid plugin permission in the current permission set, there is no public `context.notifications` API exposed to plugins in this release.
 
-Plugins should use the Notifications service instead of implementing their own notification system.
+That means:
 
----
-
-# Responsibilities
-
-The Notifications service is responsible for:
-
-* Displaying informational messages
-* Displaying success messages
-* Displaying warnings
-* Displaying errors
-* Providing a consistent notification experience
-* Managing notification lifetime
-
-Notifications should remain informative and unobtrusive.
+* a plugin may declare the permission
+* a plugin should not rely on a working `context.notifications` object
+* a plugin should not build UX around plugin-triggered notifications in this release
 
 ---
 
-# Accessing Notifications
+# Planned Concept
 
-The Notifications service is available through the `PluginContext`.
+A future SDK may introduce a notifications API for plugin-initiated user feedback.
 
-Example:
+Possible future concepts include:
 
-```javascript id="n4ph8x"
-const notifications = context.notifications;
-```
+* informational, success, warning and error notification types
+* concise, actionable messages
+* separate technical logging via the Logger
+* cleanup and deduplication behavior
 
-Plugins should never instantiate the Notifications service directly.
-
----
-
-# Notification Types
-
-The Notifications service supports multiple notification types.
-
-```text id="6e7mzq"
-Info
-
-Success
-
-Warning
-
-Error
-```
-
-Each type communicates a different level of importance.
+These are planned ideas, not implemented APIs.
 
 ---
 
-# Methods
+# Best Practices for Now
 
-## info()
+✔ Use only the currently documented plugin APIs.
 
-Displays an informational notification.
+✔ Do not assume plugin notifications exist.
 
-### Syntax
-
-```javascript id="8qy3vk"
-notifications.info(
-
-    "Station added successfully."
-
-);
-```
-
-Use informational notifications for normal application events.
-
----
-
-## success()
-
-Displays a success notification.
-
-### Syntax
-
-```javascript id="pr0k9v"
-notifications.success(
-
-    "Playlist imported."
-
-);
-```
-
-Success notifications confirm completed operations.
-
----
-
-## warn()
-
-Displays a warning notification.
-
-### Syntax
-
-```javascript id="i7mh2a"
-notifications.warn(
-
-    "Station metadata is incomplete."
-
-);
-```
-
-Warnings inform the user about recoverable situations.
-
----
-
-## error()
-
-Displays an error notification.
-
-### Syntax
-
-```javascript id="k2v7fy"
-notifications.error(
-
-    "Unable to connect to the radio station."
-
-);
-```
-
-Errors should describe what went wrong and, where possible, help the user understand the problem.
-
----
-
-# Notification Lifetime
-
-Notifications remain visible for a limited period.
-
-```text id="m5v4kz"
-Show Notification
-
-↓
-
-Visible
-
-↓
-
-Automatic Timeout
-
-↓
-
-Hidden
-```
-
-Critical notifications may require explicit dismissal depending on the implementation.
-
----
-
-# Notification Content
-
-Notifications should be:
-
-* Short
-* Clear
-* Actionable
-* Easy to understand
-
-Good example:
-
-```text id="b6nr4d"
-Station saved successfully.
-```
-
-Poor example:
-
-```text id="0cpvjr"
-Something happened.
-```
-
----
-
-# Error Notifications
-
-Error notifications should never expose sensitive information.
-
-Recommended:
-
-```javascript id="xy4bm1"
-notifications.error(
-
-    "Unable to save your settings."
-
-);
-```
-
-Avoid displaying stack traces or internal implementation details.
-
----
-
-# Best Practices
-
-✔ Keep messages concise.
-
-✔ Use the correct notification type.
-
-✔ Inform users only when necessary.
-
-✔ Write human-readable messages.
-
-✔ Avoid repeated notifications for the same event.
-
-✔ Log technical details separately using the Logger.
-
----
-
-# Common Mistakes
-
-Typical mistakes include:
-
-* Displaying excessive notifications.
-* Using error notifications for normal behaviour.
-* Showing technical exceptions to users.
-* Displaying duplicate notifications.
-* Writing vague messages.
-
-Notifications should improve the user experience rather than distract from it.
+✔ Watch the Plugin SDK and API Reference for future extension points.
 
 ---
 
 # Related APIs
 
-The Notifications service commonly works together with:
+The current plugin extension model works together with:
 
 * PluginContext
-* Logger
-* Commands
 * Events
-
-Notifications provide user feedback, while the Logger records technical information.
-
----
-
-# Example
-
-```javascript id="q8yd5m"
-try {
-
-    await savePlaylist();
-
-    context.notifications.success(
-
-        "Playlist saved successfully."
-
-    );
-
-}
-
-catch (error) {
-
-    context.logger.error(error);
-
-    context.notifications.error(
-
-        "Failed to save playlist."
-
-    );
-
-}
-```
+* Logger
+* Navigation
+* UI
+* Player
 
 ---
 
@@ -271,6 +54,7 @@ catch (error) {
 
 * PluginContext
 * Logger
-* Commands
-* Events
-* Application
+* Navigation
+* UI
+* Player
+* Capabilities & Plugin HTTP Environment

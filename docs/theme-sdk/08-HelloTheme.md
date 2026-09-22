@@ -50,7 +50,7 @@ This structure scales well for both small and large themes.
     "preview": "preview.png",
     "license": "MIT",
     "engines": {
-        "webradio": ">=1.1.0"
+        "webradio": ">=1.0.7-alpha.1"
     }
 }
 ```

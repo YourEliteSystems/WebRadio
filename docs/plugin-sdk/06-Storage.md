@@ -42,12 +42,14 @@ The storage instance is unique for every plugin.
 
 ---
 
-# Writing Data
+# Writing Data (current API)
+
+In WebRadio 1.0.7-alpha.1 the plugin-facing Storage API is synchronous.
 
 Use `set()` to store a value.
 
 ```javascript
-await context.storage.set(
+context.storage.set(
     "volume",
     75
 );
@@ -57,13 +59,13 @@ Values are automatically stored inside the plugin's private storage.
 
 ---
 
-# Reading Data
+# Reading Data (current API)
 
 Use `get()` to retrieve previously stored values.
 
 ```javascript
 const volume =
-    await context.storage.get(
+    context.storage.get(
         "volume"
     );
 ```
@@ -72,87 +74,41 @@ If the key exists, its value is returned.
 
 ---
 
-# Default Values
+# Existence Checks (current API)
 
-A default value may be provided when reading data.
+Plugins can determine whether the plugin storage file exists.
 
 ```javascript
-const volume =
-    await context.storage.get(
-        "volume",
-        50
-    );
-```
+if (!context.storage.exists()) {
 
-If the key does not exist, the default value is returned instead.
+    context.storage.set("initialized", true);
+
+}
+
+const exists = context.storage.has("volume");
+```
 
 ---
 
-# Removing Data
-
-Stored values can be removed individually.
-
-```javascript
-await context.storage.delete(
-    "volume"
-);
-```
-
-Removing a key permanently deletes its value.
-
----
-
-# Checking for Existing Values
-
-Plugins can determine whether a key already exists.
-
-```javascript
-const exists =
-    await context.storage.has(
-        "volume"
-    );
-```
-
-The method returns either:
-
-* `true`
-* `false`
-
----
-
-# Clearing Storage
-
-All stored plugin data can be removed.
-
-```javascript
-await context.storage.clear();
-```
-
-This deletes every value belonging to the current plugin.
-
-Other plugins remain unaffected.
-
----
-
-# Supported Data Types
+# Supported Data Types (current API)
 
 The Storage API supports common JavaScript data types.
 
 Examples include:
 
 ```javascript
-await context.storage.set("name", "WebRadio");
+context.storage.set("name", "WebRadio");
 
-await context.storage.set("volume", 80);
+context.storage.set("volume", 80);
 
-await context.storage.set("enabled", true);
+context.storage.set("enabled", true);
 
-await context.storage.set("favorites", [
+context.storage.set("favorites", [
     "Station A",
     "Station B"
 ]);
 
-await context.storage.set("settings", {
+context.storage.set("settings", {
 
     theme: "Dark",
 
@@ -165,7 +121,7 @@ Objects and arrays are serialized automatically.
 
 ---
 
-# Isolation
+# Isolation (current API)
 
 Every plugin has its own storage namespace.
 

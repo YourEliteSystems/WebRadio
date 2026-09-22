@@ -62,7 +62,7 @@ A more complete theme manifest may look like this:
         "blue"
     ],
     "engines": {
-        "webradio": ">=1.1.0"
+        "webradio": ">=1.0.7-alpha.1"
     }
 }
 ```
@@ -218,12 +218,14 @@ Example:
 ```json
 {
     "engines": {
-        "webradio": ">=1.1.0"
+        "webradio": ">=1.0.7-alpha.1"
     }
 }
 ```
 
 Future versions of WebRadio may use this information to prevent incompatible themes from loading.
+
+> **Hinweis:** In WebRadio 1.0.7-alpha.1 ist der `engines`-Wert ein Beispiel. Das Theme-System unterstützt aktuell Built-in- und User-Themes, Theme-Reload und Override-Verhalten.
 
 ---
 

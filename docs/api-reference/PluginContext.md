@@ -51,33 +51,37 @@ class HelloPlugin extends Plugin {
 
 ---
 
-# Available Services
+# Available Services (1.0.7-alpha.1)
 
-A PluginContext may expose the following services:
+In WebRadio 1.0.7-alpha.1, the PluginContext exposes a controlled subset of the public SDK.
+
+The current plugin-facing surface includes:
 
 ```text
+context.plugin
+
+context.version
+
 context.logger
+
+context.events
 
 context.storage
 
 context.settings
 
-context.events
+context.navigation
 
-context.hooks
+context.ui
 
-context.commands
+context.httpOrigin
 
-context.notifications
-
-context.windows
-
-context.theme
-
-context.application
+context.player
 ```
 
 Additional services may be introduced in future SDK versions.
+
+For the exact shape of the current API, plugins should rely on the Plugin API documentation rather than assuming future services.
 
 ---
 
@@ -155,111 +159,43 @@ Plugins should unregister listeners during shutdown.
 
 ---
 
-# Hooks
+# Navigation Extension API
 
-Allows plugins to extend application behaviour.
+Plugins with the appropriate permission can register sidebar sections and items through `context.navigation`.
 
-Example:
-
-```javascript
-context.hooks.register(
-
-    "player.beforePlay",
-
-    callback
-
-);
-```
-
-Hooks enable safe extensibility without modifying core code.
+This is the current public navigation integration point for plugins.
 
 ---
 
-# Commands
+# UI Registration
 
-Registers custom commands.
+Plugins can register UI elements through `context.ui`.
 
-Example:
-
-```javascript
-context.commands.register({
-
-    id: "hello",
-
-    execute() {
-
-        console.log("Hello");
-
-    }
-
-});
-```
-
-Commands can later be used by menus, shortcuts or plugins.
+This is the current public UI registration point for plugins.
 
 ---
 
-# Notifications
+# HTTP Origin API
 
-Displays notifications to the user.
+Plugins with the appropriate capability can access plugin HTTP-origin helpers through `context.httpOrigin`.
 
-Example:
-
-```javascript
-context.notifications.info(
-
-    "Station added."
-
-);
-```
-
-Notifications should provide meaningful feedback.
+This is the current public plugin HTTP-origin surface.
 
 ---
 
-# Windows
+# Player API
 
-Provides access to plugin windows.
+Plugins with the appropriate permission can access the Unified Player API through `context.player`.
 
-Example:
-
-```javascript
-context.windows.create({
-
-    title: "Plugin Settings"
-
-});
-```
-
-Future SDK versions may provide additional window management features.
+This includes provider registration, state subscription and related control methods.
 
 ---
 
-# Theme
+# Theme and Application Information
 
-Allows interaction with the Theme SDK.
+Direct theme editing and full application introspection are not exposed as general plugin services in this release.
 
-Possible use cases include:
-
-* Reading active theme
-* Reacting to theme changes
-* Requesting theme information
-
-Plugins should never modify themes directly.
-
----
-
-# Application
-
-Provides basic application information.
-
-Examples include:
-
-* Version
-* Platform
-* Development mode
-
-Application internals remain inaccessible.
+Plugins should use only the documented context surface and avoid relying on internal application objects.
 
 ---
 
@@ -285,6 +221,7 @@ Typical mistakes include:
 * Modifying core objects.
 * Forgetting to unregister listeners.
 * Storing global state.
+* Assuming future services already exist.
 * Bypassing the PluginContext.
 
 Using only the PluginContext keeps plugins compatible with future releases.
@@ -295,27 +232,25 @@ Using only the PluginContext keeps plugins compatible with future releases.
 
 The PluginContext commonly interacts with:
 
-* Plugin
-* Application
-* Storage
-* Logger
-* Events
-* Hooks
-* Commands
-* Notifications
-* ThemeManager
-
----
-
-# See Also
-
-* Plugin
 * PluginManager
 * Application
 * Storage
 * Logger
 * Events
-* Hooks
-* Commands
-* Notifications
-* ThemeManager
+* Navigation
+* UI
+* Player
+
+---
+
+# See Also
+
+* PluginManager
+* Application
+* Storage
+* Logger
+* Events
+* Navigation
+* UI
+* Player
+* Capabilities & Plugin HTTP Environment

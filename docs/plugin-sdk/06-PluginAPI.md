@@ -33,19 +33,25 @@ module.exports = {
 
 ---
 
-# API-Struktur
+# API-Struktur (1.0.7-alpha.1)
 
 ```javascript
 context = {
-  plugin: {...},        // Plugin-Metadaten
-  version: {...},       // Versionsinformationen
-  logger: (context),    // Logger-Funktion
-  events: {...},        // EventBus-Wrapper
-  storage: {...},       // Plugin-spezifischer Speicher
-  settings: {...},      // Globale Settings-Zugriff
-  ui: {...}            // UI-Registrierung
+  plugin: {...},                  // Plugin-Metadaten
+  version: {...},                 // Versionsinformationen
+  logger: (context),              // Logger-Funktion
+  events: {...},                  // EventBus-Wrapper
+  storage: {...},                 // Plugin-spezifischer Speicher
+  settings: {...},                // Globale Settings-Zugriff
+  ui: {...},                      // UI-Registrierung
+  navigation: {...},              // Navigation Extension API
+  httpOrigin: {...},              // Plugin-HTTP-Ursprung (Capability-abhängig)
+  player: {...}                   // Unified Player API (Berechtigung abhängig)
 }
 ```
+
+In dieser Version gibt es **keine** `context.hooks`, `context.commands`, `context.notifications` und `context.windows` als öffentliche Plugin-API.
+
 
 ---
 
@@ -128,7 +134,7 @@ Emittiert ein Event.
 context.events.emit("customEvent", { key: "value" });
 ```
 
-### Verfügbare Core-Events
+### Verfügbare Core-Events (aktuell)
 
 - `play`: Wiedergabe gestartet
 - `stop`: Wiedergabe gestoppt
@@ -136,6 +142,8 @@ context.events.emit("customEvent", { key: "value" });
 - `volumechange`: Lautstärke geändert
 - `themechange`: Theme geändert
 - `stationchange`: Sender gewechselt
+
+> **Hinweis:** Die Liste der verfügbaren Events kann sich zwischen Releases ändern. Plugins sollten sich nicht auf ein festes, nicht dokumentiertes Event-Menü verlassen.
 
 ### Best Practices
 
@@ -282,6 +290,8 @@ Löscht eine globale Einstellung.
 context.settings.delete("customKey");
 ```
 
+> **Hinweis:** In WebRadio 1.0.7-alpha.1 gibt es **keine** `settings.reset()`, `settings.resetAll()` und `settings.getDefaults()` als öffentliche Plugin-API.
+
 ### Best Practices
 
 ✔ Verwende Settings nur für globale Konfiguration
@@ -292,9 +302,9 @@ context.settings.delete("customKey");
 
 ---
 
-# UI
+# UI and Navigation
 
-Registrierung von UI-Elementen im WebRadio Interface.
+Plugins können über `context.ui` und `context.navigation` UI-Elemente und Sidebar-Einträge registrieren, sofern sie die erforderlichen Berechtigungen haben.
 
 ## ui.register(item)
 
@@ -321,7 +331,32 @@ Entfernt ein UI-Element.
 context.ui.unregister("my-plugin-view");
 ```
 
-### UI-Element-Typen
+## Navigation Extension API
+
+Plugins mit der Berechtigung `navigation` können über `context.navigation` Sidebar-Sektionen und -Items registrieren.
+
+```javascript
+context.navigation.registerSection({
+  id: "my-tools",
+  label: "Werkzeuge",
+  icon: "tools",
+  collapsible: true,
+  expanded: true,
+  order: 10,
+  visible: true
+});
+
+context.navigation.registerItem({
+  id: "my-converter",
+  parent: "my-tools",
+  label: "Konverter",
+  icon: "exchange",
+  route: "my-converter",
+  order: 1
+});
+```
+
+### UI-Element-Typen (aktuell)
 
 - `view`: Vollständige Seite
 - `sidebar-item`: Sidebar-Eintrag
@@ -329,7 +364,7 @@ context.ui.unregister("my-plugin-view");
 
 ### Best Practices
 
-✔ Entferne UI-Elemente im `destroy()` Hook
+✔ Entferne UI- und Navigationsregistrierungen sauber
 
 ✔ Verwende eindeutige IDs
 
@@ -345,15 +380,15 @@ Versionsinformationen für Kompatibilitätsprüfungen.
 
 ```javascript
 {
-  pluginAPI: "1.0.0",
-  application: "1.1.0"
+  pluginAPI: "1.1.0",
+  application: "1.0.7-alpha.1"
 }
 ```
 
 ### Beispiel: Kompatibilitätsprüfung
 
 ```javascript
-const requiredAPI = "1.0.0";
+const requiredAPI = "1.1.0";
 const currentAPI = context.version.pluginAPI;
 
 if (currentAPI !== requiredAPI) {
@@ -362,6 +397,9 @@ if (currentAPI !== requiredAPI) {
   );
 }
 ```
+
+> **Hinweis:** Die `application`-Angabe ist derzeit der Core-Build-Stand und kann sich zwischen Releases ändern. Plugins sollten sich bei Kompatibilitätsprüfungen primär auf `pluginAPI` stützen.
+
 
 ---
 
@@ -493,6 +531,14 @@ module.exports = {
 ### Deprecation-Warnungen
 
 Der PluginManager gibt Warnungen aus, wenn deprecated Importe erkannt werden.
+
+---
+
+# Migration Guide (1.0.7-alpha.1)
+
+Die Migration Guide-Beispiele zeigen die aktuelle Plugin-API-Oberfläche.
+
+Sie ersetzen keine reine Code-Referenz. Wenn sich die Plugin-API zwischen Releases ändert, gilt die aktuelle Dokumentation in der API Reference und im Plugin SDK.
 
 ---
 

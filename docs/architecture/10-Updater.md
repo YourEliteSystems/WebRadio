@@ -97,6 +97,8 @@ Supported providers:
 * **LinuxAppImageUpdateProvider** – prepared for AppImageUpdate, currently GitHub fallback.
 * **UnsupportedUpdateProvider** – used for deb, arch and other package types without automatic updates.
 
+> macOS automatic updates are not implemented in 1.0.7-alpha.1.
+
 ---
 
 # Update Process
@@ -110,6 +112,23 @@ A typical update workflow consists of:
 5. Determine update availability.
 6. Notify the user.
 7. Start update process when supported.
+
+---
+
+# Update Channels (1.0.7-alpha.1)
+
+WebRadio supports three update channels:
+
+* **alpha**
+* **beta**
+* **latest** (stable)
+
+Channel and severity are different concepts.
+
+* Channel controls which release stream is used (alpha / beta / latest).
+* Severity describes the importance of a specific update (for example normal / important / critical).
+
+The current channel is determined centrally, not per provider.
 
 ---
 
@@ -160,3 +179,4 @@ Future versions may support:
 * Diagnostics
 * Runtime Detection
 * Provider Architecture
+* Update Architecture

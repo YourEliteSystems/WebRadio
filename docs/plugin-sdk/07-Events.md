@@ -14,11 +14,9 @@ Many actions occur while WebRadio is running.
 
 Examples include:
 
-* A new station starts playing.
-* Playback is paused.
-* The volume changes.
+* A station starts playing.
 * A theme is applied.
-* A plugin is enabled.
+* A plugin is enabled or disabled.
 * The application starts.
 
 Rather than polling for these changes, plugins simply listen for events.
@@ -30,7 +28,18 @@ Rather than polling for these changes, plugins simply listen for events.
 The Event API is available through the Plugin Context.
 
 ```javascript
-const events = context.events;
+init(context) {
+
+    context.events.on(
+        "stationChanged",
+        station => {
+
+            context.logger.info(station.name);
+
+        }
+    );
+
+}
 ```
 
 ---
@@ -44,9 +53,7 @@ context.events.on(
     "stationChanged",
     station => {
 
-        console.log(
-            station.name
-        );
+        context.logger.info(station.name);
 
     }
 );
@@ -58,12 +65,12 @@ Whenever the active station changes, the callback is executed automatically.
 
 # Removing an Event
 
-Event listeners should always be removed when the plugin is disabled.
+Event listeners should always be removed when the plugin is deactivated.
 
 ```javascript
 context.events.off(
     "stationChanged",
-    callback
+    handler
 );
 ```
 
@@ -99,68 +106,33 @@ Multiple plugins may receive the same event.
 
 ---
 
-# Example Events
+# Example Events (1.0.7-alpha.1)
 
-The following events may be available depending on the WebRadio version.
-
-## Application
-
-```text
-applicationStarted
-applicationReady
-applicationClosing
-```
-
----
+The following event names are used by the current application and plugin-facing event channel.
 
 ## Playback
 
 ```text
-playbackStarted
-playbackPaused
-playbackStopped
-playbackResumed
-```
+play
 
----
+stop
+
+metadata
+```
 
 ## Station
 
 ```text
 stationChanged
-stationAdded
-stationRemoved
-stationFavorite
 ```
 
----
-
-## Volume
+## Theme
 
 ```text
-volumeChanged
-muteChanged
-```
-
----
-
-## Themes
-
-```text
-themeLoaded
 themeChanged
 ```
 
----
-
-## Plugins
-
-```text
-pluginEnabled
-pluginDisabled
-```
-
-Future releases may introduce additional events.
+> **Hinweis:** Die verfügbaren Events können sich zwischen Releases ändern. Plugins sollten sich nicht auf ein festes Event-Menü verlassen, das nicht dokumentiert ist.
 
 ---
 
@@ -172,12 +144,10 @@ Example:
 
 ```javascript
 context.events.on(
-    "volumeChanged",
-    volume => {
+    "metadata",
+    metadata => {
 
-        console.log(
-            volume
-        );
+        context.logger.info(metadata.title);
 
     }
 );
@@ -233,11 +203,11 @@ Registering an event should require minimal code.
 
 ---
 
-# Best Practices
+# Best Practices (1.0.7-alpha.1)
 
-✔ Register listeners during `onEnable()`.
+✔ Register listeners during `init()`.
 
-✔ Remove listeners during `onDisable()`.
+✔ Remove listeners during `destroy()`.
 
 ✔ Keep callbacks lightweight.
 
@@ -276,4 +246,4 @@ The API is designed to evolve while remaining backwards compatible whenever poss
 
 # Next Step
 
-Continue with **Hooks** to learn how plugins can extend or modify WebRadio's behavior before or after specific application actions.
+Continue with **Hooks** to learn why hooks are currently planned but not yet available.

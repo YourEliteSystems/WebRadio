@@ -1,31 +1,25 @@
-# Plugin
+# Plugin Surface
 
-The `Plugin` class is the foundation of every WebRadio plugin.
+In WebRadio 1.0.7-alpha.1, the plugin-facing surface is the object exported by a plugin entry point and the `context` passed to it.
 
-Every plugin should extend this class to integrate with the WebRadio Plugin SDK.
-
-The Plugin API provides lifecycle methods that allow WebRadio to load, start, stop and unload plugins safely.
+Plugins should integrate through the public Plugin API rather than by extending a prescribed plugin class.
 
 ---
 
 # Responsibilities
 
-The Plugin class represents a single plugin instance.
+A plugin is responsible for:
 
-Its responsibilities include:
-
-* Plugin initialization
-* Startup logic
-* Shutdown logic
-* Resource cleanup
-* Access to the PluginContext
-* Responding to lifecycle events
+* initializing its own runtime behavior
+* registering the resources it wants to expose
+* cleaning up listeners and registrations during shutdown
+* using only the public Plugin API
 
 Plugins should focus only on their own functionality.
 
 ---
 
-# Lifecycle
+# Lifecycle Overview
 
 A plugin follows a predictable lifecycle.
 
@@ -61,23 +55,13 @@ Every plugin passes through these stages.
 
 ---
 
-# Constructor
+# Plugin Entry Point
 
-## Syntax
+The plugin entry point is the main file referenced by the manifest.
 
-```javascript id="f4wp8s"
-class MyPlugin extends Plugin {
+The exact export shape used by the current runtime is documented in the Plugin SDK and Plugin API reference.
 
-    constructor(context) {
-
-        super(context);
-
-    }
-
-}
-```
-
-The constructor receives a `PluginContext` instance.
+Plugins should not assume a fixed class hierarchy.
 
 ---
 
@@ -85,12 +69,12 @@ The constructor receives a `PluginContext` instance.
 
 ## context
 
-Provides access to all public WebRadio services.
+Provides access to the public WebRadio services available to the plugin.
 
 Example:
 
 ```javascript id="u6h4pj"
-this.context
+context
 ```
 
 Available services are documented in **PluginContext.md**.
@@ -104,138 +88,16 @@ Returns the plugin manifest information.
 Example:
 
 ```javascript id="p8v2ts"
-this.manifest.name
+manifest.name
 
-this.manifest.version
+manifest.version
 
-this.manifest.author
+manifest.author
 ```
 
 The manifest is loaded before the plugin starts.
 
----
 
-# Lifecycle Methods
-
-## onLoad()
-
-Called immediately after the plugin has been loaded.
-
-### Syntax
-
-```javascript id="w9ec4m"
-async onLoad() {
-
-}
-```
-
-Use this method to prepare internal resources.
-
----
-
-## onEnable()
-
-Called when the plugin becomes active.
-
-### Syntax
-
-```javascript id="m3yk7r"
-async onEnable() {
-
-}
-```
-
-Typical tasks include:
-
-* Register commands
-* Register events
-* Create windows
-* Initialize services
-
----
-
-## onDisable()
-
-Called before the plugin is disabled.
-
-### Syntax
-
-```javascript id="e5ph2j"
-async onDisable() {
-
-}
-```
-
-Use this method to:
-
-* Remove listeners
-* Save data
-* Stop timers
-* Close resources
-
----
-
-## onUnload()
-
-Called before the plugin is unloaded from memory.
-
-### Syntax
-
-```javascript id="k2rb6q"
-async onUnload() {
-
-}
-```
-
-Perform final cleanup operations here.
-
----
-
-# Example
-
-```javascript id="x7qm1d"
-class HelloPlugin extends Plugin {
-
-    async onEnable() {
-
-        this.context.logger.info(
-
-            "Hello Plugin started."
-
-        );
-
-    }
-
-}
-```
-
----
-
-# Plugin Lifecycle Example
-
-```text id="c5j0ah"
-Load Plugin
-
-↓
-
-onLoad()
-
-↓
-
-onEnable()
-
-↓
-
-Plugin Running
-
-↓
-
-onDisable()
-
-↓
-
-onUnload()
-```
 
 ---
 

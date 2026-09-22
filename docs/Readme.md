@@ -4,7 +4,7 @@
 
 WebRadio is designed to provide a fast, lightweight and customizable listening experience while offering a powerful plugin and theme ecosystem for developers and the community.
 
-> **Current Status:** Active Development (v1.0.5)
+> **Current Status:** Active Development (v1.0.7-alpha.1)
 
 ---
 

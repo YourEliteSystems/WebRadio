@@ -120,10 +120,12 @@ If loading fails, the plugin is marked as failed and the error is reported throu
 
 # Initialization
 
-After the plugin has been loaded successfully, WebRadio calls:
+After the plugin has been loaded successfully, WebRadio calls the entry-point initialization that the plugin exported.
+
+In WebRadio 1.0.7-alpha.1, the current runtime convention is:
 
 ```javascript
-async onEnable(context)
+init(context)
 ```
 
 This is where the plugin should:
@@ -157,10 +159,12 @@ This is the normal operating state.
 
 # Shutdown
 
-When WebRadio exits or the plugin is disabled, the PluginRuntime calls:
+When WebRadio exits or the plugin is disabled, the PluginRuntime calls the cleanup function that the plugin exported.
+
+In WebRadio 1.0.7-alpha.1, the current runtime convention is:
 
 ```javascript
-async onDisable()
+destroy()
 ```
 
 Plugins should use this method to:
@@ -183,7 +187,7 @@ A plugin should never continue executing after it has been unloaded.
 
 ---
 
-# Lifecycle Diagram
+# Lifecycle Diagram (1.0.7-alpha.1)
 
 ```text
 Discovery
@@ -198,19 +202,21 @@ Registration
 Loading
      │
      ▼
-onEnable()
+init()
      │
      ▼
 Running
      │
      ▼
-onDisable()
+destroy()
      │
      ▼
 Unload
 ```
 
 Every plugin follows this exact sequence.
+
+> **Hinweis:** Die Methoden `init()` und `destroy()` sind die aktuelle Konvention in WebRadio 1.0.7-alpha.1.
 
 ---
 
@@ -260,9 +266,9 @@ Each lifecycle stage has a clearly defined purpose.
 
 # Best Practices
 
-✔ Keep `onEnable()` fast.
+✔ Keep `init()` fast.
 
-✔ Clean up everything in `onDisable()`.
+✔ Clean up everything in `destroy()`.
 
 ✔ Handle exceptions gracefully.
 

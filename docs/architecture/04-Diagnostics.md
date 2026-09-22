@@ -104,87 +104,41 @@ Health checks can help identify configuration problems before they cause failure
 
 ---
 
-# Startup Lifecycle
+# Current Diagnostics Components (1.0.7-alpha.1)
 
-Diagnostics is initialized early during application startup.
+The Diagnostics subsystem provides:
 
-```text
-Application.start()
+* centralized logging through `LogManager`
+* crash handling through `CrashHandler`
+* structured crash reporting through `CrashReportManager`
+* bootup diagnostics through `BootupDiagnostics`
+* crash dump writing with sensitive-data sanitization through `CrashDumpWriter`
+* a diagnostics store and manager interface through `DiagnosticsStore` / `DiagnosticsManager`
+* optional memory profiling through `MemoryProfiler`
 
-↓
-
-StorageManager
-
-↓
-
-Diagnostics
-
-↓
-
-WindowManager
-
-↓
-
-Remaining Systems
-```
-
-Initializing diagnostics early ensures that startup problems can be recorded.
+Some profiler components, such as CPU and process profiling, are prepared but disabled in this release.
 
 ---
 
-# Why a Dedicated Diagnostics System?
+# Bootup Diagnostics
 
-Many applications simply write messages directly to the console.
+Bootup diagnostics measure and expose startup behavior.
 
-While this may be sufficient during early development, it becomes difficult to manage as the project grows.
+This includes:
 
-A dedicated Diagnostics subsystem provides:
+* startup timing
+* boot state exposure
+* bootup hook markers for initialization stages
 
-* Centralized logging
-* Consistent error handling
-* Structured crash reporting
-* Improved troubleshooting
-* Better maintainability
+Bootup diagnostics are implemented and used by the current application. They are not only a future UI feature.
 
 ---
 
-# Design Principles
+# Crash Dump Sanitization
 
-## Centralization
+Crash dumps are written with security cleanup of sensitive data where applicable.
 
-All logging and diagnostic information should flow through the Diagnostics subsystem.
-
----
-
-## Reliability
-
-Diagnostics should continue operating even when other systems encounter problems.
-
----
-
-## Low Impact
-
-Diagnostic operations should have minimal impact on application performance.
-
----
-
-## Extensibility
-
-New diagnostic providers can be added without changing existing components.
-
----
-
-# Best Practices
-
-✔ Use LogManager instead of direct console output.
-
-✔ Log important lifecycle events.
-
-✔ Capture unhandled errors whenever possible.
-
-✔ Generate structured crash reports.
-
-✔ Keep diagnostic information useful but concise.
+This is intentional and implemented, not aspirational.
 
 ---
 
@@ -192,12 +146,13 @@ New diagnostic providers can be added without changing existing components.
 
 Potential future enhancements include:
 
-* Remote crash reporting
-* Performance metrics
-* Startup timing analysis
-* Plugin diagnostics
-* Theme diagnostics
-* Telemetry integration
+* remote crash reporting UI
+* startup timing analysis in a splash/settings UI
+* plugin diagnostics
+* theme diagnostics
+* additional profiling surfaces
+
+These are future or planned uses. They are not fully implemented in 1.0.7-alpha.1.
 
 ---
 
@@ -209,3 +164,4 @@ Potential future enhancements include:
 * PluginManager
 * ThemeManager
 * IPC
+* Update Architecture

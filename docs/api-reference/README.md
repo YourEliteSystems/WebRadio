@@ -63,87 +63,19 @@ Events
 
 ↓
 
-Hooks
-
-↓
-
 Settings
 
 ↓
 
-Commands
-
-↓
-
-Windows
-
-↓
-
-Menus
-
-↓
-
-Notifications
-
-↓
-
-Utilities
-```
-
-Each category is documented separately.
-
----
-
-# API Categories
-
-The WebRadio SDK is organized into several categories.
-
-```text
-Application
-
-↓
-
-Plugin System
-
-↓
-
-Theme System
-
-↓
-
-Storage
-
-↓
-
-Events
-
-↓
-
-Hooks
-
-↓
-
-Settings
-
-↓
-
-Commands
-
-↓
-
-Windows
-
-↓
-
-Menus
-
-↓
-
-Notifications
+Navigation
 
 ↓
 
 Audio & Radio Services
+
+↓
+
+Player (Unified Player)
 
 ↓
 
@@ -178,6 +110,52 @@ Each category is documented separately.
 
 * [RuntimeDetector](./RuntimeDetector.md)
 * [UpdateManager](./UpdateManager.md)
+
+---
+
+# Player API
+
+* [UnifiedPlayer](./UnifiedPlayer.md)
+
+---
+
+# Plugin HTTP Origin API
+
+* [PluginHttpOrigin](./PluginHttpOrigin.md)
+
+---
+
+# Plugin Extension Points (current)
+
+* [Events](./Events.md)
+* [Storage](./Storage.md)
+* [Settings](./Settings.md)
+* [Navigation](./Navigation.md)
+* [UI](./UI.md)
+
+> In WebRadio 1.0.7-alpha.1, some API reference pages describe future-facing plugin services that are not yet implemented. Those pages now document their current "not yet implemented" status.
+
+---
+
+# Plugin Extension Points (planned, not yet implemented)
+
+* [Hooks](./Hooks.md)
+* [Commands](./Commands.md)
+* [Menus](./Menus.md)
+* [Notifications](./Notifications.md)
+* [Windows](./Windows.md)
+
+---
+
+# Notes on API Reference Scope
+
+Some API reference pages describe future-facing plugin services that are not yet implemented.
+
+For the current plugin-facing surface, see:
+
+* Plugin SDK
+* Capabilities & Plugin HTTP Environment
+* Plugin API documentation in the SDK
 
 ---
 

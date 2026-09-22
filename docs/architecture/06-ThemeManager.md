@@ -35,12 +35,12 @@ ThemeManager
 
 ├── ThemeLoader
 ├── ThemeValidator
-├── ThemeRegistry
-└── ThemeRuntime
+└── ThemeRegistry
 ```
 
 Each component performs a specific task during the theme lifecycle.
 
+> **Hinweis:** `ThemeRuntime` ist in WebRadio 1.0.7-alpha.1 nicht mehr Teil des Theme-Systems. CSS-basierte Themes werden über Theme-Management und Renderer-Anwendung geladen, ohne eine separate Runtime-Komponente.
 ---
 
 # Theme Lifecycle
@@ -175,7 +175,7 @@ New theme features should be implemented without changing the loading process.
 
 ## Separation of Responsibilities
 
-Theme discovery, validation, registration and runtime behavior are handled by separate components.
+Theme discovery, validation, registration and application behavior are handled by separate components.
 
 ---
 
@@ -203,4 +203,4 @@ Theme discovery, validation, registration and runtime behavior are handled by se
 * PluginManager
 * Theme SDK
 * Theme Manifest
-* Theme Runtime
+* Theme Loader / Theme Validator / Theme Registry

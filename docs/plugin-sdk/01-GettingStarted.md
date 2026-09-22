@@ -86,13 +86,13 @@ A minimal plugin looks like this:
 ```javascript
 module.exports = {
 
-    async onEnable(context) {
+    init(context) {
 
         console.log("Hello from WebRadio!");
 
     },
 
-    async onDisable() {
+    destroy() {
 
         console.log("Goodbye!");
 
@@ -101,9 +101,11 @@ module.exports = {
 };
 ```
 
-When the plugin is enabled, WebRadio calls `onEnable()`.
+In WebRadio 1.0.7-alpha.1 legt der Plugin-Runtime die aktuelle Konvention `init(context)` und `destroy()` zugrunde.
 
-When the plugin is disabled or the application closes, `onDisable()` is called.
+When the plugin is enabled, WebRadio calls `init()`.
+
+When the plugin is disabled or the application closes, `destroy()` is called.
 
 ---
 

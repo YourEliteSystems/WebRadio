@@ -48,72 +48,19 @@ Plugins may inspect, modify or extend the operation before it continues.
 
 ---
 
-# Accessing Hooks
+# Hooks Status (1.0.7-alpha.1)
 
-The Hook API is available through the Plugin Context.
+In WebRadio 1.0.7-alpha.1, the Hook API is **not** part of the current public plugin context.
 
-```javascript
-const hooks = context.hooks;
-```
+Plugins should not use `context.hooks` in this release.
 
 ---
 
-# Registering a Hook
+# Planned Concept
 
-Plugins register hooks during initialization.
+A future SDK may introduce hooks as extension points that allow plugins to participate in application workflows.
 
-Example:
-
-```javascript
-context.hooks.register(
-    "beforePlayback",
-    async station => {
-
-        return station;
-
-    }
-);
-```
-
-The callback becomes part of the playback pipeline.
-
----
-
-# Hook Flow
-
-Every hook follows the same execution model.
-
-```text
-Application
-
-↓
-
-Hook Point
-
-↓
-
-Plugin A
-
-↓
-
-Plugin B
-
-↓
-
-Plugin C
-
-↓
-
-Continue Execution
-```
-
-Each registered hook is executed in sequence.
-
----
-
-# Typical Hook Points
-
-Future versions of WebRadio may expose hooks such as:
+Planned examples include:
 
 ## Playback
 
@@ -133,8 +80,6 @@ afterStop
 ```text
 beforeStationChange
 afterStationChange
-beforeFavoriteAdded
-afterFavoriteAdded
 ```
 
 ---
@@ -166,160 +111,18 @@ beforeShutdown
 afterStartup
 ```
 
----
 
-# Modifying Data
-
-Some hooks may allow plugins to modify values.
-
-Example:
-
-```javascript
-context.hooks.register(
-    "beforePlayback",
-    async station => {
-
-        station.customData = true;
-
-        return station;
-
-    }
-);
-```
-
-The modified object is then passed to the next hook.
+These are illustrative names, not committed APIs.
 
 ---
 
-# Cancelling Operations
+# Best Practices for Now
 
-Some hook types may support cancelling an operation.
+✔ Use only the currently documented plugin APIs.
 
-Example:
+✔ Do not assume hook callbacks exist.
 
-```javascript
-context.hooks.register(
-    "beforePlayback",
-    async station => {
-
-        if (!station.online) {
-
-            return false;
-
-        }
-
-        return true;
-
-    }
-);
-```
-
-Whether cancellation is supported depends on the individual hook.
-
----
-
-# Execution Order
-
-Hooks are executed in registration order.
-
-```text
-Plugin A
-
-↓
-
-Plugin B
-
-↓
-
-Plugin C
-```
-
-Each hook receives the output from the previous hook when applicable.
-
----
-
-# Error Handling
-
-If a hook throws an exception:
-
-* the error is reported,
-* the responsible plugin is identified,
-* the remaining application continues whenever possible.
-
-A faulty hook should never crash WebRadio.
-
----
-
-# Design Principles
-
-## Extensibility
-
-Hooks make it possible to extend existing workflows without modifying the core application.
-
----
-
-## Predictability
-
-Hooks execute in a well-defined order.
-
----
-
-## Isolation
-
-Each plugin executes independently.
-
----
-
-## Stability
-
-Errors inside hooks should remain isolated from the application.
-
----
-
-# Best Practices
-
-✔ Register hooks during `onEnable()`.
-
-✔ Remove hooks during `onDisable()` if required by the API.
-
-✔ Keep hook callbacks fast.
-
-✔ Avoid long-running operations.
-
-✔ Always return valid values when modifying data.
-
-✔ Handle exceptions gracefully.
-
----
-
-# Common Mistakes
-
-Common problems include:
-
-* Forgetting to return modified objects.
-* Performing blocking operations.
-* Registering duplicate hooks.
-* Assuming execution order between unrelated plugins.
-* Throwing uncaught exceptions.
-
-Proper hook implementation keeps application behavior predictable.
-
----
-
-# Future Improvements
-
-The Hook API is designed to evolve.
-
-Future versions may introduce:
-
-* Hook priorities
-* Conditional hooks
-* Asynchronous hook chains
-* Namespaced hooks
-* Hook groups
-* Middleware pipelines
-
-These additions will remain compatible with existing plugins whenever possible.
+✔ Watch the Plugin SDK and API Reference for future extension points.
 
 ---
 

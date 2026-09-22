@@ -70,33 +70,17 @@ The ThemeManager coordinates each stage.
 
 ---
 
-# Constructor
+# ThemeManager Access (1.0.7-alpha.1)
 
-The ThemeManager is created internally by WebRadio.
+The ThemeManager is managed internally by WebRadio.
 
-Applications and plugins should never instantiate a ThemeManager directly.
-
-Example:
-
-```javascript id="w6tfxh"
-const themeManager = new ThemeManager();
-```
-
-Normally, themes are managed automatically during application startup.
+Plugins and application code should not instantiate a ThemeManager directly.
 
 ---
 
-# Methods
+# Theme Discovery (current)
 
-## discoverThemes()
-
-Searches the configured theme directory for available themes.
-
-### Syntax
-
-```javascript id="krnyd7"
-const themes = await themeManager.discoverThemes();
-```
+Theme discovery scans configured theme directories.
 
 ### Returns
 
@@ -108,127 +92,51 @@ Only valid theme manifests are returned.
 
 ---
 
-## loadThemes()
+# Theme Loading (current)
 
-Loads every discovered theme.
+Theme loading performs:
 
-### Syntax
-
-```javascript id="o3m79m"
-await themeManager.loadThemes();
-```
-
-This method performs:
-
-* Manifest loading
-* Validation
-* Theme registration
+* manifest loading
+* validation
+* theme registration
 
 Themes are available after successful loading.
 
 ---
 
-## applyTheme()
+# Theme Application (current)
 
-Activates a theme.
+Activating a theme changes the active theme.
 
-### Syntax
-
-```javascript id="b3gsb4"
-await themeManager.applyTheme(themeId);
-```
-
-Applying a theme automatically deactivates the currently active theme.
+Applying a theme typically deactivates the currently active theme.
 
 ---
 
-## getTheme()
+# Theme Status (current)
 
-Returns a theme by its unique identifier.
-
-### Syntax
-
-```javascript id="r2r4n9"
-const theme = themeManager.getTheme(themeId);
-```
-
-### Returns
-
-```javascript id="jghn5d"
-Theme | undefined
-```
+* `getTheme(themeId)` returns a theme or `undefined`
+* `getThemes()` returns every registered theme
+* `getActiveTheme()` returns the currently active theme or `null`
+* `hasTheme(themeId)` checks whether a theme exists
 
 ---
 
-## getThemes()
+# Theme Reload (current)
 
-Returns every registered theme.
+Theme reload is available for development and live preview use.
 
-### Syntax
+In WebRadio 1.0.7-alpha.1, theme management also supports:
 
-```javascript id="pypsq2"
-const themes = themeManager.getThemes();
-```
+* built-in themes
+* user themes
+* user-override behavior (user theme overrides a built-in theme with the same ID)
+* theme reload without restarting the application
 
-### Returns
-
-```javascript id="4m3jjq"
-Array<Theme>
-```
+> **Hinweis:** Ein `webradio.json` als separates zentrales Theme-Manifest existiert in dieser Version nicht als allgemeine Konfigurationsdatei für das Theme-System.
 
 ---
 
-## getActiveTheme()
-
-Returns the currently active theme.
-
-### Syntax
-
-```javascript id="m9b8mf"
-const activeTheme = themeManager.getActiveTheme();
-```
-
-### Returns
-
-```javascript id="mv3ncb"
-Theme | null
-```
-
----
-
-## hasTheme()
-
-Checks whether a theme exists.
-
-### Syntax
-
-```javascript id="z9v0yx"
-themeManager.hasTheme(themeId);
-```
-
-### Returns
-
-```javascript id="ub13j6"
-Boolean
-```
-
----
-
-## reloadTheme()
-
-Reloads a theme.
-
-### Syntax
-
-```javascript id="bx3kzu"
-await themeManager.reloadTheme(themeId);
-```
-
-Reloading is primarily intended for development and live preview functionality.
-
----
-
-# Theme States
+# Theme States (1.0.7-alpha.1)
 
 A theme may exist in one of the following states.
 
@@ -252,7 +160,7 @@ Only one theme can be active simultaneously.
 
 ---
 
-# Validation
+# Validation (1.0.7-alpha.1)
 
 Before registering a theme, the ThemeManager validates:
 
@@ -260,16 +168,15 @@ Before registering a theme, the ThemeManager validates:
 * Theme name
 * Manifest format
 * CSS entry file
-* Preview image
+* Preview image (where required)
 * Version
-* Asset paths
-* SDK compatibility
+* Manifest structure
 
 Invalid themes are skipped and reported through the logging system.
 
 ---
 
-# Error Handling
+# Error Handling (1.0.7-alpha.1)
 
 If a theme fails validation or loading:
 
@@ -281,7 +188,7 @@ A broken theme should never prevent WebRadio from starting.
 
 ---
 
-# Best Practices
+# Best Practices (1.0.7-alpha.1)
 
 ✔ Validate every theme before registration.
 
@@ -295,7 +202,7 @@ A broken theme should never prevent WebRadio from starting.
 
 ---
 
-# Common Mistakes
+# Common Mistakes (1.0.7-alpha.1)
 
 Typical implementation issues include:
 
@@ -310,39 +217,21 @@ The ThemeManager should always maintain a consistent visual state.
 
 ---
 
-# Related APIs
+# Related APIs (1.0.7-alpha.1)
 
 The ThemeManager works closely with:
 
-* Theme
-* ThemeLoader
-* ThemeValidator
-* Application
-* Storage
+* Theme SDK
+* Theme Manifest
+* Theme CSS Variables
+* Storage (for active theme persistence where applicable)
 * Logger
-
-Together these components form the WebRadio Theme System.
-
----
-
-# Example
-
-```javascript id="paxhjg"
-await themeManager.loadThemes();
-
-await themeManager.applyTheme("midnight");
-
-const activeTheme = themeManager.getActiveTheme();
-```
 
 ---
 
 # See Also
 
-* Theme
-* ThemeLoader
-* ThemeValidator
-* Application
-* Logger
-* Storage
 * Theme SDK
+* Theme Manifest
+* Theme CSS Variables
+* ThemeManager architecture

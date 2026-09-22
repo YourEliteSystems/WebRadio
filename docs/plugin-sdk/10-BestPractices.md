@@ -59,7 +59,7 @@ Internal APIs may change without notice.
 
 # Keep Startup Fast
 
-`onEnable()` should complete quickly.
+`init()` should complete quickly.
 
 Avoid:
 
@@ -73,7 +73,7 @@ If necessary, perform expensive work asynchronously after initialization.
 
 # Clean Up Resources
 
-Everything created during `onEnable()` should be cleaned up during `onDisable()`.
+Everything created during `init()` should be cleaned up during `destroy()`.
 
 Typical resources include:
 
@@ -82,6 +82,7 @@ Typical resources include:
 * Intervals
 * Network connections
 * File watchers
+* UI and navigation registrations
 
 Leaving resources active after shutdown may cause memory leaks.
 
@@ -147,10 +148,9 @@ Examples include:
 
 * Theme selection
 * Language
-* Notifications
 * Privacy options
 
-Whenever possible, integrate naturally with the user's existing configuration.
+In WebRadio 1.0.7-alpha.1 gibt es **keine** öffentliche `context.notifications`-API. Plugins sollten daher nicht auf plugin-gesendete Benachrichtigungen als Hauptfunktion aufbauen.
 
 ---
 

@@ -64,19 +64,26 @@ Multiple listeners may receive the same event.
 
 ---
 
-# Methods
+# Methods (1.0.7-alpha.1)
 
-## on()
+The current plugin-facing event API provides:
+
+* `on(event, callback)`
+* `once(event, callback)`
+* `off(event, callback)`
+* `emit(event, payload)`
+
+### on()
 
 Registers an event listener.
 
-### Syntax
+#### Syntax
 
 ```javascript id="d2q7mf"
 events.on(eventName, listener);
 ```
 
-### Parameters
+#### Parameters
 
 | Name      | Type     | Description       |
 | --------- | -------- | ----------------- |
@@ -85,11 +92,11 @@ events.on(eventName, listener);
 
 ---
 
-## once()
+### once()
 
 Registers a listener that executes only once.
 
-### Syntax
+#### Syntax
 
 ```javascript id="p6e9tk"
 events.once(eventName, listener);
@@ -99,11 +106,11 @@ The listener is automatically removed after its first execution.
 
 ---
 
-## off()
+### off()
 
 Removes an event listener.
 
-### Syntax
+#### Syntax
 
 ```javascript id="m8z4yr"
 events.off(eventName, listener);
@@ -113,37 +120,25 @@ Plugins should unregister listeners during shutdown.
 
 ---
 
-## emit()
+### emit()
 
 Emits an event.
 
-### Syntax
+#### Syntax
 
 ```javascript id="h7k3qw"
 events.emit(eventName, payload);
 ```
 
-### Parameters
+#### Parameters
 
 | Name      | Type   | Description      |
 | --------- | ------ | ---------------- |
 | eventName | String | Event identifier |
 | payload   | Any    | Event data       |
 
----
 
-## removeAllListeners()
-
-Removes every listener registered by the current plugin.
-
-### Syntax
-
-```javascript id="v3n5cp"
-events.removeAllListeners();
-```
-
-This is especially useful during plugin shutdown.
-
+> **Note:** In WebRadio 1.0.7-alpha.1, the plugin-facing event API does not include a `removeAllListeners()` method. Plugins should track and remove their own listeners during shutdown.
 ---
 
 # Event Names
@@ -270,10 +265,10 @@ Events should remain efficient and predictable.
 The Events service commonly works together with:
 
 * PluginContext
-* Hooks
 * Logger
-* Commands
-* Notifications
+* Storage
+* Navigation
+* UI
 
 ---
 
@@ -302,7 +297,8 @@ context.events.on(
 # See Also
 
 * PluginContext
-* Hooks
-* Commands
 * Logger
+* Storage
+* Navigation
+* UI
 * Application
