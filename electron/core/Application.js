@@ -31,6 +31,12 @@ const PluginManager = require("./plugins/PluginManager");
 const PluginPermissions = require("./plugins/PluginPermissions");
 
 // ─────────────────────────────────────────────
+// Packages
+// ─────────────────────────────────────────────
+
+const PackageManager = require("./packages/PackageManager");
+
+// ─────────────────────────────────────────────
 // Integrations
 // ─────────────────────────────────────────────
 
@@ -135,6 +141,10 @@ class Application {
         await this.initializeNavigation();
         BootupDiagnostics.markComplete("navigation-init");
 
+        BootupDiagnostics.markStart("packages-init");
+        await this.initializePackages();
+        BootupDiagnostics.markComplete("packages-init");
+
         BootupDiagnostics.markStart("plugins-init");
         await this.initializePlugins();
         BootupDiagnostics.markComplete("plugins-init");
@@ -206,6 +216,7 @@ class Application {
         await this.shutdownServices();
         await this.shutdownPlayer();
         await this.shutdownNavigation();
+        await this.shutdownPackages();
         await this.shutdownThemes();
         destroyTray();
 
@@ -307,6 +318,22 @@ class Application {
         await PluginManager.shutdown();
 
         logger.info("Plugins heruntergefahren");
+    }
+
+    async initializePackages() {
+        logger.info("Initialisiere Package-Manager...");
+
+        PackageManager.initialize();
+        PackageManager.setInstallBaseDir(
+            PackageManager.getInstallBaseDir()
+        );
+
+        logger.info("Package-Manager initialisiert");
+    }
+
+    async shutdownPackages() {
+        PackageManager.shutdown();
+        logger.info("Package-Manager heruntergefahren");
     }
 
     async initializeIntegrations() {

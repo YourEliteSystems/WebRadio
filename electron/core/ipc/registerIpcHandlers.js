@@ -14,10 +14,11 @@ const registerMediaHubHandlers     = require("./mediaHubHandlers");
 const registerCredentialHandlers   = require("./credentialHandlers");
 const registerPlayerHandlers       = require("./playerHandlers");
 const registerPluginHttpHandlers   = require("./pluginHttpHandlers");
+const registerPackageHandlers      = require("./packageHandlers");
 
 function registerAllIpc(window) {
   registerPluginHandlers(window);
-  registerUpdaterHandlers(window);
+  registerUpdaterHandlers();
   registerStorageHandlers(window);
   registerThemeHandlers(window);
   registerRadioHandlers(window);
@@ -30,6 +31,7 @@ function registerAllIpc(window) {
   registerCredentialHandlers();
   registerPlayerHandlers(window);
   registerPluginHttpHandlers();
+  registerPackageHandlers();
 }
 
 module.exports = { registerAllIpc };

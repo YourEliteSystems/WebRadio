@@ -83,6 +83,46 @@ contextBridge.exposeInMainWorld('api', {
   updates: updatesApi
 });
 
+// PACKAGE API
+const packageApi = {
+  list: () => ipcRenderer.invoke("package:list"),
+  get: (id) => ipcRenderer.invoke("package:get", id),
+  install: (payload) => ipcRenderer.invoke("package:install", payload),
+  update: (payload) => ipcRenderer.invoke("package:update", payload),
+  enable: (id) => ipcRenderer.invoke("package:enable", id),
+  disable: (id) => ipcRenderer.invoke("package:disable", id),
+  remove: (payload) => ipcRenderer.invoke("package:remove", payload),
+  openUserFolder: () => ipcRenderer.invoke("package:openUserFolder"),
+
+  onInstalled: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("package:installed", handler);
+    return () => ipcRenderer.removeListener("package:installed", handler);
+  },
+  onUpdated: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("package:updated", handler);
+    return () => ipcRenderer.removeListener("package:updated", handler);
+  },
+  onEnabled: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("package:enabled", handler);
+    return () => ipcRenderer.removeListener("package:enabled", handler);
+  },
+  onDisabled: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("package:disabled", handler);
+    return () => ipcRenderer.removeListener("package:disabled", handler);
+  },
+  onRemoved: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("package:removed", handler);
+    return () => ipcRenderer.removeListener("package:removed", handler);
+  }
+};
+
+contextBridge.exposeInMainWorld("packageAPI", packageApi);
+
 // UPDATES API (Abwärtskompatibilität für bestehende Renderer-Aufrufe)
 contextBridge.exposeInMainWorld("updatesAPI", updatesApi);
 
