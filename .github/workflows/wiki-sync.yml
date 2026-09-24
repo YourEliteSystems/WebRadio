@@ -1,0 +1,65 @@
+name: Sync Documentation to Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**/*.md"
+      - "docs/*.md"
+      - "scripts/sync-wiki.mjs"
+      - ".github/workflows/wiki-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Synchronize docs/ to GitHub Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify GitHub Wiki is enabled
+        env:
+          TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! git ls-remote "https://x-access-token:\${TOKEN}@github.com/\${{ github.repository }}.wiki.git" HEAD >/dev/null 2>&1; then
+            echo "::error::GitHub Wiki is not enabled or cannot be accessed."
+            echo "Enable the repository Wiki first, then re-run this workflow."
+            exit 1
+          fi
+
+      - name: Clone Wiki repository
+        env:
+          TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:\${TOKEN}@github.com/\${{ github.repository }}.wiki.git" .wiki
+
+      - name: Generate Wiki pages
+        run: node scripts/sync-wiki.mjs docs .wiki
+
+      - name: Commit and push Wiki changes
+        env:
+          TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd .wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet && [ -z "\$(git status --porcelain)" ]; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+          git add -A
+          git commit -m "docs: sync WebRadio documentation"
+          git push "https://x-access-token:\${TOKEN}@github.com/\${{ github.repository }}.wiki.git" HEAD:master
