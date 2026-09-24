@@ -44,7 +44,7 @@ function removeGeneratedContent(dir) {
 }
 
 function titleFromMarkdown(content, fallback) {
-  const match = content.match(/^#\\s+(.+)$/m);
+  const match = content.match(/^#\s+(.+)$/m);
   return match && match[1] ? match[1].trim() : fallback;
 }
 
@@ -54,9 +54,9 @@ function wikiRelativePath(source) {
 
 function normalizeTitle(filename) {
   return filename
-    .replace(/\\.md$/i, "")
+    .replace(/\.md$/i, "")
     .replace(/[-_]+/g, " ")
-    .replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function writeWikiPage(source) {
@@ -65,14 +65,14 @@ function writeWikiPage(source) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const content = fs.readFileSync(source, "utf8");
   const title = titleFromMarkdown(content, normalizeTitle(path.basename(relative)));
-  fs.writeFileSync(target, GENERATED_MARKER + "\\n\\n" + content.trimEnd() + "\\n", "utf8");
+  fs.writeFileSync(target, GENERATED_MARKER + "\n\n" + content.trimEnd() + "\n", "utf8");
   return { relative, title };
 }
 
 removeGeneratedContent(wikiDir);
 
 const pages = walk(docsDir).map(writeWikiPage);
-const rootPages = pages.filter(function(page) { return !page.relative.includes("/"); });
+const rootPages = pages.filter((page) => !page.relative.includes("/"));
 const groups = new Map();
 
 for (const page of pages) {
@@ -98,14 +98,14 @@ const homeLines = [
 
 for (const page of rootPages) {
   const filename = path.basename(page.relative);
-  const wikiName = filename.toLowerCase() === "readme.md" ? "Readme" : filename.replace(/\\.md$/i, "");
+  const wikiName = filename.toLowerCase() === "readme.md" ? "Readme" : filename.replace(/\.md$/i, "");
   homeLines.push("- [" + page.title + "](" + wikiName + ")");
 }
 
 for (const [group, groupPages] of groups) {
   homeLines.push("", "## " + normalizeTitle(group), "");
   for (const page of groupPages) {
-    homeLines.push("- [" + page.title + "](" + page.relative.replace(/\\.md$/i, "") + ")");
+    homeLines.push("- [" + page.title + "](" + page.relative.replace(/\.md$/i, "") + ")");
   }
 }
 
@@ -121,22 +121,22 @@ homeLines.push(
   ""
 );
 
-fs.writeFileSync(path.join(wikiDir, "Home.md"), homeLines.join("\\n"), "utf8");
+fs.writeFileSync(path.join(wikiDir, "Home.md"), homeLines.join("\n"), "utf8");
 
 const sidebar = [GENERATED_MARKER, "", "### WebRadio", "", "- [Home](Home)", ""];
 
 for (const page of rootPages) {
   const filename = path.basename(page.relative);
   if (filename.toLowerCase() === "readme.md") continue;
-  sidebar.push("- [" + page.title + "](" + filename.replace(/\\.md$/i, "") + ")");
+  sidebar.push("- [" + page.title + "](" + filename.replace(/\.md$/i, "") + ")");
 }
 
 for (const [group, groupPages] of groups) {
   sidebar.push("", "### " + normalizeTitle(group), "");
   for (const page of groupPages) {
-    sidebar.push("- [" + page.title + "](" + page.relative.replace(/\\.md$/i, "") + ")");
+    sidebar.push("- [" + page.title + "](" + page.relative.replace(/\.md$/i, "") + ")");
   }
 }
 
-fs.writeFileSync(path.join(wikiDir, "_Sidebar.md"), sidebar.join("\\n") + "\\n", "utf8");
+fs.writeFileSync(path.join(wikiDir, "_Sidebar.md"), sidebar.join("\n") + "\n", "utf8");
 console.log("Synchronized " + pages.length + " documentation pages into " + wikiDir);
