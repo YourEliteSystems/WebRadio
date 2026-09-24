@@ -29,10 +29,10 @@ jobs:
 
       - name: Verify GitHub Wiki is enabled
         env:
-          TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
           set -euo pipefail
-          if ! git ls-remote "https://x-access-token:\${TOKEN}@github.com/\${{ github.repository }}.wiki.git" HEAD >/dev/null 2>&1; then
+          if ! git ls-remote "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.wiki.git" HEAD >/dev/null 2>&1; then
             echo "::error::GitHub Wiki is not enabled or cannot be accessed."
             echo "Enable the repository Wiki first, then re-run this workflow."
             exit 1
@@ -41,7 +41,7 @@ jobs:
       - name: Detect Wiki default branch
         id: wiki
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
           set -euo pipefail
           wiki_url="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.wiki.git"
@@ -54,7 +54,7 @@ jobs:
 
       - name: Clone Wiki repository
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
           set -euo pipefail
           git clone --branch "${{ steps.wiki.outputs.branch }}" \
@@ -65,7 +65,7 @@ jobs:
 
       - name: Commit and push Wiki changes
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
           set -euo pipefail
           cd .wiki
