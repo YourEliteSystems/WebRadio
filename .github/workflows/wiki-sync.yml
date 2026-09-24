@@ -38,28 +38,44 @@ jobs:
             exit 1
           fi
 
-      - name: Clone Wiki repository
+      - name: Detect Wiki default branch
+        id: wiki
         env:
-          TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git clone "https://x-access-token:\${TOKEN}@github.com/\${{ github.repository }}.wiki.git" .wiki
+          wiki_url="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.wiki.git"
+          wiki_branch="$(git ls-remote --symref "$wiki_url" HEAD | awk '/^ref:/ {sub("refs/heads/","",$2); print $2; exit}')"
+          if [ -z "$wiki_branch" ]; then
+            echo "::error::Could not determine the Wiki default branch."
+            exit 1
+          fi
+          echo "branch=$wiki_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Clone Wiki repository
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --branch "${{ steps.wiki.outputs.branch }}" \
+            "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.wiki.git" .wiki
 
       - name: Generate Wiki pages
         run: node scripts/sync-wiki.mjs docs .wiki
 
       - name: Commit and push Wiki changes
         env:
-          TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           cd .wiki
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet && [ -z "\$(git status --porcelain)" ]; then
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
             echo "Wiki is already up to date."
             exit 0
           fi
           git add -A
           git commit -m "docs: sync WebRadio documentation"
-          git push "https://x-access-token:\${TOKEN}@github.com/\${{ github.repository }}.wiki.git" HEAD:master
+          git push "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.wiki.git" \
+            "HEAD:${{ steps.wiki.outputs.branch }}"
