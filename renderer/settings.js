@@ -260,6 +260,29 @@ function renderMarkdown(md) {
   return `<p>${html}</p>`;
 }
 
+// ── Release-Channel-Hilfe (zentral; ersetzt verstreute `info.isPrerelease`,
+// `info.channel === "beta"` und `version.includes`-Prüfungen) ─────────
+// `info.channel` liefert 'alpha' | 'beta' | 'stable'.
+// Fallback für den legacy-updaterAPI-Pfad (kein `channel`): heuristische
+// SemVer-Prerelease-Prüfung anhand des Versionstrings.
+function channelLabelFromInfo(info) {
+  if (info && typeof info === "object" && info.channel && typeof info.channel === "string") {
+    if (info.channel === "alpha") return { label: "Alpha", className: "alpha", short: "Alpha" };
+    if (info.channel === "beta")  return { label: "Beta",  className: "beta",  short: "Beta" };
+    if (info.channel === "stable") return { label: "Stable", className: "stable", short: "Stable" };
+  }
+
+  // Legacy-Update-Herleitung (widmet sich rein dem classischen updaterAPI-Pfad)
+  const v = typeof info === "object" && info.version ? String(info.version) : "";
+  if (/-alpha(\.|-|$)/i.test(v)) {
+    return { label: "Alpha", className: "alpha", short: "Alpha" };
+  }
+  if (/-beta(\.|-|$)/i.test(v)) {
+    return { label: "Beta", className: "beta", short: "Beta" };
+  }
+  return { label: "Stable", className: "stable", short: "Stable" };
+}
+
 // ── Version & Channel anzeigen ────────────────────────────
 async function renderCurrentVersion() {
   try {
@@ -270,19 +293,15 @@ async function renderCurrentVersion() {
         if (currentVerEl) currentVerEl.textContent = label;
         const aboutVerEl = document.getElementById("currentVersionAbout");
         if (aboutVerEl) aboutVerEl.textContent = label;
+        const chan = channelLabelFromInfo(info);
         if (currentVerBadge) {
-          if (info.isPrerelease) {
-            currentVerBadge.textContent = "BETA";
-            currentVerBadge.className = "channel-badge beta";
-            currentVerBadge.style.display = "inline-block";
-          } else {
-            currentVerBadge.style.display = "none";
-          }
+          currentVerBadge.textContent = chan.label;
+          currentVerBadge.className = `channel-badge ${chan.className}`;
+          currentVerBadge.style.display = "inline-block";
         }
         if (channelBadge) {
-          const isBeta = info.channel === "beta";
-          channelBadge.textContent = isBeta ? "Beta" : "Stable";
-          channelBadge.className = `channel-badge ${isBeta ? "beta" : "stable"}`;
+          channelBadge.textContent = chan.label;
+          channelBadge.className = `channel-badge ${chan.className}`;
           channelBadge.style.display = "inline-block";
         }
         return info;

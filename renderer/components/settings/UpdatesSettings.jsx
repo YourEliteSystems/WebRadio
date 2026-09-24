@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 const UpdatesSettings = () => {
   const [status, setStatus] = useState('checking');
@@ -9,10 +9,19 @@ const UpdatesSettings = () => {
   const [currentChannel, setCurrentChannel] = useState('stable');
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(true);
   const [channel, setChannel] = useState('stable');
+  const [channelMeta, setChannelMeta] = useState(null);
+  const [channelsMeta, setChannelsMeta] = useState([]);
   const [showBetaWarning, setShowBetaWarning] = useState(false);
   const [showAlphaWarning, setShowAlphaWarning] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState('');
   const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+
+  // Versions-Stempel (Version Badge) nutzt zentrale Metadaten (alpha/beta/stable)
+  // ohne verstreute String-Prüfungen.
+  const currentChannelMeta = useMemo(() => {
+    if (!currentChannel) return null;
+    return channelsMeta.find((m) => m.id === currentChannel) || null;
+  }, [currentChannel, channelsMeta]);
 
   // Format bytes helper
   const formatBytes = (n) => {
@@ -72,10 +81,14 @@ const UpdatesSettings = () => {
         const info = await window.updatesAPI.getCurrentVersion();
         if (info?.ok) {
           setCurrentVersion(`v${info.version}`);
+          // Release-Channel-Logik: `info.channel` liefert 'alpha' | 'beta' | 'stable'.
+          // Zentral: Fallback auf 'stable', wenn kein gültiger Kanal zurückgegeben wird.
           if (info.channel === 'alpha') {
             setCurrentChannel('alpha');
-          } else if (info.channel === 'beta' || info.isPrerelease) {
+          } else if (info.channel === 'beta') {
             setCurrentChannel('beta');
+          } else {
+            setCurrentChannel('stable');
           }
         }
       } else if (window.updaterAPI?.getVersion) {
@@ -84,6 +97,20 @@ const UpdatesSettings = () => {
       }
     } catch (err) {
       console.error("Failed to load current version:", err);
+    }
+  }, []);
+
+  // Lade Channel-Metadaten
+  const loadChannelMetadata = useCallback(async () => {
+    try {
+      if (window.updatesAPI?.getAllChannelMetadata) {
+        const res = await window.updatesAPI.getAllChannelMetadata();
+        if (res?.ok && Array.isArray(res.channels)) {
+          setChannelsMeta(res.channels);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load channel metadata:", err);
     }
   }, []);
 
@@ -132,14 +159,20 @@ const UpdatesSettings = () => {
     } catch (err) {
       console.error("Failed to load update state:", err);
     }
-  }, []);
-
-  // Initiales Laden
+  }, []);    // Initiales Laden
   useEffect(() => {
     loadCurrentVersion();
     loadChannel();
+    loadChannelMetadata();
     loadAutoCheckSetting();
     loadUpdateState();
+
+    // Channel-Metadaten immer aktuell halten, sobald sich der Channel ändert
+    const syncChannelMeta = (c) => {
+      if (!Array.isArray(channelsMeta) || channelsMeta.length === 0) return;
+      const meta = channelsMeta.find((m) => m.id === c);
+      if (meta) setChannelMeta(meta);
+    };
 
     // Event-Listener registrieren
     const registerListeners = () => {
@@ -179,6 +212,7 @@ const UpdatesSettings = () => {
         window.updatesAPI.onChannelChanged((data) => {
           if (data?.channel) {
             setChannel(data.channel);
+            syncChannelMeta(data.channel);
           }
         });
       }
@@ -321,14 +355,20 @@ const UpdatesSettings = () => {
   const handleChannelChange = (newChannel) => {
     if (newChannel === channel) return;
 
+    const meta = channelsMeta.find((m) => m.id === newChannel);
+    if (!meta) {
+      commitChannelChange(newChannel);
+      return;
+    }
+
     // Beim Wechsel auf Beta: Bestätigung verlangen
-    if (newChannel === 'beta') {
+    if (meta.id === 'beta') {
       setShowBetaWarning(true);
       return;
     }
 
     // Beim Wechsel auf Alpha: Bestätigung verlangen
-    if (newChannel === 'alpha') {
+    if (meta.id === 'alpha') {
       setShowAlphaWarning(true);
       return;
     }
@@ -437,16 +477,27 @@ const UpdatesSettings = () => {
           sub: `${currentVersion} ist die neueste Version`
         };
       case 'available':
-        return updateInfo?.channel === 'alpha' ? {
-          title: `Alpha-Update verfügbar – v${updateInfo?.version}`,
-          sub: 'Hinweis: Alpha-Version – experimentell, kann schwere Fehler enthalten.'
-        } : updateInfo?.channel === 'beta' ? {
-          title: `Beta-Update verfügbar – v${updateInfo?.version}`,
-          sub: 'Hinweis: Beta-Version – kann Fehler enthalten.'
-        } : {
-          title: `Update verfügbar – v${updateInfo?.version}`,
-          sub: 'Eine neue Version ist bereit zum Herunterladen'
-        };
+        {
+          const chMeta = updateInfo?.channel
+            ? channelsMeta.find((m) => m.id === updateInfo.channel)
+            : null;
+          if (chMeta?.id === 'alpha') {
+            return {
+              title: `Alpha-Update verfügbar – v${updateInfo?.version}`,
+              sub: 'Hinweis: Alpha-Version – experimentell, kann schwere Fehler enthalten.'
+            };
+          }
+          if (chMeta?.id === 'beta') {
+            return {
+              title: `Beta-Update verfügbar – v${updateInfo?.version}`,
+              sub: 'Hinweis: Beta-Version – kann Fehler enthalten.'
+            };
+          }
+          return {
+            title: `Update verfügbar – v${updateInfo?.version}`,
+            sub: 'Eine neue Version ist bereit zum Herunterladen'
+          };
+        }
       case 'downloading':
         return {
           title: `Wird heruntergeladen – v${updateInfo?.version}`,
@@ -580,83 +631,52 @@ const UpdatesSettings = () => {
       {/* Channel-Auswahl */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Update-Kanal</span>
-          <span id="channelBadge" className={`channel-badge ${channel === 'alpha' ? 'alpha' : channel === 'beta' ? 'beta' : 'stable'}`}>
-            {channel === 'alpha' ? 'Alpha' : channel === 'beta' ? 'Beta' : 'Stable'}
+          <span className="settings-card-title">Update-Kanal</span>              <span id="channelBadge" className="channel-badge" data-channel={channel}
+            style={{ '--update-channel-color': channelMeta?.color }}
+          >
+            {channelMeta?.label ?? 'Stable'}
           </span>
         </div>
         <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 14px'}}>
           Wähle, welche Versionen dir angeboten werden.
         </p>
         <div className="channel-options">
-          <label className={`channel-option ${channel === 'stable' ? 'selected' : ''}`} data-channel="stable">
-            <input 
-              type="radio" 
-              name="updateChannel" 
-              value="stable" 
-              checked={channel === 'stable'}
-              onChange={() => handleChannelChange('stable')}
-            />
-            <div className="channel-option-content">
-              <div className="channel-option-title">Stable</div>
-              <div className="channel-option-desc">Nur offiziell veröffentlichte stabile Versionen.</div>
-            </div>
-          </label>
-          <label className={`channel-option ${channel === 'beta' ? 'selected' : ''}`} data-channel="beta">
-            <input 
-              type="radio" 
-              name="updateChannel" 
-              value="beta" 
-              checked={channel === 'beta'}
-              onChange={() => handleChannelChange('beta')}
-            />
-            <div className="channel-option-content">
-              <div className="channel-option-title">Beta</div>
-              <div className="channel-option-desc">
-                Neue Funktionen früher testen. <strong>Kann Fehler und Instabilitäten enthalten.</strong>
+          {channelsMeta.map((meta) => (
+            <label
+              key={meta.id}
+              className={`channel-option ${channel === meta.id ? 'selected' : ''}`}
+              data-channel={meta.id}
+            >
+              <input
+                type="radio"
+                name="updateChannel"
+                value={meta.id}
+                checked={channel === meta.id}
+                onChange={() => handleChannelChange(meta.id)}
+              />
+              <div className="channel-option-content">
+                <div className="channel-option-title">{meta.label}</div>
+                <div className="channel-option-desc">{meta.description}</div>
               </div>
-            </div>
-          </label>
-          <label className={`channel-option ${channel === 'alpha' ? 'selected' : ''}`} data-channel="alpha">
-            <input 
-              type="radio" 
-              name="updateChannel" 
-              value="alpha" 
-              checked={channel === 'alpha'}
-              onChange={() => handleChannelChange('alpha')}
-            />
-            <div className="channel-option-content">
-              <div className="channel-option-title">Alpha</div>
-              <div className="channel-option-desc">
-                Experimentelle Builds vor Beta. <strong>Kann noch unbekannte Fehler enthalten – nur für Entwickler.</strong>
-              </div>
-            </div>
-          </label>
+            </label>
+          ))}
         </div>
-        {channel === 'beta' && (
-          <div className="beta-hint">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
+        {channelMeta?.id === 'beta' && (
+          <div className="beta-hint" data-channel="beta" style={{ '--update-channel-color': channelMeta?.color }}>
+            {channelMeta?.icon}
             <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
           </div>
         )}
-        {channel === 'alpha' && (
-          <div className="alpha-hint">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
+        {channelMeta?.id === 'alpha' && (
+          <div className="alpha-hint" data-channel="alpha" style={{ '--update-channel-color': channelMeta?.color }}>
+            {channelMeta?.icon}
             <span>Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.</span>
           </div>
         )}
       </div>
 
       <div className="version-info">
-        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className={`channel-badge ${currentChannel === 'alpha' ? 'alpha' : currentChannel === 'beta' ? 'beta' : 'stable'}`} style={{display: currentChannel !== 'stable' ? 'inline-block' : 'none'}}>{currentChannel === 'alpha' ? 'ALPHA' : currentChannel === 'beta' ? 'BETA' : ''}</span></span>
+        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" data-current-channel={currentChannel} style={{ display: currentChannel !== 'stable' ? 'inline-block' : 'none', '--update-channel-color': currentChannelMeta?.color }}>{currentChannelMeta?.shortLabel ?? ''}</span></span>
         <span>WebRadio by Your Elite Systems</span>
       </div>
 

@@ -125,6 +125,13 @@ export default function PlayerBar({
   };
 
   // ─── Volume Control ─────────────────────────────────────
+  // Der Slider (`usePlayer`) liefert 0..1. Beträgt `hasUnifiedApi`, leiten wir
+  // den Wert ZUERST in den tatsächlichen Audio-Gain (via `legacyOnVolumeChange`,
+  // die usePlayer->playerService.setVolume Bahn) und synchronisieren danach
+  // den Unified-Player-UI-State (via `setUnifiedVolume`).
+  // (Ohne die `legacyOnVolumeChange` Runde verändert der Unified-Slider
+  //  den Audio-Pegel nicht, weil die PlayerAPI-setVolume-Basis im Main
+  //  (RadioProvider.setVolume) als no-op fungiert.)
   const handleVolumeChange = (val) => {
     const clamped = Math.max(0, Math.min(1, val));
     setLocalVolume(clamped);
@@ -132,6 +139,9 @@ export default function PlayerBar({
     localStorage.setItem('webradio_volume', clamped.toString());
 
     if (hasUnifiedApi) {
+      // Aktualisiere den tatsächlichen Gain im Renderer (ungeringt, kein Provider-Specifisch).
+      legacyOnVolumeChange?.(clamped);
+      // Synchronisiere mit dem Unified-Player-State.
       setUnifiedVolume(clamped);
     } else if (legacyOnVolumeChange) {
       legacyOnVolumeChange(clamped);

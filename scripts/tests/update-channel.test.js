@@ -148,6 +148,74 @@ test("1.0.7-rc.1 ist Pre-Release", () => {
   assert.strictEqual(isPrerelease("1.0.7-rc.1"), true);
 });
 
+console.log("\n[5] Release-Channel Ableitung (alpha/beta/stable)");
+test("1.0.7-alpha.1 -> alpha (nicht beta, nicht stable)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.1"), CHANNELS.ALPHA);
+});
+
+test("1.0.7-alpha.2 -> alpha (nicht beta, nicht stable)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.2"), CHANNELS.ALPHA);
+});
+
+test("1.0.7-beta.1 -> beta (nicht alpha, nicht stable)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.1"), CHANNELS.BETA);
+});
+
+test("1.0.7-beta.2 -> beta (nicht alpha, nicht stable)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.2"), CHANNELS.BETA);
+});
+
+test("1.0.7 -> stable", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7"), CHANNELS.STABLE);
+});
+
+test("1.0.7-alpha.0 -> alpha (Prerelease-Star-Nummer 0)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.0"), CHANNELS.ALPHA);
+});
+
+test("1.0.7-alpha.9 -> alpha", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.9"), CHANNELS.ALPHA);
+});
+
+test("1.0.7-beta.0 -> beta (Prerelease-Star-Nummer 0)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.0"), CHANNELS.BETA);
+});
+
+test("1.1.0-rc.1 kann als Beta-kompatibel markiert werden", () => {
+  assert.strictEqual(detectChannelFromVersion("1.1.0-rc.1"), CHANNELS.BETA);
+});
+
+console.log("\n[6] central channel meta / labelable metadata" );
+test("ChannelMetadata alpha/beta/stable existieren", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  assert.ok(ChannelMetadata.CHANNEL_METADATA.alpha, "alpha metadata")
+  assert.ok(ChannelMetadata.CHANNEL_METADATA.beta, "beta metadata")
+  assert.ok(ChannelMetadata.CHANNEL_METADATA.stable, "stable metadata")
+});
+
+test("Channel-Meta enthält id/label/color/shortLabel", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  const a = ChannelMetadata.CHANNEL_METADATA.alpha;
+  assert.strictEqual(a.id, "alpha");
+  assert.strictEqual(a.label, "Alpha");
+  assert.ok(a.color);
+  assert.strictEqual(a.shortLabel, "Alpha");
+});
+
+test("ChannelMetadaten-IDs sind alpha/beta/stable", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  assert.deepStrictEqual(ChannelMetadata.CHANNEL_IDS, ["alpha", "beta", "stable"]);
+});
+
+test("getAllUpdateChannelMetadata enthält alpha/beta/stable", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  const list = ChannelMetadata.getAllUpdateChannelMetadata();
+  assert.strictEqual(list.length, 3);
+  assert.ok(list.some((m) => m.id === "alpha"));
+  assert.ok(list.some((m) => m.id === "beta"));
+  assert.ok(list.some((m) => m.id === "stable"));
+});
+
 console.log("\n==========================================");
 console.log(`Tests abgeschlossen: ${testsPassed} bestanden, ${testsFailed} fehlgeschlagen`);
 console.log("==========================================");

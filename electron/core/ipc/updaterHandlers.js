@@ -37,6 +37,7 @@
 const { ipcMain } = require("electron");
 const updateManager = require("../updates");
 const LogManager = require("../diagnostics/logging/LogManager");
+const ChannelMetadata = require("../updates/ChannelMetadata");
 
 const logger = LogManager.getLogger("UpdaterHandlers");
 
@@ -207,6 +208,35 @@ function registerUpdaterHandlers() {
 
     ipcMain.handle("app:version", () => {
         return updateManager.updateManager.getCurrentVersion();
+    });
+
+    // ─────────────────────────────────────────
+    // Channel Metadaten (sichere UI-Daten)
+    // ─────────────────────────────────────────
+
+    ipcMain.handle("update:getChannelMetadata", (_event, channel) => {
+        try {
+            const meta = ChannelMetadata.getUpdateChannelMetadata(channel);
+            return {
+                ok: true,
+                metadata: meta
+            };
+        } catch (err) {
+            logger.error(`update:getChannelMetadata: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
+    });
+
+    ipcMain.handle("update:getAllChannelMetadata", () => {
+        try {
+            return {
+                ok: true,
+                channels: ChannelMetadata.getAllUpdateChannelMetadata()
+            };
+        } catch (err) {
+            logger.error(`update:getAllChannelMetadata: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
     });
 }
 

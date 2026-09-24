@@ -68,6 +68,40 @@ export default function App() {
   const { favorites, toggleFavorite } = useFavorites();
   const { updateInfo, version, isPrerelease, channel } = useUpdateInfo();
 
+  const [channelMeta, setChannelMeta] = useState(null);
+  const [channelsMeta, setChannelsMeta] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadChannelMeta() {
+      try {
+        if (window.updatesAPI?.getAllChannelMetadata) {
+          const res = await window.updatesAPI.getAllChannelMetadata();
+          if (mounted && res?.ok && Array.isArray(res.channels)) {
+            setChannelsMeta(res.channels);
+            const active = res.channels.find((m) => m.id === channel);
+            if (active) setChannelMeta(active);
+          }
+        }
+      } catch (err) {
+        /* bewusst still */
+      }
+    }
+
+    loadChannelMeta();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!channelsMeta.length) return;
+    const meta = channelsMeta.find((m) => m.id === channel);
+    if (meta) setChannelMeta(meta);
+  }, [channel, channelsMeta]);
+
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
   // Media Control Listeners – nur einmalig registrieren
@@ -103,22 +137,26 @@ export default function App() {
           <span className="app-title">WebRadio</span>
           {version && (
             <span
-              className={`app-version ${isPrerelease ? 'beta' : ''}`}
-              title={`WebRadio ${version} – ${isPrerelease ? 'Beta' : 'Stable'}-Kanal`}
+              className={`app-version ${channelMeta?.id || (isPrerelease ? 'beta' : '')}`}
+              style={{ '--update-channel-color': channelMeta?.color }}
+              title={`WebRadio ${version} – ${channelMeta?.label ?? (isPrerelease ? 'Beta' : 'Stable')}-Kanal`}
             >
               v{version}
-              {isPrerelease && <span className="app-version-badge">BETA</span>}
+              {isPrerelease && <span className="app-version-badge">{channelMeta?.shortLabel ?? 'BETA'}</span>}
             </span>
           )}
           {updateInfo && (
             <button
-              className={`update-badge ${updateInfo.channel === 'beta' ? 'beta' : ''}`}
+              className={`update-badge ${channelMeta?.id || 'stable'}`}
               onClick={() => window.api?.openSettings?.()}
-              title={`Update verfügbar: v${updateInfo.version} (${updateInfo.channel === 'beta' ? 'Beta' : 'Stable'})`}
+              style={{ '--update-channel-color': channelMeta?.color }}
+              title={`Update verfügbar: v${updateInfo.version} (${channelMeta?.label ?? 'Stable'})`}
             >
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z" />
-              </svg>
+              {channelMeta?.icon ?? (
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z" />
+                </svg>
+              )}
               Update v{updateInfo.version}
             </button>
           )}

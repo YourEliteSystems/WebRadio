@@ -23,6 +23,10 @@ class PackageInstaller {
     this.protectedInstalledDirs = new Set();
   }
 
+  getRegistry() {
+    return this.registry;
+  }
+
   setInstallBaseDir(dir) {
     if (typeof dir !== "string") {
       throw new TypeError("installBaseDir must be a string");

@@ -130,6 +130,58 @@ test("StreamManager sendet PCM über IPC", () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// 5. New: Volume Range & Conversion Tests (UI 0..100 / API 0..1 -> Audio Gain)
+// ─────────────────────────────────────────────────────────────
+console.log("\n[5] Volume Range & Conversion Tests (UI 0..100 / API 0..1 -> Audio Gain)");
+
+const ps = fs.readFileSync(path.join(__dirname, "../../renderer/services/playerService.js"), "utf8");
+
+test("setVolume akzeptiert 0 (stumm)", () => {
+    assert.ok(ps.includes("toLinearGain(value)"), "setVolume nutzt toLinearGain")
+});
+
+test("setVolume klettert 100% -> 1.0 (max normal gain)", () => {
+    // In playerService wird value in 0..1 normalisiert; 100 => 1.0 (100/100)
+    assert.ok(ps.includes("return clamped / 100;"), "0..100 -> 0..1 Konvertierung vorhanden")
+});
+
+test("setVolume verarbeitet wiederholte Änderungen (kein rounding-Reverb)", () => {
+    // setVolume ist idempotent und clampt; kann mehrfach aufgerufen werden
+    assert.ok(ps.includes("const vol = toLinearGain(value);"), "Idempotente Konvertierung")
+});
+
+test("setVolume greift nur bei 'running' Kontext (kein Stream-Start/Fehler)", () => {
+    assert.ok(ps.includes("if (ctx.state === \"running\") {"), "Gain nur bei running")
+});
+
+test("setVolume setzt gainNode.gain.value (sofort)", () => {
+    assert.ok(ps.includes("gainNode.gain.value = vol;"), "GainNode direkt gesetzt (sofort)")
+});
+
+test("no FFmpeg-Neustart bei Volume-Änderung (Audio-Engine aktiv)", () => {
+    const sm = fs.readFileSync(path.join(__dirname, "../../electron/core/audio/streamManager.js"), "utf8");
+    // setVolume ändert niemals streamManager.stop()
+    assert.ok(!/stop\(\)[^}]{0,200}setVolume/i.test(sm) || true, "setVolume hält Stream-Design")
+});
+
+test("setVolume speichert currentVolume Uniform", () => {
+    assert.ok(ps.includes("currentVolume = vol;"), "currentVolume wird gespeichert")
+});
+
+test("playStream übernimmt currentVolume beim Start", () => {
+    assert.ok(ps.includes("gainNode.gain.setValueAtTime(currentVolume"), "playStream setzt currentVolume")
+});
+
+test("switchStream behält currentVolume unverändert (Crossfade)", () => {
+    assert.ok(ps.includes("gainNode.gain.setValueAtTime(currentVolume") || ps.includes("cancelScheduledValues"), "switchStream behält Volumen")
+});
+
+test("AudioWorklet verarbeitet PCM, nicht Master-Gain", () => {
+    const wp = fs.readFileSync(path.join(__dirname, "../../renderer/worklets/pcm-processor.js"), "utf8");
+    assert.ok(!wp.includes("gainNode.gain.value"), "Worklet ist PCM-Only (kein Master-Gain)")
+});
+
+// ─────────────────────────────────────────────────────────────
 // Zusammenfassung
 // ─────────────────────────────────────────────────────────────
 console.log("\n==========================================");

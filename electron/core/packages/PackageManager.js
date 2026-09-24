@@ -17,12 +17,22 @@ const logger = LogManager.getLogger("PackageManager");
 class PackageManager {
   constructor() {
     this.initialized = false;
+    this._userPackageDataDir = null;
     this.installer = new PackageInstaller({
       registry: new PackageRegistry()
     });
     this.localSource = new LocalSource({
-      allowedBaseDirs: [this._userPackageDataDir()]
+      allowedBaseDirs: [this._resolveUserPackageDataDir()]
     });
+  }
+
+  _resolveUserPackageDataDir() {
+    if (this._userPackageDataDir) return this._userPackageDataDir;
+    const base = app && typeof app.getPath === "function"
+      ? app.getPath("userData")
+      : process.cwd();
+    this._userPackageDataDir = path.join(base, PACKAGE_DATA_SUBDIR);
+    return this._userPackageDataDir;
   }
 
   initialize() {
@@ -42,12 +52,10 @@ class PackageManager {
   }
 
   getInstallBaseDir() {
-    return this.installer.getRegistry().packageDataPath ?
-      this.installer.getRegistry().packageDataPath() :
-      path.join(
-        (app && typeof app.getPath === "function" ? app.getPath("userData") : process.cwd()),
-        PACKAGE_DATA_SUBDIR
-      );
+    return this.installer.getRegistry().packageDataPath || path.join(
+      (app && typeof app.getPath === "function" ? app.getPath("userData") : process.cwd()),
+      PACKAGE_DATA_SUBDIR
+    );
   }
 
   isInitialized() {
@@ -58,11 +66,11 @@ class PackageManager {
     return this.installer.getRegistry();
   }
 
-  installer() {
+  getInstaller() {
     return this.installer;
   }
 
-  localSource() {
+  getLocalSource() {
     return this.localSource;
   }
 

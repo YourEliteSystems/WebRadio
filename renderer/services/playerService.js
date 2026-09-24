@@ -184,13 +184,32 @@ export async function getAudioDiagnostics() {
 // Worklet-Werte beim Aufruf einmalig mit an den Main-Prozess.
 window.__webradioAudioDiagnostics = getAudioDiagnostics;
 
+// Konvertiert den Benutzer-Input (0..100 oder 0..1) in einen linear-skalierten Gain 0..1.
+// 0% = stumm, 1-99% = fein regelbar, 100% = maximale normale Lautstärke.
+function toLinearGain(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 0;
+  }
+  // 0..100 interpretieren (wie im Slider / Media-Key-Interface; z.B. 99 -> 0.99)
+  // und 0..1 beibehalten. Negative und > 100 werden durch clamp auf 0..1 gebracht.
+  const clamped = Math.max(0, Math.min(100, value));
+  if (clamped > 1) {
+    return clamped / 100;
+  }
+  return clamped;
+}
+
 export function setVolume(value) {
-  const vol = Math.max(0, Math.min(1, value));
+  // Zentrale Konvertierung: UI-0..100 / Player-API-0..1 / Audio-Gain 0..1.
+  const vol = toLinearGain(value);
   currentVolume = vol;
   if (!ctx || !gainNode) return;
   if (ctx.state === "running") {
     gainNode.gain.cancelScheduledValues(ctx.currentTime);
-    gainNode.gain.setTargetAtTime(vol, ctx.currentTime, 0.01);
+    // value = ist sofortig und verhindert hörbare Aussetzer am Audio-Pegel.
+    // Bei großen Sprüngen (z.B. 100% -> 10%) kann ein leichter Enqueue-Spark
+    // entstehen; setTargetAtTime halten wir diesen als Soft-Limit, falls gewünscht.
+    gainNode.gain.value = vol;
   }
 }
 

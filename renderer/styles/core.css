@@ -31,6 +31,16 @@
   box-sizing: border-box;
 }
 
+/* ── Release-Channel Design Tokens (central, shared by MainWindow / Settings / Update System / Renderer) ── */
+:root {
+  /* Farbskalen für die Release-Kanäle. Die Werte stammen aus der zentralen
+   * ChannelMetadata / ReleaseChannel-Resolver-Logik und werden durch die
+   * Renderer-UI aber nicht unmittelbar überschrieben. */
+  --release-alpha: #a855f7;   /* Violet / Purple */
+  --release-beta:  #f59e0b;   /* Orange */
+  --release-stable:#22c55e;   /* Grün */
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -748,10 +758,22 @@ canvas#vu {
   user-select: none;
 }
 
+.app-version.alpha {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.25);
+  color: var(--release-alpha);
+}
+
 .app-version.beta {
   background: rgba(245, 158, 11, 0.08);
   border-color: rgba(245, 158, 11, 0.25);
-  color: #f59e0b;
+  color: var(--release-beta);
+}
+
+.app-version.stable {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.25);
+  color: var(--release-stable);
 }
 
 .app-version-badge {
@@ -904,6 +926,8 @@ canvas#vu {
 }
 
 /* Channel Badges */
+/* Allgemeine Badge-Grundform. Die Füll- und Randfarbe werden über
+ * die zentralen Release-Channel-Design-Tokens gesetzt. */
 .channel-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -914,22 +938,23 @@ canvas#vu {
   letter-spacing: 0.5px;
 }
 
-.channel-badge.stable {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+/* Kanal-spezifische Varianten – nutzen die zentralen Design-Tokens. */
+.channel-badge.alpha {
+  color: var(--release-alpha);
+  background: color-mix(in srgb, var(--release-alpha) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--release-alpha) 30%, transparent);
 }
 
 .channel-badge.beta {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--release-beta);
+  background: color-mix(in srgb, var(--release-beta) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--release-beta) 30%, transparent);
 }
 
-.channel-badge.alpha {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+.channel-badge.stable {
+  color: var(--release-stable);
+  background: color-mix(in srgb, var(--release-stable) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--release-stable) 30%, transparent);
 }
 
 /* Channel Options */
@@ -1004,19 +1029,21 @@ canvas#vu {
 .beta-hint {
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.2);
+  color: var(--update-channel-color, #f59e0b);
 }
 
 .beta-hint svg {
-  color: #f59e0b;
+  color: var(--update-channel-color, #f59e0b);
   flex-shrink: 0;
 }
 
 .alpha-hint {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--update-channel-color, #ef4444);
 }
 
 .alpha-hint svg {
-  color: #ef4444;
+  color: var(--update-channel-color, #ef4444);
   flex-shrink: 0;
 }

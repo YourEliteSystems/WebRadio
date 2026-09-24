@@ -55,6 +55,12 @@ const updatesApi = {
   }
 };
 
+updatesApi.getChannelMetadata = (channel) =>
+    ipcRenderer.invoke("update:getChannelMetadata", channel);
+
+updatesApi.getAllChannelMetadata = () =>
+    ipcRenderer.invoke("update:getAllChannelMetadata");
+
 contextBridge.exposeInMainWorld('api', {
   log: (level, context, msg) => ipcRenderer.send("log", level, context, msg),
   // FAVORITES

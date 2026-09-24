@@ -14,6 +14,8 @@ const UpdateManager = require("./UpdateManager");
 const UpdateState = require("./UpdateState");
 const UpdateChannel = require("./UpdateChannel");
 const MarkdownSanitizer = require("./MarkdownSanitizer");
+const ChannelMetadata = require("./ChannelMetadata");
+const ReleaseChannel = require("./ReleaseChannel");
 
 module.exports = {
     updateManager: UpdateManager,
@@ -23,5 +25,13 @@ module.exports = {
     isValidChannel: UpdateChannel.isValidChannel,
     isPrerelease: UpdateChannel.isPrerelease,
     detectChannelFromVersion: UpdateChannel.detectChannelFromVersion,
-    sanitizeMarkdown: MarkdownSanitizer.sanitize
+    getUpdateChannel: UpdateChannel.getUpdateChannel,
+    sanitizeMarkdown: MarkdownSanitizer.sanitize,
+
+    channelMetadata: ChannelMetadata.CHANNEL_METADATA,
+    channelIds: ChannelMetadata.CHANNEL_IDS,
+    getUpdateChannelMetadata: ChannelMetadata.getUpdateChannelMetadata,
+    getAllUpdateChannelMetadata: ChannelMetadata.getAllUpdateChannelMetadata,
+    hasChannelMetadata: ChannelMetadata.hasChannelMetadata,
+    releaseChannel: ReleaseChannel
 };
