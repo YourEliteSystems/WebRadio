@@ -115,20 +115,27 @@ A typical update workflow consists of:
 
 ---
 
-# Update Channels (1.0.7-alpha.1)
+# Update Channels & Persistenz (1.0.7-alpha.1)
 
-WebRadio supports three update channels:
+WebRadio unterstützt drei offizielle Update-Kanäle:
 
-* **alpha**
-* **beta**
-* **latest** (stable)
+* **alpha** – Experimentelle Vorab-Builds für frühes Feedback
+* **beta** – Vorabversionen mit neuen Funktionen vor dem Stable-Release
+* **stable** – Offizielle, stabile Versionen (in electron-updater als `latest` geführt)
 
-Channel and severity are different concepts.
+### Persistente Speicherung
 
-* Channel controls which release stream is used (alpha / beta / latest).
-* Severity describes the importance of a specific update (for example normal / important / critical).
+* **Speicherort:** Gespeichert im Electron-Main-Prozess in `settings.json` im `userData`-Bereich über das `SettingsManager` / `StorageManager`-System (Schlüssel: `updateChannel` bzw. `updates.channel`).
+* **Sicherheit:** Der Renderer-Prozess besitzt keinen direkten Dateisystemzugriff. Änderungen werden ausschließlich über validierte IPC-Kanäle abgewickelt.
+* **Erster Start (Default):** Ist keine Einstellung vorhanden, greift die automatische Versions-Erkennung (`detectChannelFromVersion()`). Bei Standard-Builds ist der Standardkanal `stable`.
+* **Ungültige Einstellungen:** Wurde ein ungültiger Wert in der Konfiguration hinterlegt, fällt das System sicher auf den Standardkanal zurück, ohne andere Benutzereinstellungen zu überschreiben oder zu löschen.
+* **Neustart-Sicherheit:** Ein vom Benutzer explizit ausgewählter Kanal (z. B. `alpha`) bleibt über jeden Anwendungsneustart hinweg garantiert erhalten.
+* **Channel-Wechsel:** Der Wechsel über die UI speichert die Wahl unmittelbar und rekonfiguriert den AutoUpdater zur Laufzeit. Die laufende Radio- oder MediaHub-Wiedergabe wird zu keinem Zeitpunkt unterbrochen.
+* **Zukunftsplanung:** Online-Stores, App-Kataloge und zusätzliche Update-Quellen bleiben ausdrücklich zukünftigen Releases vorbehalten.
 
-The current channel is determined centrally, not per provider.
+Channel und Severity sind getrennte Konzepte:
+* Channel steuert den Release-Stream (`alpha` / `beta` / `stable`).
+* Severity beschreibt die Dringlichkeit eines konkreten Updates (`normal` / `important` / `critical`).
 
 ---
 

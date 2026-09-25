@@ -8,6 +8,7 @@ const updatesApi = {
   install:      () => ipcRenderer.invoke("updates:install"),
   getState:     () => ipcRenderer.invoke("updates:get-state"),
   getChannel:   () => ipcRenderer.invoke("updates:get-channel"),
+  getStoredChannel: () => ipcRenderer.invoke("updates:get-stored-channel"),
   setChannel:   (channel) => ipcRenderer.invoke("updates:set-channel", channel),
   getCurrentVersion:    () => ipcRenderer.invoke("updates:get-current-version"),
   isPrerelease:         () => ipcRenderer.invoke("updates:is-prerelease"),
@@ -347,4 +348,8 @@ contextBridge.exposeInMainWorld("pluginHttpAPI", {
   getOrigin:   ()                         => ipcRenderer.invoke("plugin:getHttpOrigin"),
   getAssetUrl: (pluginId, relativePath)   => ipcRenderer.invoke("plugin:getAssetUrl", pluginId, relativePath)
 });
+
+// UPDATES API (Zentral und abwärtskompatibel auf window.updatesAPI und window.updateAPI)
+contextBridge.exposeInMainWorld("updatesAPI", updatesApi);
+contextBridge.exposeInMainWorld("updateAPI", updatesApi);
 

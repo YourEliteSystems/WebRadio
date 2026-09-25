@@ -96,4 +96,14 @@ function validate() {
 
 }
 
+if (require.main === module) {
+    try {
+        const result = validate();
+        console.log(`✅ Release validation successful: ${result.version}`);
+    } catch (err) {
+        console.error(`❌ Release validation failed: ${err.message}`);
+        process.exit(1);
+    }
+}
+
 module.exports = validate;

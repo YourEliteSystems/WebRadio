@@ -16,6 +16,7 @@ const UpdateChannel = require("./UpdateChannel");
 const MarkdownSanitizer = require("./MarkdownSanitizer");
 const ChannelMetadata = require("./ChannelMetadata");
 const ReleaseChannel = require("./ReleaseChannel");
+const ChannelStore = require("./settings");
 
 module.exports = {
     updateManager: UpdateManager,
@@ -33,5 +34,9 @@ module.exports = {
     getUpdateChannelMetadata: ChannelMetadata.getUpdateChannelMetadata,
     getAllUpdateChannelMetadata: ChannelMetadata.getAllUpdateChannelMetadata,
     hasChannelMetadata: ChannelMetadata.hasChannelMetadata,
-    releaseChannel: ReleaseChannel
+    releaseChannel: ReleaseChannel,
+
+    getStoredChannel: ChannelStore.getStoredChannel,
+    setStoredChannel: ChannelStore.setStoredChannel,
+    isValidStoredChannel: ChannelStore.isValidStoredChannel
 };

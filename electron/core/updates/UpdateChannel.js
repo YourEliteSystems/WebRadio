@@ -184,8 +184,11 @@ function detectChannelFromVersion(version) {
  */
 function getUpdateChannel(settings, currentVersion) {
     // 1. User-Settings haben höchste Priorität
-    if (settings && settings.updates && settings.updates.channel) {
-        const userChannel = settings.updates.channel;
+    if (settings && typeof settings === "object") {
+        const userChannel = settings.updateChannel ||
+            (settings.updates && typeof settings.updates === "object" ? settings.updates.channel : null) ||
+            settings["updates.channel"] ||
+            settings.channel;
         if (isValidChannel(userChannel)) {
             return userChannel;
         }

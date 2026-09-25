@@ -4,6 +4,24 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7-alpha.1] – 2026-09-25
+
+> Vorabversion 1.0.7-alpha.1. Einführung der persistenten Update-Channel-Speicherung, vollständige Alpha-Kanal-Integration und Härtung der Update-Infrastruktur.
+
+### 🔄 Update-System & Channel-Persistenz
+
+- **Persistente Speicherung:** Der vom Benutzer ausgewählte Update-Channel (Alpha, Beta, Stable) wird dauerhaft im Electron-Main-Prozess (`settings.json` im `userData`-Verzeichnis) über das zentrale `SettingsManager`- und `StorageManager`-System gespeichert.
+- **Neustart-Sicherheit:** Nach einem vollständigen Anwendungsneustart bleibt die ausgewählte Channel-Einstellung garantiert erhalten und wird sowohl im Updater als auch in der UI konsistent aktiviert.
+- **Startup-Validierung & Fallback:** Beim Start wird die gespeicherte Konfiguration gegen gültige Channel-IDs (`alpha`, `beta`, `stable`) validiert. Ungültige oder fehlende Werte fallen sicher auf den Versions-Standard zurück, ohne andere Benutzereinstellungen zu beeinträchtigen.
+- **Keine Playback-Unterbrechung:** Das Wechseln des Update-Channels erfolgt nahtlos im Hintergrund ohne Unterbrechung der laufenden Radio- oder MediaHub-Wiedergabe.
+- **IPC & Preload-Konsistenz:** Die Update-API wurde über `updatesAPI` und `updateAPI` (`getChannel`, `getStoredChannel`, `setChannel`, `getChannelMetadata`, `getAllChannelMetadata`) sicher und strukturiert für Renderer-Prozesse bereitgestellt.
+
+### 🧪 Tests & Qualitätssicherung
+
+- **Persistenz-Testsuite:** Neue und reaktivierte Komponententests in `updater.test.js` und `update-channel.test.js` zur Verifikation der Channel-Persistenz (Alpha, Beta, Stable) über simulierte Neustarts, Validierungsprüfungen und Injection-Schutz.
+
+---
+
 ## [v1.0.6] – 2026-09-18
 
 > Stabile Release-Version v1.0.6. Build-Infrastruktur-Updates: Electron 40.7.0 → 44.4.1, package-lock.json synchronisiert, Worktree-Pfade korrigiert und Diagnose-Infrastruktur für Boot-Time-Metriken erweitert. **Hinweis:** Die Security-Lückenbehebungen aus v1.0.6-beta.7 sind in dieser Version enthalten (siehe beta.7 Changelog).

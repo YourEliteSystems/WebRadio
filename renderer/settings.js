@@ -195,6 +195,7 @@ const channelBadge    = document.getElementById("channelBadge");
 const betaHint        = document.getElementById("betaHint");
 const channelStable   = document.getElementById("channelStable");
 const channelBeta     = document.getElementById("channelBeta");
+const channelAlpha    = document.getElementById("channelAlpha");
 const channelOptions  = document.querySelectorAll(".channel-option");
 const betaModal       = document.getElementById("betaWarningModal");
 const betaCancel      = document.getElementById("betaWarningCancel");
@@ -443,6 +444,7 @@ function applyProgress(progress) {
 function setChannelSelection(channel) {
   if (channelStable) channelStable.checked = channel === "stable";
   if (channelBeta)   channelBeta.checked   = channel === "beta";
+  if (channelAlpha)  channelAlpha.checked  = channel === "alpha";
   channelOptions.forEach((opt) => {
     opt.classList.toggle("selected", opt.dataset.channel === channel);
   });
@@ -465,7 +467,7 @@ async function loadChannel() {
 }
 
 async function applyChannelChange(newChannel, { skipConfirm } = {}) {
-  if (newChannel !== "stable" && newChannel !== "beta") return;
+  if (newChannel !== "stable" && newChannel !== "beta" && newChannel !== "alpha") return;
   if (newChannel === lastChannel) {
     setChannelSelection(newChannel);
     return;

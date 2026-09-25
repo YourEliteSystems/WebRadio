@@ -32,6 +32,7 @@ const SettingsManager = require("../storage/SettingsManager");
 
 const UpdateState = require("./UpdateState");
 const UpdateChannel = require("./UpdateChannel");
+const ChannelStore = require("./settings");
 const MarkdownSanitizer = require("./MarkdownSanitizer");
 
 // Beta 4: Provider-Routing. Die bestehende electron-updater-Logik
@@ -245,6 +246,13 @@ class UpdateManager {
     }
 
     /**
+     * Liefert den dauerhaft gespeicherten Channel.
+     */
+    getStoredChannel() {
+        return ChannelStore.getStoredChannel();
+    }
+
+    /**
      * Liefert die aktuell installierte Version.
      */
     getCurrentVersion() {
@@ -252,17 +260,25 @@ class UpdateManager {
     }
 
     /**
-     * Setzt den Update-Kanal und persistiert die Wahl.
+     * Setzt den Update-Kanal und persistiert die Wahl dauerhaft.
      *
-     * Beim Wechsel auf "beta" wird KEINE Warnung ausgelöst –
-     * das übernimmt der Renderer (Beta-Warnung im UI).
-     *
-     * @param {"stable"|"beta"} channel
+     * @param {"stable"|"beta"|"alpha"} channel
      */
     setChannel(channel) {
         if (!UpdateChannel.isValidChannel(channel)) {
             throw new Error(UpdateState.ERROR_CODES.INVALID_CHANNEL);
         }
+
+        // 1. Dauerhaft in Settings speichern (Main-Prozess)
+        const saved = ChannelStore.setStoredChannel(channel);
+        if (!saved) {
+            logger.error(`[Updater] Speichern des Channels '${channel}' fehlgeschlagen`);
+            throw new Error(UpdateState.ERROR_CODES.CHANNEL_SWITCH_FAILED);
+        }
+
+        // Spiegeln für Abwärtskompatibilität
+        this._persistSettingSync(SETTING_KEYS.CHANNEL, channel);
+
         if (this._state.channel === channel) {
             return UpdateState.cloneState(this._state);
         }
@@ -270,8 +286,6 @@ class UpdateManager {
         const previous = this._state.channel;
         this._state.channel = channel;
         logger.info(`[Updater] Channel-Wechsel: ${previous} -> ${channel}`);
-
-        this._persistSetting(SETTING_KEYS.CHANNEL, channel);
 
         // Bei Channel-Wechsel: notified-state neu bewerten, damit
         // der Benutzer ggf. über bereits bekannte Versionen des
@@ -297,6 +311,10 @@ class UpdateManager {
             }
         }
 
+        this._broadcastEvent("channel-changed", {
+            channel: channel,
+            previous: previous
+        });
         this._broadcastState();
         return UpdateState.cloneState(this._state);
     }
@@ -883,8 +901,13 @@ class UpdateManager {
     _readSettings() {
         try {
             const all = SettingsManager.get() || {};
+            const channel = ChannelStore.getStoredChannel() ||
+                all.updateChannel ||
+                (all.updates && typeof all.updates === "object" ? all.updates.channel : null) ||
+                all[SETTING_KEYS.CHANNEL] ||
+                all.channel;
             return {
-                channel: all[SETTING_KEYS.CHANNEL],
+                channel,
                 lastCheck: all[SETTING_KEYS.LAST_CHECK],
                 lastNotified: all[SETTING_KEYS.LAST_NOTIFIED],
                 autoCheck: all[SETTING_KEYS.AUTO_CHECK]
@@ -907,9 +930,7 @@ class UpdateManager {
         }
         this._settingsWriteTimer = setTimeout(() => {
             try {
-                const current = SettingsManager.get() || {};
-                current[key] = value;
-                SettingsManager.update(current);
+                this._persistSettingSync(key, value);
             } catch (err) {
                 logger.warn(`[Updater] Settings schreiben fehlgeschlagen: ${err.message}`);
             }
@@ -940,6 +961,13 @@ class UpdateManager {
         try {
             const current = SettingsManager.get() || {};
             current[key] = value;
+            if (key === SETTING_KEYS.CHANNEL) {
+                current.updateChannel = value;
+                if (!current.updates || typeof current.updates !== "object") {
+                    current.updates = {};
+                }
+                current.updates.channel = value;
+            }
             SettingsManager.update(current);
         } catch (err) {
             logger.warn(`[Updater] Settings schreiben (sync) fehlgeschlagen: ${err.message}`);
@@ -958,17 +986,20 @@ class UpdateManager {
     }
 
     _resolveChannel(raw) {
-        // Settings lesen und Channel aus Settings extrahieren
-        const settings = this._readSettings();
-        const settingsChannel = settings?.updates?.channel;
-        
-        // Wenn Settings einen Channel haben, diesen verwenden
-        if (UpdateChannel.isValidChannel(settingsChannel)) {
-            return settingsChannel;
+        // 1. Zuerst gespeicherten Channel aus ChannelStore prüfen
+        const stored = ChannelStore.getStoredChannel();
+        if (stored && UpdateChannel.isValidChannel(stored)) {
+            return stored;
         }
-        
-        // Fallback: Version-basierte Detection
-        return UpdateChannel.detectChannelFromVersion(app.getVersion());
+
+        // 2. Explizit übergebenen Rohwert prüfen
+        if (typeof raw === "string" && UpdateChannel.isValidChannel(raw)) {
+            return raw;
+        }
+
+        // 3. User-Settings via getUpdateChannel prüfen
+        const settings = SettingsManager.get() || {};
+        return UpdateChannel.getUpdateChannel(settings, this.getCurrentVersion());
     }
 
     _resetForChannelSwitch() {

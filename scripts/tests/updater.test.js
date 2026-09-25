@@ -742,38 +742,117 @@ test("Listener wird nicht doppelt registriert (set-Semantik)", () => {
 // ─────────────────────────────────────────────────────────────
 console.log("\n[8] Channel-Persistenz");
 
-// test.skip("setChannel persistiert über initialize() hinweg", () => {
-//     // StorageManager.initialize() manuell aufrufen, damit die
-//     // Verzeichnisse und Dateien existieren.
-//     const StorageManager = require("../../electron/core/storage/StorageManager");
-//     StorageManager.initialize();
-//
-//     // Zuerst sicherstellen, dass die settings.json-Datei existiert.
-//     const settingsFile = path.join(tmpRoot, "settings.json");
-//     if (!fs.existsSync(settingsFile)) {
-//         fs.writeFileSync(settingsFile, "{}", "utf8");
-//     }
-//
-//     updateManager.initialize();
-//     updateManager.setChannel("beta");
-//
-//     // SCHRITT A: Settings direkt über SettingsManager schreiben
-//     // Dies ist die korrekte Methode für Persistenz-Tests
-//     const SettingsManager = require("../../electron/core/storage/SettingsManager");
-//     SettingsManager.update({ updates: { channel: "beta" } });
-//
-//     // SCHRITT B: UpdateManager komplett neu laden
-//     for (const key of Object.keys(require.cache)) {
-//         if (key.includes(path.join("electron", "core", "updates"))) {
-//             delete require.cache[key];
-//         }
-//     }
-//     const fresh = require("../../electron/core/updates").updateManager;
-//     fresh.initialize();
-//     assert.strictEqual(fresh.getChannel(), "beta",
-//         "Beta-Channel muss nach Neustart aus Settings geladen werden");
-//     fresh.dispose();
-// });
+test("setChannel(beta) persistiert über Neustart hinweg", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+
+    const settingsFile = path.join(tmpRoot, "settings.json");
+    if (!fs.existsSync(settingsFile)) {
+        fs.writeFileSync(settingsFile, "{}", "utf8");
+    }
+
+    updateManager.initialize();
+    updateManager.setChannel("beta");
+
+    // Simulierter Neustart: Cache leeren
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    assert.strictEqual(fresh.getChannel(), "beta",
+        "Beta-Channel muss nach Neustart aus Settings geladen werden");
+    assert.strictEqual(fresh.getStoredChannel(), "beta");
+    fresh.dispose();
+});
+
+test("setChannel(alpha) persistiert über Neustart hinweg", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+
+    updateManager.initialize();
+    updateManager.setChannel("alpha");
+
+    // Simulierter Neustart: Cache leeren
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    assert.strictEqual(fresh.getChannel(), "alpha",
+        "Alpha-Channel muss nach Neustart aus Settings geladen werden");
+    assert.strictEqual(fresh.getStoredChannel(), "alpha");
+    fresh.dispose();
+});
+
+test("setChannel(stable) persistiert über Neustart hinweg", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+
+    updateManager.initialize();
+    updateManager.setChannel("alpha");
+    updateManager.setChannel("stable");
+
+    // Simulierter Neustart: Cache leeren
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    assert.strictEqual(fresh.getChannel(), "stable",
+        "Stable-Channel muss nach Neustart aus Settings geladen werden");
+    assert.strictEqual(fresh.getStoredChannel(), "stable");
+    fresh.dispose();
+});
+
+test("Ungültiger gespeicherter Channel fällt sicher auf Standard zurück", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+    const SettingsManager = require("../../electron/core/storage/SettingsManager");
+    SettingsManager.update({ updateChannel: "invalid_channel_id", otherSetting: "preserved" });
+
+    // Simulierter Neustart
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    // Default für 1.0.6 (kein Pre-Release) ist stable
+    assert.strictEqual(fresh.getChannel(), "stable");
+    // Andere Einstellungen bleiben erhalten
+    const currentSettings = SettingsManager.get();
+    assert.strictEqual(currentSettings.otherSetting, "preserved");
+    fresh.dispose();
+});
+
+test("Fehlende Einstellung verwendet Standardwert", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    assert.strictEqual(fresh.getStoredChannel(), null);
+    assert.strictEqual(fresh.getChannel(), "stable");
+    fresh.dispose();
+});
 
 test("Channel-Wechsel resettet lastNotifiedVersion", () => {
     updateManager.initialize();
@@ -980,6 +1059,90 @@ test("Channels-Objekt enthält stable, beta und alpha", () => {
     assert.strictEqual(UpdateIndex.channels.STABLE, "stable");
     assert.strictEqual(UpdateIndex.channels.BETA, "beta");
     assert.strictEqual(UpdateIndex.channels.ALPHA, "alpha");
+});
+
+test("updates:get-stored-channel liefert den gespeicherten Channel über IPC", async () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "ipc", "updaterHandlers"))
+            || key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    require("../../electron/core/ipc/updaterHandlers")();
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    fresh.setChannel("alpha");
+
+    const getStoredHandler = fakeIpcMain._handlers.get("updates:get-stored-channel");
+    assert.ok(getStoredHandler, "updates:get-stored-channel muss registriert sein");
+    const res = getStoredHandler({});
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(res.channel, "alpha");
+});
+
+test("updates:set-channel lehnt Nicht-String, Objekt- und Pfad-Injections ab", async () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "ipc", "updaterHandlers"))
+            || key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    require("../../electron/core/ipc/updaterHandlers")();
+    const setHandler = fakeIpcMain._handlers.get("updates:set-channel");
+
+    // Nicht-String
+    const numRes = await setHandler({}, 123);
+    assert.strictEqual(numRes.ok, false);
+    assert.strictEqual(numRes.error.code, "INVALID_CHANNEL");
+
+    // Objekt-Injection
+    const objRes = await setHandler({}, { channel: "alpha" });
+    assert.strictEqual(objRes.ok, false);
+
+    // Path traversal / Injection
+    const pathRes = await setHandler({}, "../../etc/passwd");
+    assert.strictEqual(pathRes.ok, false);
+});
+
+test("autoUpdater übernimmt korrekte Konfiguration für Alpha, Beta und Stable", () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    fresh._setTestAutoUpdater(fakeAutoUpdater);
+
+    // Wechsel auf Alpha
+    fresh.setChannel("alpha");
+    assert.strictEqual(fakeAutoUpdater.channel, "alpha");
+    assert.strictEqual(fakeAutoUpdater.allowPrerelease, true);
+
+    // Wechsel auf Beta
+    fresh.setChannel("beta");
+    assert.strictEqual(fakeAutoUpdater.channel, "beta");
+    assert.strictEqual(fakeAutoUpdater.allowPrerelease, true);
+
+    // Wechsel auf Stable
+    fresh.setChannel("stable");
+    assert.strictEqual(fakeAutoUpdater.channel, null);
+    assert.strictEqual(fakeAutoUpdater.allowPrerelease, false);
+});
+
+test("Channel-Wechsel beeinträchtigt keine Audio-Module", () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+
+    // Channel-Wechsel
+    fresh.setChannel("alpha");
+    assert.strictEqual(fresh.getChannel(), "alpha");
+    // Keine Seiteneffekte auf globale Player-Instanzen
 });
 
 // ─────────────────────────────────────────────────────────────

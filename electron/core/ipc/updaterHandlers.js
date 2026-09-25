@@ -101,15 +101,30 @@ function registerUpdaterHandlers() {
         return { ok: true, channel: updateManager.updateManager.getChannel() };
     });
 
+    ipcMain.handle("updates:get-stored-channel", () => {
+        return { ok: true, channel: updateManager.updateManager.getStoredChannel() };
+    });
+
     ipcMain.handle("updates:set-channel", async (_event, channel) => {
         try {
+            if (typeof channel !== "string") {
+                return {
+                    ok: false,
+                    error: { code: "INVALID_CHANNEL", message: "Channel muss eine Zeichenkette sein" },
+                    channel: updateManager.updateManager.getChannel()
+                };
+            }
             const state = updateManager.updateManager.setChannel(channel);
-            return { ok: true, state };
+            return { ok: true, state, channel: updateManager.updateManager.getChannel() };
         } catch (err) {
             logger.error(`updates:set-channel: ${err.message}`);
             return {
                 ok: false,
-                error: { code: "INVALID_CHANNEL", message: err.message }
+                error: {
+                    code: err.message === "UPDATER_INVALID_CHANNEL" ? "INVALID_CHANNEL" : "CHANNEL_SWITCH_FAILED",
+                    message: err.message
+                },
+                channel: updateManager.updateManager.getChannel()
             };
         }
     });
@@ -227,6 +242,19 @@ function registerUpdaterHandlers() {
         }
     });
 
+    ipcMain.handle("updates:get-channel-metadata", (_event, channel) => {
+        try {
+            const meta = ChannelMetadata.getUpdateChannelMetadata(channel);
+            return {
+                ok: true,
+                metadata: meta
+            };
+        } catch (err) {
+            logger.error(`updates:get-channel-metadata: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
+    });
+
     ipcMain.handle("update:getAllChannelMetadata", () => {
         try {
             return {
@@ -235,6 +263,18 @@ function registerUpdaterHandlers() {
             };
         } catch (err) {
             logger.error(`update:getAllChannelMetadata: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
+    });
+
+    ipcMain.handle("updates:get-all-channel-metadata", () => {
+        try {
+            return {
+                ok: true,
+                channels: ChannelMetadata.getAllUpdateChannelMetadata()
+            };
+        } catch (err) {
+            logger.error(`updates:get-all-channel-metadata: ${err.message}`);
             return { ok: false, error: { code: "INTERNAL", message: err.message } };
         }
     });

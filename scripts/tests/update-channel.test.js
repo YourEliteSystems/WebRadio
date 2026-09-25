@@ -118,6 +118,12 @@ test("User-Settings haben Priorität", () => {
   assert.strictEqual(getUpdateChannel(settings, "1.0.7"), CHANNELS.ALPHA);
 });
 
+test("User-Settings mit updateChannel haben Priorität", () => {
+  const UpdateChannel = require("../../electron/core/updates/UpdateChannel");
+  const settings = { updateChannel: CHANNELS.ALPHA };
+  assert.strictEqual(UpdateChannel.getUpdateChannel(settings, "1.0.7"), CHANNELS.ALPHA);
+});
+
 test("Version-Fallback ohne Settings", () => {
   assert.strictEqual(getUpdateChannel(null, "1.0.7-alpha.1"), CHANNELS.ALPHA);
 });
