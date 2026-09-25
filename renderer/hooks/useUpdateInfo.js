@@ -12,10 +12,14 @@ export function useUpdateInfo() {
   const [version, setVersion] = useState(null);
   const [isPrerelease, setIsPrerelease] = useState(false);
   const [channel, setChannel] = useState('stable');
+  // Channel der installierten Build-Version. Wird – anders als der aktive
+  // Update-Channel – nicht von Channel-Wechseln beeinflusst und ändert sich
+  // erst, wenn tatsächlich ein Update installiert wurde.
+  const [versionChannel, setVersionChannel] = useState(null);
 
   useEffect(() => {
     let mounted = true;
-    let cleanupFns = [];
+    const cleanupFns = [];
 
     async function loadInitial() {
       try {
@@ -25,6 +29,8 @@ export function useUpdateInfo() {
             setVersion(info.version);
             setIsPrerelease(!!info.isPrerelease);
             setChannel(info.channel || 'stable');
+            // Fallback: Ältere Main-Prozesse liefern versionChannel nicht.
+            setVersionChannel(info.versionChannel || info.channel || 'stable');
           }
         }
         if (window.updatesAPI?.getState) {
@@ -97,5 +103,5 @@ export function useUpdateInfo() {
     };
   }, []);
 
-  return { updateInfo, version, isPrerelease, channel };
+  return { updateInfo, version, isPrerelease, channel, versionChannel };
 }

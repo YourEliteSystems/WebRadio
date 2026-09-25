@@ -123,15 +123,65 @@ WebRadio unterstützt drei offizielle Update-Kanäle:
 * **beta** – Vorabversionen mit neuen Funktionen vor dem Stable-Release
 * **stable** – Offizielle, stabile Versionen (in electron-updater als `latest` geführt)
 
+### Gültige Channel-IDs
+
+Die gültigen IDs stammen ausschließlich aus der Core-Implementierung (`UpdateState.CHANNELS`, `UpdateChannel.isValidChannel()` und `ChannelMetadata.CHANNEL_IDS`):
+
+| Channel-ID | electron-updater channel | allowPrerelease | Akzeptierte Releases |
+| ---------- | ------------------------ | --------------- | -------------------- |
+| `alpha`    | `alpha`                  | `true`          | Alpha, Beta, Stable  |
+| `beta`     | `beta`                   | `true`          | Beta, Stable         |
+| `stable`   | `null` (= `latest`)      | `false`         | nur Stable           |
+
+`allowDowngrade` ist zusätzlich aktiv, wenn die installierte Version ein Pre-Release ist. Die Channel-IDs werden nicht umbenannt; die Zuordnung zum electron-updater-Kanal erfolgt zentral in `UpdateChannel.getUpdaterConfig()`.
+
 ### Persistente Speicherung
 
 * **Speicherort:** Gespeichert im Electron-Main-Prozess in `settings.json` im `userData`-Bereich über das `SettingsManager` / `StorageManager`-System (Schlüssel: `updateChannel` bzw. `updates.channel`).
 * **Sicherheit:** Der Renderer-Prozess besitzt keinen direkten Dateisystemzugriff. Änderungen werden ausschließlich über validierte IPC-Kanäle abgewickelt.
-* **Erster Start (Default):** Ist keine Einstellung vorhanden, greift die automatische Versions-Erkennung (`detectChannelFromVersion()`). Bei Standard-Builds ist der Standardkanal `stable`.
-* **Ungültige Einstellungen:** Wurde ein ungültiger Wert in der Konfiguration hinterlegt, fällt das System sicher auf den Standardkanal zurück, ohne andere Benutzereinstellungen zu überschreiben oder zu löschen.
+* **Erster Start (Default):** Ist keine Einstellung vorhanden, greift die automatische Versions-Erkennung (`detectChannelFromVersion()`). Bei Standard-Builds ist der Standardkanal `stable`; Pre-Release-Builds verwenden den Kanal ihrer eigenen Version (z. B. `1.0.7-alpha.1` → `alpha`).
+* **Ungültige Einstellungen:** Wurde ein ungültiger Wert in der Konfiguration hinterlegt, fällt das System sicher auf den Standardkanal zurück, ohne andere Benutzereinstellungen zu überschreiben oder zu löschen. Es entsteht keine ungültige Updater-Konfiguration.
 * **Neustart-Sicherheit:** Ein vom Benutzer explizit ausgewählter Kanal (z. B. `alpha`) bleibt über jeden Anwendungsneustart hinweg garantiert erhalten.
-* **Channel-Wechsel:** Der Wechsel über die UI speichert die Wahl unmittelbar und rekonfiguriert den AutoUpdater zur Laufzeit. Die laufende Radio- oder MediaHub-Wiedergabe wird zu keinem Zeitpunkt unterbrochen.
+* **Channel-Wechsel:** Der Wechsel über die UI speichert die Wahl unmittelbar und rekonfiguriert den AutoUpdater zur Laufzeit. Die laufende Radio- oder MediaHub-Wiedergabe wird zu keinem Zeitpunkt unterbrochen. Für die Wirksamkeit des Kanals ist **kein Neustart** erforderlich – der Kanal gilt sofort für manuelle und automatische Update-Prüfungen.
+* **Installierte Version bleibt unverändert:** Der Wechsel des Kanals ändert nicht die laufende Build-Version. Die UI zeigt daher den Kanal der installierten Version (`versionChannel`) getrennt vom aktiven Update-Channel und weist darauf hin, dass die Version erst nach einem installierten Update wechselt.
 * **Zukunftsplanung:** Online-Stores, App-Kataloge und zusätzliche Update-Quellen bleiben ausdrücklich zukünftigen Releases vorbehalten.
+
+### Startup-Reihenfolge
+
+```text
+Application.start()
+  → StorageManager.initialize()      (userData-Struktur + settings.json)
+  → updateManager.initialize()       (idempotent)
+      → ChannelStore.getStoredChannel()   (settings.json, validiert)
+      → Fallback: UpdateChannel.getUpdateChannel(settings, app-Version)
+      → _configureAutoUpdater()           (channel / allowPrerelease / allowDowngrade)
+  → IPC-Handler registriert
+  → Renderer fragt updates:get-channel / updates:get-current-version ab
+```
+
+Der Renderer erhält damit immer den tatsächlich aktiven Channel – unabhängig davon, ob der Wert gespeichert, aus der Version abgeleitet oder als Fallback gesetzt wurde.
+
+### Update-API (IPC/Preload)
+
+Verfügbar über `window.updatesAPI` und identisch über `window.updateAPI`:
+
+| Methode | Zweck |
+| ------- | ----- |
+| `getChannel()` | aktiver Update-Channel |
+| `getStoredChannel()` | dauerhaft gespeicherter Channel (`null`, wenn keiner gespeichert ist) |
+| `setChannel(channel)` | Channel validieren, speichern und aktivieren |
+| `getChannelMetadata()` | Metadaten (Label, Farbe, Icon) eines Channels |
+| `getAllChannelMetadata()` | Metadaten aller Channels (inkl. Anzeigereihenfolge) |
+| `getCurrentVersion()` | Version, `isPrerelease`, `channel` (aktiv) und `versionChannel` (installierte Build) |
+| `onChannelChanged()` | Ereignis nach erfolgreichem Channel-Wechsel |
+
+**Sicherheitsgrenzen:**
+
+* Channel-Validierung ausschließlich im Main-Prozess; der Renderer kann lediglich eine der drei kanonischen IDs übergeben.
+* Kein Dateisystemzugriff und keine Node.js-Core-Module im Renderer.
+* Es werden keine Manager-Instanzen und keine Konfigurationspfade exponiert; Renderer-Parameter können keine Pfade bestimmen.
+* Fehler werden strukturiert (`{ ok: false, error: { code, message } }`) zurückgegeben; es werden keine Secrets oder internen Dateisystempfade ausgeliefert.
+* Bei einem Speicherfehler bleibt die vorherige gültige Einstellung aktiv.
 
 Channel und Severity sind getrennte Konzepte:
 * Channel steuert den Release-Stream (`alpha` / `beta` / `stable`).

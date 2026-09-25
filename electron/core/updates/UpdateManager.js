@@ -33,6 +33,7 @@ const SettingsManager = require("../storage/SettingsManager");
 const UpdateState = require("./UpdateState");
 const UpdateChannel = require("./UpdateChannel");
 const ChannelStore = require("./settings");
+const ChannelMetadata = require("./ChannelMetadata");
 const MarkdownSanitizer = require("./MarkdownSanitizer");
 
 // Beta 4: Provider-Routing. Die bestehende electron-updater-Logik
@@ -257,6 +258,24 @@ class UpdateManager {
      */
     getCurrentVersion() {
         return app.getVersion();
+    }
+
+    /**
+     * Liefert den Channel, dem die aktuell installierte Build-Version
+     * zugeordnet ist (z. B. "alpha" für 1.0.7-alpha.1).
+     *
+     * WICHTIG: Das ist NICHT der aktive Update-Channel. Der aktive
+     * Channel (getChannel()) steuert, welche Releases angeboten werden.
+     * Der Versions-Channel beschreibt dagegen, aus welchem Stream die
+     * laufende Build-Version stammt und ändert sich erst, wenn
+     * tatsächlich ein Update installiert wurde.
+     *
+     * Die Erkennung erfolgt ausschließlich über die zentrale Funktion
+     * UpdateChannel.detectChannelFromVersion() – keine zweite
+     * Channel-Erkennung.
+     */
+    getVersionChannel() {
+        return UpdateChannel.detectChannelFromVersion(this.getCurrentVersion());
     }
 
     /**
@@ -1048,8 +1067,11 @@ class UpdateManager {
         }
 
         try {
-            const channelLabel = this._state.channel === UpdateState.CHANNELS.BETA
-                ? "Beta" : "Stable";
+            // Channel-Label kommt zentral aus ChannelMetadata – keine
+            // lokale Beta/Stable-Unterscheidung (Alpha würde sonst
+            // fälschlich als "Stable" angezeigt).
+            const meta = ChannelMetadata.getUpdateChannelMetadata(this._state.channel);
+            const channelLabel = meta ? meta.label : this._state.channel;
             const n = new Notification({
                 title: "WebRadio – Update verfügbar",
                 body: `WebRadio ${version} (${channelLabel}) ist verfügbar.`,

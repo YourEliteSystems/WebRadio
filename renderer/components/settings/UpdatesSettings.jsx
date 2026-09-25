@@ -6,10 +6,13 @@ const UpdatesSettings = () => {
   const [downloadProgress, setDownloadProgress] = useState(null);
   const [downloaded, setDownloaded] = useState(false);
   const [currentVersion, setCurrentVersion] = useState('–');
+  // Channel der installierten Build-Version (Versions-Stempel). Bleibt bei
+  // einem Kanal-Wechsel unverändert und aktualisiert sich erst, wenn
+  // tatsächlich ein Update installiert wurde.
   const [currentChannel, setCurrentChannel] = useState('stable');
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(true);
+  // Aktiver Update-Channel (Benutzerauswahl). Steuert die Update-Prüfungen.
   const [channel, setChannel] = useState('stable');
-  const [channelMeta, setChannelMeta] = useState(null);
   const [channelsMeta, setChannelsMeta] = useState([]);
   const [showBetaWarning, setShowBetaWarning] = useState(false);
   const [showAlphaWarning, setShowAlphaWarning] = useState(false);
@@ -22,6 +25,15 @@ const UpdatesSettings = () => {
     if (!currentChannel) return null;
     return channelsMeta.find((m) => m.id === currentChannel) || null;
   }, [currentChannel, channelsMeta]);
+
+  // Metadaten des AKTIVEN Update-Channels kommen ausschließlich aus
+  // ChannelMetadata (Core) über die Update-API. Abgeleitet statt in
+  // State gespiegelt, damit Kanal-Wechsel nie veraltete Labels,
+  // Farben oder Icons anzeigen.
+  const channelMeta = useMemo(
+    () => channelsMeta.find((m) => m.id === channel) || null,
+    [channelsMeta, channel]
+  );
 
   // Format bytes helper
   const formatBytes = (n) => {
@@ -81,11 +93,13 @@ const UpdatesSettings = () => {
         const info = await window.updatesAPI.getCurrentVersion();
         if (info?.ok) {
           setCurrentVersion(`v${info.version}`);
-          // Release-Channel-Logik: `info.channel` liefert 'alpha' | 'beta' | 'stable'.
-          // Zentral: Fallback auf 'stable', wenn kein gültiger Kanal zurückgegeben wird.
-          if (info.channel === 'alpha') {
+          // Versions-Stempel: `versionChannel` beschreibt den Channel der
+          // installierten Build-Version (zentral im Core ermittelt). Fallback
+          // für ältere Main-Prozesse: der aktive Channel.
+          const versionChannel = info.versionChannel || info.channel;
+          if (versionChannel === 'alpha') {
             setCurrentChannel('alpha');
-          } else if (info.channel === 'beta') {
+          } else if (versionChannel === 'beta') {
             setCurrentChannel('beta');
           } else {
             setCurrentChannel('stable');
@@ -167,54 +181,55 @@ const UpdatesSettings = () => {
     loadAutoCheckSetting();
     loadUpdateState();
 
-    // Channel-Metadaten immer aktuell halten, sobald sich der Channel ändert
-    const syncChannelMeta = (c) => {
-      if (!Array.isArray(channelsMeta) || channelsMeta.length === 0) return;
-      const meta = channelsMeta.find((m) => m.id === c);
-      if (meta) setChannelMeta(meta);
-    };
+    // Channel-Metadaten des aktiven Channels werden abgeleitet (useMemo).
+    // Es gibt daher keinen zusätzlichen Sync-State, der veralten könnte.
 
-    // Event-Listener registrieren
+    // Event-Listener registrieren. Alle Subscriptions geben eine
+    // Unsubscribe-Funktion zurück, die im Cleanup aufgerufen wird –
+    // sonst würden sich bei jedem Tab-Wechsel Handler doppeln.
+    const cleanupFns = [];
     const registerListeners = () => {
       if (window.updatesAPI?.onStateChanged) {
-        window.updatesAPI.onStateChanged((s) => {
+        cleanupFns.push(window.updatesAPI.onStateChanged((s) => {
           applyStateToUI(s);
-        });
+        }));
       }
       if (window.updatesAPI?.onAvailable) {
-        window.updatesAPI.onAvailable((data) => {
+        cleanupFns.push(window.updatesAPI.onAvailable((data) => {
           setUpdateInfo(data);
           setStatusView('available', data);
-        });
+        }));
       }
       if (window.updatesAPI?.onNotAvailable) {
-        window.updatesAPI.onNotAvailable(() => {
+        cleanupFns.push(window.updatesAPI.onNotAvailable(() => {
           setStatusView('current', {});
-        });
+        }));
       }
       if (window.updatesAPI?.onProgress) {
-        window.updatesAPI.onProgress((p) => {
+        cleanupFns.push(window.updatesAPI.onProgress((p) => {
           applyProgress(p);
-        });
+        }));
       }
       if (window.updatesAPI?.onDownloaded) {
-        window.updatesAPI.onDownloaded((data) => {
+        cleanupFns.push(window.updatesAPI.onDownloaded((data) => {
           setUpdateInfo(data);
           setStatusView('downloaded', data);
-        });
+        }));
       }
       if (window.updatesAPI?.onError) {
-        window.updatesAPI.onError(() => {
+        cleanupFns.push(window.updatesAPI.onError(() => {
           setStatusView('error');
-        });
+        }));
       }
       if (window.updatesAPI?.onChannelChanged) {
-        window.updatesAPI.onChannelChanged((data) => {
+        cleanupFns.push(window.updatesAPI.onChannelChanged((data) => {
           if (data?.channel) {
+            // Nur der aktive Channel wechselt; die laufende Build-Version
+            // (Versions-Stempel) bleibt unverändert, bis ein Update
+            // tatsächlich installiert wurde.
             setChannel(data.channel);
-            syncChannelMeta(data.channel);
           }
-        });
+        }));
       }
     };
 
@@ -222,6 +237,16 @@ const UpdatesSettings = () => {
 
     // Check beim Öffnen der Seite
     runUpdateCheck();
+
+    return () => {
+      cleanupFns.forEach((fn) => {
+        try {
+          if (typeof fn === 'function') fn();
+        } catch {
+          /* ignore */
+        }
+      });
+    };
   }, [loadCurrentVersion, loadChannel, loadAutoCheckSetting, loadUpdateState]);
 
   const applyStateToUI = (state) => {
@@ -380,18 +405,21 @@ const UpdatesSettings = () => {
     if (!window.updatesAPI?.setChannel) return;
     try {
       const res = await window.updatesAPI.setChannel(newChannel);
-      if (res?.ok) {
-        setChannel(newChannel);
-        setCurrentChannel(newChannel);
-        // Nach Channel-Wechsel neuen Check anstoßen
+      if (res?.ok && res.channel === newChannel) {
+        // Erfolg erst, wenn der Main-Prozess den Channel validiert und
+        // dauerhaft gespeichert hat (res.channel = tatsächlich aktiv).
+        setChannel(res.channel);
+        // Versions-Stempel bleibt unverändert: die installierte Build-Version
+        // wechselt erst, wenn ein Update tatsächlich installiert wurde.
         runUpdateCheck();
       } else {
-        // zurücksetzen
-        setChannel(currentChannel);
+        // Speicherfehler: vorherige gültige Auswahl beibehalten und
+        // niemals eine nicht gespeicherte Änderung als aktiv anzeigen.
+        setChannel(res?.channel || channel);
       }
     } catch (err) {
       console.error("Channel change failed:", err);
-      setChannel(currentChannel);
+      setChannel(channel);
     }
   };
 
@@ -672,6 +700,13 @@ const UpdatesSettings = () => {
             {channelMeta?.icon}
             <span>Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.</span>
           </div>
+        )}
+        {channel !== currentChannel && (
+          <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '12px 0 0'}}>
+            Der gewählte Kanal ist für alle Update-Prüfungen sofort aktiv. Die installierte Version
+            (<strong>{currentVersion}</strong>) stammt weiterhin aus dem {currentChannelMeta?.label ?? currentChannel}-Kanal
+            und wechselt erst, wenn ein Update installiert wurde.
+          </p>
         )}
       </div>
 

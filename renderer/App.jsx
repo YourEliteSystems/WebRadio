@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
@@ -66,9 +66,8 @@ export default function App() {
   } = usePlayer();
 
   const { favorites, toggleFavorite } = useFavorites();
-  const { updateInfo, version, isPrerelease, channel } = useUpdateInfo();
+  const { updateInfo, version, isPrerelease, channel, versionChannel } = useUpdateInfo();
 
-  const [channelMeta, setChannelMeta] = useState(null);
   const [channelsMeta, setChannelsMeta] = useState([]);
 
   useEffect(() => {
@@ -80,8 +79,6 @@ export default function App() {
           const res = await window.updatesAPI.getAllChannelMetadata();
           if (mounted && res?.ok && Array.isArray(res.channels)) {
             setChannelsMeta(res.channels);
-            const active = res.channels.find((m) => m.id === channel);
-            if (active) setChannelMeta(active);
           }
         }
       } catch (err) {
@@ -96,11 +93,19 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!channelsMeta.length) return;
-    const meta = channelsMeta.find((m) => m.id === channel);
-    if (meta) setChannelMeta(meta);
-  }, [channel, channelsMeta]);
+  // Channel-Metadaten werden zentral aus ChannelMetadata (Core) bezogen.
+  // Aktiver Update-Channel (steuert Update-Badge) und Channel der
+  // installierten Version (steuert den Versions-Stempel) bleiben getrennt,
+  // damit ein Kanal-Wechsel die laufende Build-Version nicht umdeutet.
+  const channelMeta = useMemo(
+    () => channelsMeta.find((m) => m.id === channel) || null,
+    [channelsMeta, channel]
+  );
+
+  const versionChannelMeta = useMemo(
+    () => channelsMeta.find((m) => m.id === (versionChannel || channel)) || null,
+    [channelsMeta, versionChannel, channel]
+  );
 
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
@@ -137,12 +142,12 @@ export default function App() {
           <span className="app-title">WebRadio</span>
           {version && (
             <span
-              className={`app-version ${channelMeta?.id || (isPrerelease ? 'beta' : '')}`}
-              style={{ '--update-channel-color': channelMeta?.color }}
-              title={`WebRadio ${version} – ${channelMeta?.label ?? (isPrerelease ? 'Beta' : 'Stable')}-Kanal`}
+              className={`app-version ${versionChannelMeta?.id || (isPrerelease ? 'beta' : '')}`}
+              style={{ '--update-channel-color': versionChannelMeta?.color }}
+              title={`WebRadio ${version} – ${versionChannelMeta?.label ?? (isPrerelease ? 'Beta' : 'Stable')}-Build`}
             >
               v{version}
-              {isPrerelease && <span className="app-version-badge">{channelMeta?.shortLabel ?? 'BETA'}</span>}
+              {isPrerelease && <span className="app-version-badge">{versionChannelMeta?.shortLabel ?? (isPrerelease ? 'BETA' : '')}</span>}
             </span>
           )}
           {updateInfo && (

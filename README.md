@@ -337,7 +337,13 @@ In den Einstellungen kann zwischen drei Kanälen gewählt werden:
 - **Beta** – Liefert Beta- und stabile Releases. Beim erstmaligen Aktivieren erscheint eine deutliche Sicherheitswarnung.
 - **Alpha** – Liefert Alpha-, Beta- und stabile Releases für frühe Tests.
 
-Der Kanal wird zentral ermittelt (User-Setting → Versions-Fallback → Stable-Fallback). Der Wechsel ist jederzeit in beide Richtungen möglich. Beta → Stable funktioniert auch, wenn die installierte Beta-Version **numerisch neuer** ist als die stabile – die `allowDowngrade`-Option von electron-updater kümmert sich darum.
+Der Kanal wird zentral ermittelt (User-Setting → Versions-Fallback → Stable-Fallback) und im Main-Prozess dauerhaft in `settings.json` (`userData`) gespeichert. Der Wechsel ist jederzeit in beide Richtungen möglich. Beta → Stable funktioniert auch, wenn die installierte Beta-Version **numerisch neuer** ist als die stabile – die `allowDowngrade`-Option von electron-updater kümmert sich darum.
+
+**Persistenz & Neustart:** Die Auswahl (Alpha, Beta, Stable) bleibt nach einem vollständigen Neustart erhalten und ist danach in UI und Updater identisch aktiv. Fehlt eine Einstellung, greift der bestehende Standard (Versions-Erkennung; bei Stable-Builds `stable`). Ein ungültig gespeicherter Wert fällt sicher auf den Standard zurück und löscht keine anderen Einstellungen.
+
+**Kanal-Wechsel:** Der Wechsel wirkt sofort für manuelle und automatische Update-Prüfungen – ein Neustart ist dafür nicht nötig. Die installierte Version (z. B. `1.0.7-alpha.1`) bleibt bis zum nächsten installierten Update unverändert; die UI kennzeichnet Kanal der installierten Version und aktiven Update-Kanal getrennt.
+
+**Update-API:** `window.updatesAPI` (alias `window.updateAPI`) bietet `getChannel()`, `getStoredChannel()`, `setChannel()`, `getChannelMetadata()`, `getAllChannelMetadata()` und `getCurrentVersion()`. Alle Werte werden im Main-Prozess validiert; der Renderer hat keinen Dateisystemzugriff und kann keine Pfade oder Manager-Instanzen beeinflussen.
 
 > **Hinweis:** Channel und Severity sind unterschiedliche Konzepte. Die Severity (`normal` / `important` / `critical`) eines Updates ist unabhängig vom gewählten Channel.
 

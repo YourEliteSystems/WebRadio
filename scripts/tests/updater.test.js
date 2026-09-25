@@ -496,6 +496,7 @@ const updateManager = {
     getState(...args) { return this._mgr.getState(...args); },
     getChannel(...args) { return this._mgr.getChannel(...args); },
     getCurrentVersion(...args) { return this._mgr.getCurrentVersion(...args); },
+    getVersionChannel(...args) { return this._mgr.getVersionChannel(...args); },
     setChannel(...args) { return this._mgr.setChannel(...args); },
     checkForUpdates(...args) { return this._mgr.checkForUpdates(...args); },
     downloadUpdate(...args) { return this._mgr.downloadUpdate(...args); },
@@ -1128,6 +1129,224 @@ test("autoUpdater übernimmt korrekte Konfiguration für Alpha, Beta und Stable"
     fresh.setChannel("stable");
     assert.strictEqual(fakeAutoUpdater.channel, null);
     assert.strictEqual(fakeAutoUpdater.allowPrerelease, false);
+});
+
+test("Kanal-Metadaten stimmen mit der aktiven Channel-ID überein", () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+
+    // UI und Core müssen denselben Channel zeigen; die Metadaten müssen
+    // zur aktiven Channel-ID passen (keine parallele Channel-Erkennung).
+    for (const id of ChannelMetadata.CHANNEL_IDS) {
+        fresh.setChannel(id);
+        assert.strictEqual(fresh.getChannel(), id, `aktiver Channel muss '${id}' sein`);
+        const meta = ChannelMetadata.getUpdateChannelMetadata(fresh.getChannel());
+        assert.ok(meta, `Metadaten für '${id}' müssen existieren`);
+        assert.strictEqual(meta.id, id, "Metadaten-ID muss mit aktivem Channel übereinstimmen");
+        assert.strictEqual(typeof meta.label, "string");
+        assert.ok(meta.color, "Farbe kommt aus zentraler Channel-Metadata");
+    }
+});
+
+test("Ungültiger gespeicherter Channel erzeugt keine fehlerhafte Updater-Konfiguration", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+    const SettingsManager = require("../../electron/core/storage/SettingsManager");
+    SettingsManager.update({
+        updateChannel: "not-a-channel",
+        updates: { channel: 42 },
+        theme: "dark"
+    });
+
+    // Simulierter Neustart
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh._setTestAutoUpdater(fakeAutoUpdater);
+    fresh.initialize();
+
+    assert.strictEqual(fresh.getStoredChannel(), null,
+        "ungültiger Wert darf nicht als gültig gespeicherter Channel gelten");
+    assert.strictEqual(fresh.getChannel(), "stable",
+        "ungültige Einstellung fällt auf den bestehenden Standardwert zurück");
+    // Der AutoUpdater erhält eine vollständig gültige Stable-Konfiguration.
+    assert.strictEqual(fakeAutoUpdater.allowPrerelease, false);
+    assert.strictEqual(fakeAutoUpdater.channel, null);
+    // Andere Benutzereinstellungen werden nicht gelöscht.
+    const stored = require("../../electron/core/storage/SettingsManager").get();
+    assert.strictEqual(stored.theme, "dark");
+});
+
+test("setChannel überschreibt keine bestehenden Benutzereinstellungen", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+    const SettingsManager = require("../../electron/core/storage/SettingsManager");
+    SettingsManager.update({ theme: "dark", volume: 0.42, autoStart: true });
+
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    fresh.setChannel("alpha");
+
+    const after = SettingsManager.get();
+    assert.strictEqual(after.updateChannel, "alpha");
+    assert.strictEqual(after.updates.channel, "alpha");
+    assert.strictEqual(after.theme, "dark");
+    assert.strictEqual(after.volume, 0.42);
+    assert.strictEqual(after.autoStart, true);
+});
+
+test("updates:get-current-version trennt aktiven Channel vom Versions-Channel", () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "ipc", "updaterHandlers"))
+            || key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    require("../../electron/core/ipc/updaterHandlers")();
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    fresh.setChannel("beta");
+
+    const handler = fakeIpcMain._handlers.get("updates:get-current-version");
+    const res = handler({});
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(res.version, "1.0.6");
+    assert.strictEqual(res.channel, "beta",
+        "aktiver Channel entspricht der Benutzerauswahl");
+    assert.strictEqual(res.versionChannel, "stable",
+        "Versions-Channel stammt aus der installierten Build-Version");
+});
+
+test("updates:set-channel behält bei ungültigem Wert den vorherigen Channel", async () => {
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "ipc", "updaterHandlers"))
+            || key.includes(path.join("electron", "core", "updates"))) {
+            delete require.cache[key];
+        }
+    }
+    require("../../electron/core/ipc/updaterHandlers")();
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    fresh.setChannel("stable");
+
+    const setHandler = fakeIpcMain._handlers.get("updates:set-channel");
+    const res = await setHandler({}, "beta-latest");
+    assert.strictEqual(res.ok, false);
+    assert.strictEqual(res.channel, "stable",
+        "vorherige gültige Einstellung bleibt aktiv");
+    assert.strictEqual(fresh.getChannel(), "stable");
+    assert.strictEqual(fresh.getStoredChannel(), "stable");
+});
+
+test("Persistenz über echten Prozess-Neustart (settings.json)", () => {
+    const { execFileSync } = require("child_process");
+    const settingsModule = path.join(
+        __dirname, "..", "..", "electron", "core", "updates", "settings.js"
+    );
+
+    // Kind-Prozess: eigenständiger Node-Prozess mit electron-Stub.
+    // Dadurch wird ein echter App-Neustart simuliert (kein Cache-Trick).
+    const childScript = `
+      const Module = require("module");
+      const original = Module._resolveFilename;
+      Module._resolveFilename = function (request, parent, isMain, options) {
+        if (request === "electron") return "electron-stub";
+        if (request === "electron-updater") return "electron-updater-stub";
+        return original.call(this, request, parent, isMain, options);
+      };
+      const userData = process.env.WEBRADIO_TEST_USERDATA;
+      require.cache["electron-stub"] = {
+        id: "electron-stub", filename: "electron-stub", loaded: true,
+        exports: {
+          app: {
+            isPackaged: false,
+            getVersion: () => "1.0.6",
+            getPath: () => userData
+          },
+          ipcMain: { handle() {}, on() {} },
+          BrowserWindow: { getAllWindows: () => [] },
+          Notification: Object.assign(function () {}, { isSupported: () => false })
+        }
+      };
+      const ChannelStore = require(${JSON.stringify(settingsModule)});
+      if (process.env.WEBRADIO_TEST_ACTION === "set") {
+        ChannelStore.setStoredChannel("alpha");
+      }
+      // Marker, damit Log-Ausgaben den Wert nicht verfälschen.
+      process.stdout.write("CHANNEL_RESULT=" + String(ChannelStore.getStoredChannel()) + "\\n");
+    `;
+
+    const runChild = (action) => {
+        const out = execFileSync(
+            process.execPath,
+            ["-e", childScript],
+            {
+                env: {
+                    ...process.env,
+                    WEBRADIO_TEST_USERDATA: tmpRoot,
+                    WEBRADIO_TEST_ACTION: action
+                },
+                encoding: "utf8"
+            }
+        );
+        const match = /CHANNEL_RESULT=(\S+)/.exec(out);
+        assert.ok(match, `Kind-Prozess lieferte kein Ergebnis: ${out}`);
+        return match[1];
+    };
+
+    // 1. Prozess: Alpha auswählen (schreibt settings.json im userData-Bereich).
+    assert.strictEqual(runChild("set"), "alpha");
+    const saved = JSON.parse(fs.readFileSync(path.join(tmpRoot, "settings.json"), "utf8"));
+    assert.strictEqual(saved.updateChannel, "alpha");
+    assert.strictEqual(saved.updates.channel, "alpha");
+
+    // 2. Prozess (Neustart): gespeicherter Channel ist weiterhin Alpha.
+    assert.strictEqual(runChild("read"), "alpha",
+        "Alpha muss in einem vollständig neuen Prozess erhalten bleiben");
+});
+
+test("System-Benachrichtigung nutzt das Label aus ChannelMetadata", () => {
+    // Notification-Stub mit Capture, temporär im electron-Stub ersetzen.
+    const captured = [];
+    const CapturingNotification = function (options) {
+        captured.push(options);
+    };
+    CapturingNotification.isSupported = () => true;
+    CapturingNotification.prototype.show = function () {};
+
+    require.cache["electron-stub"].exports.Notification = CapturingNotification;
+
+    try {
+        for (const key of Object.keys(require.cache)) {
+            if (key.includes(path.join("electron", "core", "updates"))) {
+                delete require.cache[key];
+            }
+        }
+        const fresh = require("../../electron/core/updates").updateManager;
+        fresh.initialize();
+        fresh.setChannel("alpha");
+        fresh._state.availableVersion = "1.0.7-alpha.2";
+        fresh._maybeShowSystemNotification();
+
+        assert.strictEqual(captured.length, 1, "genau eine Benachrichtigung");
+        assert.ok(
+            captured[0].body.includes("Alpha"),
+            `Alpha-Label muss aus ChannelMetadata stammen: ${captured[0].body}`
+        );
+    } finally {
+        require.cache["electron-stub"].exports.Notification = fakeNotification;
+        fakeNotification.isSupported = () => false;
+    }
 });
 
 test("Channel-Wechsel beeinträchtigt keine Audio-Module", () => {

@@ -16,9 +16,19 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - **Keine Playback-Unterbrechung:** Das Wechseln des Update-Channels erfolgt nahtlos im Hintergrund ohne Unterbrechung der laufenden Radio- oder MediaHub-Wiedergabe.
 - **IPC & Preload-Konsistenz:** Die Update-API wurde über `updatesAPI` und `updateAPI` (`getChannel`, `getStoredChannel`, `setChannel`, `getChannelMetadata`, `getAllChannelMetadata`) sicher und strukturiert für Renderer-Prozesse bereitgestellt.
 
+### 🎨 UI-Konsistenz & Transparenz
+
+- **Zentrale Channel-Metadaten in der UI:** Farbe, Icon und Label von Kanal-Auswahl, Kanal-Badge und Update-Anzeige stammen ausschließlich aus `ChannelMetadata` (Core) über die Update-API. Veraltete Anzeigen nach einem Kanal-Wechsel sind damit ausgeschlossen (die Metadaten werden abgeleitet, nicht in einem separaten State gespiegelt).
+- **Installierte Version vs. aktiver Kanal:** Der Versions-Stempel der UI zeigt den Kanal der **installierten Build-Version** (`versionChannel`, zentral über `UpdateChannel.detectChannelFromVersion()`); Update-Badges zeigen den **aktiven** Update-Channel. Ein Kanal-Wechsel deutet die laufende Build-Version nicht mehr um.
+- **Transparente Aktivierung:** Die UI kommuniziert, dass der gewählte Kanal sofort für Update-Prüfungen aktiv ist, sich die installierte Version aber erst mit dem nächsten installierten Update ändert. Für die Aktivierung des Kanals ist kein Neustart erforderlich.
+- **Korrekte System-Benachrichtigungen:** Die Update-Benachrichtigung nutzt das Channel-Label aus der zentralen Channel-Metadata (Alpha wurde zuvor fälschlich als „Stable“ angezeigt).
+- **Keine Listener-Duplikate:** Die Event-Subscriptions der Update-Einstellungen werden beim Verlassen der Seite sauber abgemeldet.
+
 ### 🧪 Tests & Qualitätssicherung
 
 - **Persistenz-Testsuite:** Neue und reaktivierte Komponententests in `updater.test.js` und `update-channel.test.js` zur Verifikation der Channel-Persistenz (Alpha, Beta, Stable) über simulierte Neustarts, Validierungsprüfungen und Injection-Schutz.
+- **Echter Prozess-Neustart:** Zusätzlicher Test, der die Persistenz in zwei voneinander unabhängigen Node-Prozessen über die reale `settings.json` im `userData`-Bereich verifiziert (echter Neustart statt Cache-Simulation).
+- **Konsistenz-Tests:** Kanal-Metadaten ↔ aktive Channel-ID, ungültige gespeicherte Werte ohne fehlerhafte Updater-Konfiguration, Erhalt bestehender Benutzereinstellungen, Trennung von aktivem Channel und Versions-Channel sowie Beibehaltung der vorherigen Einstellung bei IPC-Fehlern.
 
 ---
 

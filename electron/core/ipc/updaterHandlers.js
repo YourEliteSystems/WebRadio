@@ -134,7 +134,12 @@ function registerUpdaterHandlers() {
             ok: true,
             version: updateManager.updateManager.getCurrentVersion(),
             isPrerelease: updateManager.updateManager.isPrerelease(),
-            channel: updateManager.updateManager.getChannel()
+            // Aktiver Update-Channel (steuert die Update-Prüfungen).
+            channel: updateManager.updateManager.getChannel(),
+            // Channel der installierten Build-Version (steuert den
+            // Versions-Stempel in der UI). Zentral ermittelt über
+            // UpdateChannel.detectChannelFromVersion().
+            versionChannel: updateManager.updateManager.getVersionChannel()
         };
     });
 

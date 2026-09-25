@@ -209,7 +209,7 @@ const provider = ProviderFactory.createProvider(app, autoUpdater, fs, path);
 
 ---
 
-## Stable/Beta Channels
+## Update Channels (alpha / beta / stable)
 
 ### Centralized Channel Logic
 
@@ -218,22 +218,31 @@ const provider = ProviderFactory.createProvider(app, autoUpdater, fs, path);
 **Design Principle:** Channels are NOT duplicated per provider. All providers use the same centralized channel logic.
 
 **Channel Types:**
-- `stable` – Only stable releases
+- `alpha` – All pre-releases including alpha (plus stable)
 - `beta` – Stable + pre-releases (excluding alpha)
+- `stable` – Only stable releases
 
 **Channel Configuration:**
 
 | Channel | electron-updater channel | allowPrerelease | allowDowngrade |
 |---------|-------------------------|-----------------|----------------|
-| stable  | null (latest)           | false           | true*           |
+| alpha   | alpha                   | true            | true            |
 | beta    | beta                    | true            | true            |
+| stable  | null (latest)           | false           | true*           |
 
 *allowDowngrade is true for stable when current version is a pre-release (e.g., beta → stable downgrade)
+
+**Persistence:**
+
+- The selected channel is stored by the Main process in `settings.json` (`updateChannel` / `updates.channel`) inside the Electron `userData` directory.
+- Startup validates the stored value; missing or invalid values fall back to the existing default (version-based detection → `stable` for stable builds) without touching other user settings.
+- Invalid values never produce a broken updater configuration.
+- `ChannelMetadata.js` remains the single source for UI metadata (label, color, icon, order); no second channel detection exists in the renderer.
 
 **Provider Integration:**
 - Providers receive the already-determined channel from UpdateManager
 - Providers do NOT make channel decisions
-- Stable/Beta logic remains in UpdateChannel.js
+- Alpha/Beta/Stable logic remains in UpdateChannel.js
 
 ---
 
