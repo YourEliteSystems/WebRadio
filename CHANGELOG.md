@@ -6,7 +6,7 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ## [v1.0.7-alpha.1] – 2026-09-25
 
-> Vorabversion 1.0.7-alpha.1. Einführung der persistenten Update-Channel-Speicherung, vollständige Alpha-Kanal-Integration und Härtung der Update-Infrastruktur.
+> Vorabversion 1.0.7-alpha.1. Alpha-Update-Kanal mit dauerhaft gespeicherter Kanal-Auswahl, Unified Player mit Now-Playing-Anzeige und zentraler Lautstärkeregelung, Paket-System mit Validierung, Plugin-Capabilities samt lokal kontrollierter Plugin-HTTP-Umgebung, zentrale Channel-Metadaten und Release-Channel-Ableitung, umfangreiches Doku-Refactoring sowie deutlich erweiterte Testabdeckung. Das Diagnose-/Profiling-System und das Electron-Upgrade auf 44.4.1 sind unter [v1.0.6](#v106--2026-09-18) dokumentiert.
 
 ### 🔄 Update-System & Channel-Persistenz
 
@@ -16,6 +16,16 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - **Keine Playback-Unterbrechung:** Das Wechseln des Update-Channels erfolgt nahtlos im Hintergrund ohne Unterbrechung der laufenden Radio- oder MediaHub-Wiedergabe.
 - **IPC & Preload-Konsistenz:** Die Update-API wurde über `updatesAPI` und `updateAPI` (`getChannel`, `getStoredChannel`, `setChannel`, `getChannelMetadata`, `getAllChannelMetadata`) sicher und strukturiert für Renderer-Prozesse bereitgestellt.
 
+### 🆕 Update-Kanäle (Alpha/Beta/Stable) & Release-Routing
+
+- **Alpha als vollwertiger dritter Kanal:** `UpdateState.CHANNELS.ALPHA`, `UpdateChannel.isValidChannel()` und `UpdateChannel.getUpdaterConfig()` behandeln Alpha gleichberechtigt zu Beta/Stable (electron-updater-Channel `alpha`, `allowPrerelease = true`, `allowDowngrade` bei Pre-Release-Ausgangsversion).
+- **Zentrale Channel-Ermittlung:** `UpdateChannel.getUpdateChannel(settings, version)` mit der Priorität Benutzerauswahl → Versions-Erkennung (`detectChannelFromVersion()`: `-alpha` → `alpha`, `-beta`/`-rc`/`-nightly` → `beta`, sonst `stable`) → Stable-Fallback. Keine parallele Channel-Logik in Providern oder Renderern.
+- **Zentrale Kanal-Metadaten:** Neues `electron/core/updates/ChannelMetadata.js` liefert `id`, `label`, `shortLabel`, `color`, `icon`, `description` und `order` für Alpha/Beta/Stable (`getUpdateChannelMetadata()`, `getAllUpdateChannelMetadata()`, `hasChannelMetadata()`) und wird über `electron/core/updates/index.js` exportiert.
+- **Release-Channel-Ableitung:** Neues `electron/core/updates/ReleaseChannel.js` (`resolveChannel()`, `resolve()`, `isPrerelease()`) plus Renderer-Mapping (`renderer/services/releaseChannel.js`) für Labels, Farben und CSS-Variablen.
+- **Pre-Release-Filter:** `getAllowedPreReleaseFilter()` – Stable lehnt alle Pre-Releases ab, Beta schließt Alpha aus, Alpha akzeptiert alle Pre-Releases.
+- **Release-Routing:** `.github/workflows/release.yml` leitet `update_channel` aus dem Tag ab (`latest`/`beta`/`alpha`; `rc`/`nightly` → `latest`) und übergibt `UPDATE_CHANNEL` an electron-builder; `electron-builder.yml` nutzt `channel: ${env.UPDATE_CHANNEL}` mit `generateUpdatesFilesForAllChannels: true` (erwartete Metadaten: `alpha.yml`/`beta.yml`/`latest.yml` je Plattform). `app-update.yml` bleibt Build-Zeit-Default (`channel: latest`) und wird zur Laufzeit von der gespeicherten Benutzerauswahl überschrieben.
+- **UI:** Kanal-Auswahl mit Bestätigungsdialogen für Beta und Alpha, farbige Kanal-Badges und Hinweisboxen (`--update-channel-color`, Styles in `renderer/styles/core.css`) sowie Live-Synchronisation über `updates:channel-changed`.
+
 ### 🎨 UI-Konsistenz & Transparenz
 
 - **Zentrale Channel-Metadaten in der UI:** Farbe, Icon und Label von Kanal-Auswahl, Kanal-Badge und Update-Anzeige stammen ausschließlich aus `ChannelMetadata` (Core) über die Update-API. Veraltete Anzeigen nach einem Kanal-Wechsel sind damit ausgeschlossen (die Metadaten werden abgeleitet, nicht in einem separaten State gespiegelt).
@@ -24,11 +34,77 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - **Korrekte System-Benachrichtigungen:** Die Update-Benachrichtigung nutzt das Channel-Label aus der zentralen Channel-Metadata (Alpha wurde zuvor fälschlich als „Stable“ angezeigt).
 - **Keine Listener-Duplikate:** Die Event-Subscriptions der Update-Einstellungen werden beim Verlassen der Seite sauber abgemeldet.
 
+### 📻 Unified Player, Now Playing & Lautstärke
+
+- **Provider-basierter Player-Kern:** Neue Module `PlayerManager`, `RadioProvider`, `MediaHubProvider` und `DiscordPresenceAdapter` unter `electron/core/player/` – zentrale Registrierung von Providern, State, Volume und Lifecycle. Die Initialisierung erfolgt über `Application.initializePlayer()` (Bootup-Marke `player-init`) und wird beim Shutdown sauber disposed.
+- **Player-IPC & Preload:** Neuer Handler `electron/core/ipc/playerHandlers.js` mit `player:getState`, `player:play`, `player:pause`, `player:stop`, `player:toggle`, `player:setVolume` und `player:reportProviderState` sowie dem Broadcast `player:stateChanged`; exponiert als `window.playerAPI` (inkl. `onStateChanged` mit Unsubscribe-Funktion).
+- **Renderer-Integration:** Neuer Hook `renderer/hooks/useUnifiedPlayer.js`; `PlayerBar.jsx` nutzt den Unified-Player-State (Legacy-Props bleiben als Fallback erhalten), Play/Pause/Stop und Lautstärke laufen über die zentrale API statt über verteilte Einzellistener.
+- **Now-Playing-Anzeige:** Neue Komponente `renderer/components/player/NowPlayingDisplay.jsx` (Titel, Artist, Artwork) mit stabiler Identitätsbildung, damit unveränderte Metadaten keine erneute Anzeige auslösen; neue Einstellungsseite „Player" (`renderer/components/settings/PlayerSettings.jsx`) inklusive Sidebar- und Registry-Eintrag.
+- **Lautstärke-Steuerung:** Zentrale Skalenkonvertierung 0–100 ↔ 0–1 in `renderer/services/playerService.js` (Gain wird unmittelbar gesetzt, keine hörbaren Aussetzer) und Persistenz der Benutzerlautstärke im Renderer (`localStorage`-Schlüssel `webradio_volume`).
+- **Discord Rich Presence:** Neuer `DiscordPresenceAdapter` verbindet den Unified-Player-State mit dem bestehenden `DiscordRichPresence`-Service; Discord-Fehler beeinflussen die Wiedergabe nicht.
+
+### 📦 Paket-System
+
+- **Neue Module:** `LocalSource`, `PackageModel`, `PackageValidator`, `PackageRegistry`, `PackageInstaller`, `PackageManager`, `events.js` und `index.js` unter `electron/core/packages/`.
+- **Validierung:** `PackageValidator` prüft Manifest-Struktur, plugin-/theme-spezifische Felder, Pfad-Traversal (`containsPathTraversal`, `isAbsolutePath`) und Sicherheitsaspekte; `PackageModel` normalisiert IDs, Versionen, Typen und Capabilities.
+- **Registry & Installer:** Installation/Deinstallation mit Pfadsandboxing (`isWithinUserPackagePath`, `isAppPackagePath`) und Event-Benachrichtigungen über `events.js`.
+- **IPC & Preload:** Neuer Handler `electron/core/ipc/packageHandlers.js`, registriert über `registerIpcHandlers()` und für den Renderer über die Preload-Paket-API erreichbar.
+- **Startup:** `Application.initializePackages()` mit der Bootup-Marke `packages-init`.
+- **Quellen (Zukunftsplanung):** Nur lokale Verzeichnisse sind implementiert (`LocalSource` mit `allowedBaseDirs`-Whitelist). `GitHubSource`, `HTTPSource` und `StoreSource` existieren ausschließlich als Typ-Platzhalter und werfen `NotImplementedError` – Online-Quellen und Store bleiben ausdrücklich zukünftigen Releases vorbehalten.
+
+### 🔌 Plugins: Capabilities, Permissions & Plugin-HTTP-Umgebung
+
+- **Capability-System:** Neues `electron/core/plugins/CapabilityRegistry.js` (`canGrant()`, `isOriginAllowedForCapability()`) verknüpft Capabilities mit Basis-Permissions und erlaubten Origins.
+- **Permissions erweitert:** `PluginPermissions.js` erhält `validateCapabilities()`, `hasCapability()` und `isOriginAllowed()` sowie die neue Permission `player`; die bisherigen `navigation`/`navigation.register`-Fallbacks bleiben abwärtskompatibel.
+- **Plugin-HTTP-Umgebung:** Neuer `electron/core/plugins/PluginHttpServer.js` – core-kontrollierter localhost-Server für Plugin-Assets mit Origin-Prüfung (nur `http://127.0.0.1`/`http://localhost` bzw. capability-erlaubte Origins), Ablehnung mit `Forbidden: Invalid Origin` und kontrollierten CORS-Headern; dazu die IPC-Handler `pluginHttpHandlers` (`plugin:getHttpOrigin`, `plugin:getAssetUrl`) und `window.pluginHttpAPI`.
+- **Kontext, API & Manager:** `PluginContext`, `PluginAPI` und `PluginManager` reichen Capabilities/Permissions an Plugins weiter und erzwingen sie bei Registrierung, Navigation und HTTP-Zugriffen; die Plugin-HTTP-Initialisierung läuft über `initializePluginHttpServer()` (Bootup-Marke `plugin-http-init`).
+- **YouTube-/MediaHub-Plugin:** `plugins/youtube/plugin.json` deklariert jetzt `permissions: ["player", "http-origin"]` und `capabilities: ["youtube-iframe", "youtube-api"]`; das neue `plugins/youtube/renderer.js` meldet den Provider-State über `player:reportProviderState` an den Main-Prozess.
+- **Dokumentation:** Neues Kapitel `docs/plugin-sdk/13-Capabilities.md`.
+
+### 🧠 Diagnostics & Profiling (Ergänzungen zu v1.0.6)
+
+- **Neue Module:** `CPUProfiler`, `MemoryProfiler`, `ProcessProfiler`, `CrashDumpWriter` und `DiagnosticsStore` unter `electron/core/diagnostics/`.
+- **IPC & Preload:** Erweiterte `diagnosticsHandlers` und `window.diagnosticsAPI` (Logs lesen/löschen, Log-Pfade, Speicher-Statistiken, EventBus-Statistiken, Bootup-State) für die Diagnose-Einstellungsseite.
+- **Bootup-Marken:** `Application.js` markiert zusätzlich `plugin-http-init`, `packages-init` und `player-init` (BootupDiagnostics, DiagnosticsManager, CrashHandler und Electron 44.4.1 sind unter v1.0.6 dokumentiert).
+
+### 🛡️ Robustheit, Bugfixes & Audit-Befunde
+
+- **EventBus-Duplikat entfernt:** `electron/core/events/EventBus.js` wurde gelöscht; es bleibt ausschließlich `electron/core/eventBus.js` (Audit-Befund AUD-002).
+- **FFmpeg-Shutdown gehärtet:** `streamManager.js` erzwingt nach 5 Sekunden ohne Reaktion auf `SIGTERM` ein `SIGKILL`; der Timeout wird bei sauberem Prozessende aufgeräumt.
+- **Theme-System:** `ThemeLoader.getBuiltInThemes()` ergänzt; `ThemeManager` stellt gelöschte Built-in-Themes beim Reload automatisch wieder her.
+- **IPC-Eingabevalidierung:** `storageHandlers` prüft Typen und Längen (`validateString`, `validateEntry`); `updaterHandlers` liefert durchgehend strukturierte Fehlerobjekte (`{ ok: false, error: { code, message } }`).
+- **Player-Lifecycle:** Zentrale Initialisierung und Dispose-Logik über den `PlayerManager` statt verstreuter Listener (Audit-Befund AUD-005).
+- **Audit-Dokument:** `AUDIT_REPORT_1.0.7-alpha.1.md` mit zehn priorisierten Befunden (AUD-001 … AUD-010) hinzugefügt; die Update-Channel-Konsistenz (AUD-001/AUD-003) und das EventBus-Duplikat (AUD-002) sind mit dieser Version adressiert.
+
+### ⚙️ Build, Release & Dependencies
+
+- **Version:** `package.json` auf `1.0.7-alpha.1` angehoben; `scripts/release/validate.js` ist direkt ausführbar (`npm run release:validate`) und prüft Version und Changelog-Eintrag.
+- **Dependencies:** `allowScripts`-Eintrag für `ffmpeg-static@5.3.0` ergänzt (Electron-Upgrade auf 44.4.1 siehe v1.0.6).
+- **Release-Workflow:** Manueller „Clean Dist Directory"-Schritt aus `release.yml` entfernt, da electron-builder das Ausgabeverzeichnis selbst verwaltet.
+- **Testsuite-Kette:** `npm test` um `diagnostics.test.js`, `nowPlaying.test.js`, `unified-player.test.js` und `update-channel.test.js` erweitert.
+- **GitBook:** `gitbook-docs.yaml` für den Git-Sync der Dokumentationsseiten ergänzt.
+
+### 📚 Dokumentation
+
+- **README:** Umfangreich überarbeitet (Architektur, Unified Player, Paket-/Plugin-System, Update-Kanäle inklusive Persistenz und API-/Security-Grenzen).
+- **ROADMAP:** Aktueller Milestone auf `1.0.7-alpha.1` gesetzt (Unified Player, Plugin-System, Capability-System, Plugin-HTTP-Umgebung, Update-Kanäle, Theme-System, Diagnostics) sowie ein Abschnitt „Explicitly Not Implemented" für Plugin-/Theme-Store, Online-Quellen und Cloud-Sync.
+- **API-Referenz & SDK:** `docs/api-reference/*`, `docs/plugin-sdk/*` (neu: `13-Capabilities.md`) und `docs/theme-sdk/*` konsolidiert.
+- **Architektur:** `docs/architecture.md`, `docs/architecture/04-Diagnostics.md`, `06-ThemeManager.md`, `10-Updater.md` und `docs/UPDATE_ARCHITECTURE.md` aktualisiert (Update-Kanäle, Persistenz, Startup-Reihenfolge, API-/Security-Grenzen).
+
 ### 🧪 Tests & Qualitätssicherung
 
 - **Persistenz-Testsuite:** Neue und reaktivierte Komponententests in `updater.test.js` und `update-channel.test.js` zur Verifikation der Channel-Persistenz (Alpha, Beta, Stable) über simulierte Neustarts, Validierungsprüfungen und Injection-Schutz.
 - **Echter Prozess-Neustart:** Zusätzlicher Test, der die Persistenz in zwei voneinander unabhängigen Node-Prozessen über die reale `settings.json` im `userData`-Bereich verifiziert (echter Neustart statt Cache-Simulation).
 - **Konsistenz-Tests:** Kanal-Metadaten ↔ aktive Channel-ID, ungültige gespeicherte Werte ohne fehlerhafte Updater-Konfiguration, Erhalt bestehender Benutzereinstellungen, Trennung von aktivem Channel und Versions-Channel sowie Beibehaltung der vorherigen Einstellung bei IPC-Fehlern.
+- **Neue Testsuiten:** `diagnostics.test.js` (Bootup, Profiler, Crash-Handler, DiagnosticsStore), `nowPlaying.test.js` (Now-Playing-Anzeige und Identitätslogik), `unified-player.test.js` (Provider-Registry, Controls, Volume, State-Subscription, Provider-State-Reporting), `update-channel.test.js` (Kanal-Erkennung, Validierung, Metadaten) sowie `package-system.test.js` und `package-integration.test.js` (Paket-Validierung, Installation, Events); `volume.test.js` wurde erweitert.
+
+### ⚠️ Hinweise & bekannte Einschränkungen
+
+- **Nicht implementiert (Zukunftsplanung):** Online-Paketquellen (`GitHubSource`, `HTTPSource` und `StoreSource` sind reine Typ-Platzhalter), Plugin-/Theme-Store, Marketplace, Remote-Installation sowie Cloud-Synchronisation.
+- **Automatische Updates:** macOS ist nicht implementiert; `.deb`- und Arch-Pakete werden über den System-Paketmanager aktualisiert (`UnsupportedUpdateProvider`); AppImage lädt weiterhin die vollständige Datei (kein Delta-Update über `appimageupdatetool`/zsync).
+- **Kanal-Metadaten beim Release:** Alpha- und Beta-Kanäle setzen die vom Release-Workflow erzeugten Update-Metadaten (`alpha.yml`/`beta.yml` inklusive `-linux.yml`) voraus. Fehlen diese für eine Version, schlägt ein Update-Check in diesem Kanal fehl – es gibt keinen stillen Fallback auf `latest`.
+- **Testabdeckung:** `package-system.test.js`, `package-integration.test.js` und `volume.test.js` sind noch nicht Teil der `npm test`-Kette und werden separat ausgeführt.
+- **Legacy-Dateien:** Weiterhin im Baum, aber nicht referenziert: `electron/core/settings.js` (roher `settings.json`-Zugriff), `renderer/settings.js` (Vanilla-Einstellungsseite; `settings.html` lädt `dist/settings.js` aus `settings.jsx`) und `renderer/components/NowPlayingDisplay.jsx` (veraltete Kopie; verwendet wird `renderer/components/player/NowPlayingDisplay.jsx`).
 
 ---
 
