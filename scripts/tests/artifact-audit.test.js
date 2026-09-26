@@ -192,6 +192,13 @@ test("PKGBUILD: kein sudo/root während Runtime", () => {
     assert.ok(!/\bsudo\b/.test(packageBlock));
 });
 
+test("PKGBUILD: Symlink zeigt auf installierte Binary (WebRadio oder pkgname)", () => {
+    const s = readPkgbuild();
+    assert.ok(/ln -s "\/opt\/\$\{_pkgname\}\/\$\{_bin_name\}" "\$pkgdir\/usr\/bin\/\$\{_pkgname\}"/.test(s) ||
+              /ln -s "\/opt\/\$\{_pkgname\}\/WebRadio" "\$pkgdir\/usr\/bin\/\$\{_pkgname\}"/.test(s),
+              "Symlink muss dynamisch oder auf WebRadio verweisen");
+});
+
 // ─────────────────────────────────────────────────────────────
 // 3. .desktop-Audit
 // ─────────────────────────────────────────────────────────────

@@ -4,9 +4,17 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
-## [v1.0.7-alpha.1] – 2026-09-25
+## [v1.0.7-alpha.3] – 2026-09-26
 
-> Vorabversion 1.0.7-alpha.1. Alpha-Update-Kanal mit dauerhaft gespeicherter Kanal-Auswahl, Unified Player mit Now-Playing-Anzeige und zentraler Lautstärkeregelung, Paket-System mit Validierung, Plugin-Capabilities samt lokal kontrollierter Plugin-HTTP-Umgebung, zentrale Channel-Metadaten und Release-Channel-Ableitung, umfangreiches Doku-Refactoring sowie deutlich erweiterte Testabdeckung. Das Diagnose-/Profiling-System und das Electron-Upgrade auf 44.4.1 sind unter [v1.0.6](#v106--2026-09-18) dokumentiert.
+> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher und erweitert das Packaging-Audit-Testframework.
+
+### 🐧 Linux & Arch Packaging
+
+- **Dynamische Binary-Erkennung im PKGBUILD:** `package()` in `packaging/arch/PKGBUILD` prüft nun dynamisch das Vorhandensein von `WebRadio` (standardmäßig durch `electron-builder.yml` als `executableName: WebRadio` generiert) oder `${_pkgname}` (`webradio`).
+- **Berechtigungen & Symlink-Auflösung:** Die ermittelte Binärdatei erhält präzise Ausführungsrechte (`chmod 755`) und wird als Ziel für den symbolischen Link `/usr/bin/webradio` verknüpft, sodass Anwendungsstarts über Desktop-Launcher und Terminal fehlerfrei funktionieren.
+- **Audit-Testabdeckung:** `scripts/tests/artifact-audit.test.js` prüft nun automatisiert, dass der Symlink im PKGBUILD konsistent auf die installierte Binärdatei verweist.
+
+---
 
 ## [v1.0.7-alpha.2] – 2026-09-26
 

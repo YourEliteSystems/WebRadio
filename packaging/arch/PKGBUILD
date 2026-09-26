@@ -119,8 +119,20 @@ package() {
   # Keine globalen Schreibrechte (kein chmod 777).
   find "$pkgdir/opt/${_pkgname}" -type d -exec chmod 755 {} +
   find "$pkgdir/opt/${_pkgname}" -type f -exec chmod 644 {} +
-  # Die Hauptbinary und das Helper-Binary ausführbar machen.
-  [ -f "$pkgdir/opt/${_pkgname}/${_pkgname}" ] && chmod 755 "$pkgdir/opt/${_pkgname}/${_pkgname}"
+
+  # Die Hauptbinary ermitteln und ausführbar machen.
+  # electron-builder erzeugt je nach executableName "WebRadio" oder "${_pkgname}".
+  _bin_name=""
+  if [ -f "$pkgdir/opt/${_pkgname}/WebRadio" ]; then
+    _bin_name="WebRadio"
+  elif [ -f "$pkgdir/opt/${_pkgname}/${_pkgname}" ]; then
+    _bin_name="${_pkgname}"
+  fi
+
+  if [ -n "$_bin_name" ]; then
+    chmod 755 "$pkgdir/opt/${_pkgname}/${_bin_name}"
+  fi
+
   if [ -d "$pkgdir/opt/${_pkgname}/resources" ]; then
     find "$pkgdir/opt/${_pkgname}/resources" -type f -name 'ffmpeg*' -exec chmod 755 {} + 2>/dev/null || true
   fi
@@ -130,9 +142,14 @@ package() {
     find "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" -type f -name 'ffmpeg*' -exec chmod 755 {} + 2>/dev/null || true
   fi
 
-  # 4) Symlink /usr/bin/webradio → /opt/webradio/webradio.
+  # 4) Symlink /usr/bin/webradio → /opt/webradio/<binary>
   install -dm755 "$pkgdir/usr/bin"
-  ln -s "/opt/${_pkgname}/${_pkgname}" "$pkgdir/usr/bin/${_pkgname}"
+  if [ -n "$_bin_name" ]; then
+    ln -s "/opt/${_pkgname}/${_bin_name}" "$pkgdir/usr/bin/${_pkgname}"
+  else
+    # Fallback falls zur statischen Analyse/Build-Zeit noch nicht aufgelöst
+    ln -s "/opt/${_pkgname}/WebRadio" "$pkgdir/usr/bin/${_pkgname}"
+  fi
 
   # 5) .desktop-Datei installieren.
   install -Dm644 "$srcdir/webradio.desktop" "$pkgdir/usr/share/applications/webradio.desktop"
