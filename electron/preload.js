@@ -326,6 +326,10 @@ contextBridge.exposeInMainWorld("playerAPI", {
   toggle:    ()      => ipcRenderer.invoke("player:toggle"),
   setVolume: (value) => ipcRenderer.invoke("player:setVolume", value),
 
+  // Provider-Activation (Main-to-Renderer: aktiviere/Deaktiviere Provider)
+  // Als Funktion, nicht IPC-Handler, um kein Rendererverhalten zu brüchen
+  setActiveProvider: (id) => ipcRenderer.invoke("player:setActiveProvider", id),
+
   // State Subscription – gibt Unsubscribe-Funktion zurück (kein Memory Leak)
   onStateChanged: (callback) => {
     const handler = (_event, state) => callback(state);
@@ -334,7 +338,7 @@ contextBridge.exposeInMainWorld("playerAPI", {
   },
 
   // Provider-State-Reporting (Renderer-seitige Provider, z.B. MediaHub YouTube)
-  // Erlaubt Plugin-Renderer-Scripts, ihren State an den Main-Prozess zu melden.
+  // Erlaubt Plugin-Renderer-Skripte, ihren State an den Main-Prozess zu melden.
   reportProviderState: (providerId, state) =>
     ipcRenderer.invoke("player:reportProviderState", providerId, state)
 });

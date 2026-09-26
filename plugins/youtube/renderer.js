@@ -10,10 +10,20 @@
   let currentVideoId = null;
   let playerState = 'unstarted';
 
+  // Punkte, an denen ein Befehl noch nicht verarbeitet wurde (per commandId).
+  // Defer Kommandos, bis das IFrame vollständig initialisiert ist.
+  let pendingCommands = [];
+
   // YouTube IFrame API Callback
   window.onYouTubeIframeAPIReady = function() {
     ytReady = true;
     console.log('[YouTube Plugin] YouTube IFrame API ready');
+
+    // Verarbeitet alle gesammelten Befehle in der Reihenfolge
+    while (pendingCommands.length > 0) {
+      const cmd = pendingCommands.shift();
+      processCommand(cmd);
+    }
   };
 
   // YouTube API Script laden
@@ -22,8 +32,8 @@
   const firstScriptTag = document.getElementsByTagName('script')[0];
   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-  // YouTube Player initialisieren
-  function initPlayer(containerId, videoId, options = {}) {
+  // Client-ID für den IFrame-Player
+  function createYouTubePlayer(containerId, videoId, options = {}) {
     if (!ytReady) {
       console.warn('[YouTube Plugin] YouTube API not ready yet');
       return null;
@@ -96,6 +106,16 @@
     }
   }
 
+  function onPlayerError(event) {
+    console.error('[YouTube Plugin] Player error:', event.data);
+    if (window.pluginAPI) {
+      window.pluginAPI.log('error', 'YouTubePlugin', `Player error: ${event.data}`);
+    }
+    if (window.playerAPI) {
+      window.playerAPI.reportProviderState('mediahub', { state: 'error', error: event.data });
+    }
+  }
+
   function mapYouTubeStateToUnified(ytState) {
     switch(ytState) {
       case YT.PlayerState.PLAYING:
@@ -114,13 +134,6 @@
     }
   }
 
-  function onPlayerError(event) {
-    console.error('[YouTube Plugin] Player error:', event.data);
-    if (window.pluginAPI) {
-      window.pluginAPI.log('error', 'YouTubePlugin', `Player error: ${event.data}`);
-    }
-  }
-
   function getStateName(state) {
     switch(state) {
       case YT.PlayerState.UNSTARTED: return 'unstarted';
@@ -133,11 +146,141 @@
     }
   }
 
+  // ─── Main-to-Renderer-Kommandos empfangen ────────────────────────────────────
+  // Der Main-Prozess sendet Kommandos via window.electronAPI (preload).
+  // Da dieser Code im Renderer läuft, verwenden wir window.require('electron')
+  // (durch preload.js via contextBridge bereitgestellt) oder directly
+  // den IPC-Channel, den die App offenbart.
+  function listenToCommands() {
+    if (window._mediahubCommandHandler) return;
+
+    window._mediahubCommandHandler = (message) => {
+      if (!message || !message.channel) {
+        console.warn('[YouTube Plugin] mediahub:command ohne Channel:', message);
+        return;
+      }
+
+      // Verarbeite Befehle in der empfangenen Reihenfolge
+      processCommand(message);
+    };
+
+    // electronAPI wird durch preload.js (contextBridge) bereitgestellt
+    if (window.electronAPI && typeof window.electronAPI.on !== 'function') {
+      // Fallback: Fenster-Ereignis oder direktes IPC-Interface prüfen
+      if (window.ipcRenderer && window.ipcRenderer.on) {
+        window.ipcRenderer.on('mediahub:command', (_event, message) => {
+          window._mediahubCommandHandler(message);
+        });
+      }
+    }
+  }
+
+  // ─── Kommando-Verarbeitung (inkl. Queue, bis IFrame bereit) ────────────────
+  function processCommand(message) {
+    if (!message || !message.channel) return;
+
+    // Nanoseconds / Timestamp-Sicherheit: kein Kommandoverfalls ignorieren
+    if (message.timestamp && Date.now() - message.timestamp > 30000) {
+      console.warn(`[YouTube Plugin] Veraltetes Kommand ${message.channel}`);
+      return;
+    }
+
+    switch (message.channel) {
+      case 'player:command:play': {
+        if (message.commandId === undefined) {
+          console.warn('[YouTube Plugin] play ohne commandId');
+          return;
+        }
+
+        const videoId = message.videoId || currentVideoId;
+        if (!videoId) {
+          // Keine Video-ID; Befehl als pending
+          pendingCommands.push(message);
+          return;
+        }
+
+        if (!ytReady) {
+          // IFrame noch nicht bereit → pending
+          pendingCommands.push(message);
+          return;
+        }
+
+        if (!ytPlayer) {
+          // Kein Player erstellt; initialisiere zuerst
+          pendingCommands.push(message);
+          return;
+        }
+
+        // Doppelte Player-Instanzen verhindern
+        if (ytPlayer && ytPlayer.destroyed) {
+          ytPlayer = null;
+        }
+
+        if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+          ytPlayer.playVideo();
+        } else if (ytPlayer && typeof ytPlayer.cueVideoById === 'function') {
+          ytPlayer.cueVideoById(videoId);
+        } else {
+          console.warn('[YouTube Plugin] YouTube Player nicht initialisiert');
+        }
+
+        // Status-Meldung an Main senden
+        if (window.playerAPI) {
+          window.playerAPI.reportProviderState('mediahub', { state: 'playing' });
+        }
+        break;
+      }
+      case 'player:command:pause': {
+        if (message.commandId === undefined) {
+          console.warn('[YouTube Plugin] pause ohne commandId');
+          return;
+        }
+        if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+          ytPlayer.pauseVideo();
+        }
+        if (window.playerAPI) {
+          window.playerAPI.reportProviderState('mediahub', { state: 'paused' });
+        }
+        break;
+      }
+      case 'player:command:stop': {
+        if (message.commandId === undefined) {
+          console.warn('[YouTube Plugin] stop ohne commandId');
+          return;
+        }
+        if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+          ytPlayer.stopVideo();
+        }
+        // Session nicht zerstören, sondern nur beenden (bestehendes Player-Verhalten)
+        if (window.playerAPI) {
+          window.playerAPI.reportProviderState('mediahub', { state: 'stopped' });
+        }
+        break;
+      }
+      case 'player:command:setVolume': {
+        if (message.commandId === undefined) {
+          console.warn('[YouTube Plugin] setVolume ohne commandId');
+          return;
+        }
+        const volume = Math.max(0, Math.min(1, Number(message.volume) || 0));
+        if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+          ytPlayer.setVolume(volume * 100);
+        }
+        if (window.playerAPI) {
+          window.playerAPI.reportProviderState('mediahub', { state: 'volume-changed', volume });
+        }
+        break;
+      }
+      default:
+        console.warn(`[YouTube Plugin] Unbekanntes Kommand ${message.channel}`);
+    }
+  }
+
   // Player-Steuerungsfunktionen
   function playVideo() {
     if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
       ytPlayer.playVideo();
-      
+
       // Unified Player API State melden
       if (window.playerAPI) {
         window.playerAPI.reportProviderState('mediahub', { state: 'playing' });
@@ -148,7 +291,7 @@
   function pauseVideo() {
     if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
       ytPlayer.pauseVideo();
-      
+
       // Unified Player API State melden
       if (window.playerAPI) {
         window.playerAPI.reportProviderState('mediahub', { state: 'paused' });
@@ -159,7 +302,7 @@
   function stopVideo() {
     if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
       ytPlayer.stopVideo();
-      
+
       // Unified Player API State melden
       if (window.playerAPI) {
         window.playerAPI.reportProviderState('mediahub', { state: 'stopped' });
@@ -168,8 +311,9 @@
   }
 
   function setVolume(volume) {
+    const clamped = Math.max(0, Math.min(1, Number(volume) || 0));
     if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
-      ytPlayer.setVolume(volume);
+      ytPlayer.setVolume(clamped * 100);
     }
   }
 
@@ -199,7 +343,7 @@
 
   // YouTube Video ID aus URL extrahieren
   function extractVideoId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\\w\/|embed\/|watch\?v=|\&v=)([^#\&\\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   }
@@ -240,7 +384,7 @@
   function createYouTubeComponent() {
     const container = document.createElement('div');
     container.className = 'youtube-plugin-container';
-    
+
     container.innerHTML = `
       <style>
         .youtube-plugin-container {
@@ -327,18 +471,18 @@
           background: rgba(255,255,255,0.1);
         }
       </style>
-      
+
       <div class="youtube-search-bar">
         <input type="text" class="youtube-search-input" id="yt-search-input" placeholder="YouTube URL oder Video ID eingeben...">
         <button class="youtube-search-btn" id="yt-load-btn">Laden</button>
       </div>
-      
+
       <div class="youtube-player-container" id="yt-player-container">
         <div class="youtube-placeholder">
           Video URL oder ID eingeben um zu starten
         </div>
       </div>
-      
+
       <div class="youtube-controls">
         <button class="youtube-control-btn" id="yt-play-btn">▶ Play</button>
         <button class="youtube-control-btn" id="yt-pause-btn">⏸ Pause</button>
@@ -364,7 +508,7 @@
       if (videoId) {
         // Player Container leeren
         playerContainer.innerHTML = '';
-        
+
         // Player Wrapper erstellen
         const wrapper = document.createElement('div');
         wrapper.className = 'youtube-player-wrapper';
@@ -397,6 +541,9 @@
         loadBtn.click();
       }
     });
+
+    // Listener für Main-to-Renderer-Kommandos anmelden
+    listenToCommands();
 
     return container;
   }

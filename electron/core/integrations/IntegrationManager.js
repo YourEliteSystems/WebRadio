@@ -1,3 +1,5 @@
+"use strict";
+
 const fs = require("fs");
 const path = require("path");
 const eventBus = require("../eventBus");
@@ -6,6 +8,7 @@ const IntegrationLoader = require("./IntegrationLoader");
 const PluginRuntime = require("../plugins/PluginRuntime");
 const { createPluginContext } = require("../plugins/PluginContext");
 const LogManager = require("../diagnostics/logging/LogManager");
+const DiscordRichPresence = require("../services/DiscordRichPresence");
 
 const logger = LogManager.getLogger("IntegrationManager");
 
@@ -39,9 +42,9 @@ class IntegrationManager {
         this.initialized = false;
     }
 
-    //
-    // Config Management
-    //
+    // ─────────────────────────────────────────────
+    // Config Management (integrations.json is the config store of record)
+    // ─────────────────────────────────────────────
 
     readConfig() {
         const configPath = path.join(app.getPath("userData"), "integrations/integrations.json");
@@ -56,7 +59,7 @@ class IntegrationManager {
             );
         }
         try {
-            return JSON.parse(fs.readFileSync(configPath, "utf8"));
+            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
         } catch {
             return { integrations: {} };
         }
@@ -71,9 +74,9 @@ class IntegrationManager {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     }
 
-    //
+    // ─────────────────────────────────────────────
     // Lifecycle
-    //
+    // ─────────────────────────────────────────────
 
     initialize() {
         if (this.initialized) {
@@ -95,9 +98,9 @@ class IntegrationManager {
         this.initialized = false;
     }
 
-    //
+    // ─────────────────────────────────────────────
     // Integration Loading
-    //
+    // ─────────────────────────────────────────────
 
     loadIntegrations() {
         const config = this.readConfig();
@@ -114,9 +117,9 @@ class IntegrationManager {
         }
     }
 
-    //
+    // ─────────────────────────────────────────────
     // Integration Control
-    //
+    // ─────────────────────────────────────────────
 
     toggleIntegration(id, enabled) {
         const config = this.readConfig();
@@ -173,9 +176,9 @@ class IntegrationManager {
         return this.enableIntegration(id);
     }
 
-    //
+    // ─────────────────────────────────────────────
     // Getters
-    //
+    // ─────────────────────────────────────────────
 
     getIntegration(id) {
         return this.integrations.get(id);
@@ -207,9 +210,9 @@ class IntegrationManager {
         return this.initialized;
     }
 
-    //
+    // ─────────────────────────────────────────────
     // Renderer Scripts
-    //
+    // ─────────────────────────────────────────────
 
     getRendererScripts() {
         const config = this.readConfig();

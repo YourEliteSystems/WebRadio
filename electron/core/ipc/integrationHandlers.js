@@ -1,3 +1,5 @@
+"use strict";
+
 const { ipcMain } = require("electron");
 const IntegrationManager = require("../integrations/IntegrationManager");
 const DiscordRichPresence = require("../services/DiscordRichPresence");
@@ -9,8 +11,8 @@ function registerIntegrationHandlers(mainWindow) {
     // Discord-RPC Status aus SettingsManager hinzufügen (Single Source of Truth)
     const settings = SettingsManager.get();
     const discordEnabled = settings.integrations?.discordRichPresence === true;
-    
-    // Discord-RPC als virtuelle Integration zurückgeben
+
+    // Discord-RPC als virtuellen Integration zurückgeben
     return [
       ...integrations,
       {
@@ -24,43 +26,34 @@ function registerIntegrationHandlers(mainWindow) {
     ];
   });
 
-  ipcMain.handle("integrations:toggle", (_, id, enabled) => {
+  ipcMain.handle("integrations:toggle", async (_, id, enabled) => {
     if (id === "discord-rpc") {
       // Discord-RPC speziell behandeln: direkter Zugriff auf DiscordRichPresence
-      const settings = SettingsManager.get();
-      if (!settings.integrations) settings.integrations = {};
-      settings.integrations.discordRichPresence = enabled;
-      SettingsManager.update(settings);
-
-      // DiscordRichPresence Runtime aktualisieren
-      DiscordRichPresence.updateSettings(settings);
-    } else {
-      IntegrationManager.toggleIntegration(id, enabled);
+      const result = await DiscordRichPresence.updateSettings(enabled);
+      return result;
     }
+
+    IntegrationManager.toggleIntegration(id, enabled);
+    return { ok: true };
   });
 
-  ipcMain.handle("integrations:update", (_, data) => {
+  ipcMain.handle("integrations:update", async (_, data) => {
     if (data && data.id) {
       if (data.id === "discord-rpc") {
         // Discord-RPC speziell behandeln
-        const settings = SettingsManager.get();
-        if (!settings.integrations) settings.integrations = {};
-        settings.integrations.discordRichPresence = data.enabled;
-        SettingsManager.update(settings);
-        DiscordRichPresence.updateSettings(settings);
+        const result = await DiscordRichPresence.updateSettings(data.enabled);
+        return result;
       } else {
         IntegrationManager.toggleIntegration(data.id, data.enabled);
+        return { ok: true };
       }
     } else if (data && data.discordRichPresence !== undefined) {
       // Discord-RPC speziell behandeln: direkter Zugriff auf DiscordRichPresence
-      const settings = SettingsManager.get();
-      if (!settings.integrations) settings.integrations = {};
-      settings.integrations.discordRichPresence = data.discordRichPresence;
-      SettingsManager.update(settings);
-
-      // DiscordRichPresence Runtime aktualisieren
-      DiscordRichPresence.updateSettings(settings);
+      const result = await DiscordRichPresence.updateSettings(data.discordRichPresence);
+      return result;
     }
+
+    return { ok: false, error: { code: "INVALID_INPUT", message: "Keine gültigen Daten" } };
   });
 
   ipcMain.handle("integrations:getRendererScripts", () => {
