@@ -1,6 +1,9 @@
 dist
 dist/*
 
+protected
+protected/*
+
 node_modules
 node_modules/*
 
