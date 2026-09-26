@@ -86,6 +86,29 @@ const UpdatesSettings = () => {
     return `<p>${html}</p>`;
   };
 
+  // Interner Iconsatz. Dient nur als Fallback, wenn die zentrale
+  // ChannelMetadata keine Icon-SVG liefert. Alle Namen sind gültige
+  // inline-SVG-Pfad-Daten und werden nicht als externe Dateinamen
+  // behandelt (kein Icon-Server, keine Datei-Icons).
+  const FALLBACK_ICONS = Object.freeze({
+    alpha:
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="10" r="3"/></svg>',
+    beta:
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z"/></svg>',
+    stable:
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+  });
+
+  // Icon aus den zentralen Metadaten nehmen, falls vorhanden.
+  // Bei fehlender oder ungültiger Angabe den nachgewiesenen
+  // Open-Source-SVG-Fallback verwenden.
+  const getChannelIcon = (meta) => {
+    if (meta && typeof meta.icon === "string" && meta.icon.trim()) {
+      return meta.icon;
+    }
+    return FALLBACK_ICONS[meta?.id] || FALLBACK_ICONS.stable;
+  };
+
   // Lade aktuelle Version und Channel
   const loadCurrentVersion = useCallback(async () => {
     try {
@@ -663,6 +686,7 @@ const UpdatesSettings = () => {
             style={{ '--update-channel-color': channelMeta?.color }}
           >
             {channelMeta?.label ?? 'Stable'}
+            {getChannelIcon(channelMeta)}
           </span>
         </div>
         <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 14px'}}>
@@ -686,18 +710,19 @@ const UpdatesSettings = () => {
                 <div className="channel-option-title">{meta.label}</div>
                 <div className="channel-option-desc">{meta.description}</div>
               </div>
+              {getChannelIcon(meta)}
             </label>
           ))}
         </div>
         {channelMeta?.id === 'beta' && (
           <div className="beta-hint" data-channel="beta" style={{ '--update-channel-color': channelMeta?.color }}>
-            {channelMeta?.icon}
+            {getChannelIcon(channelMeta)}
             <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
           </div>
         )}
         {channelMeta?.id === 'alpha' && (
           <div className="alpha-hint" data-channel="alpha" style={{ '--update-channel-color': channelMeta?.color }}>
-            {channelMeta?.icon}
+            {getChannelIcon(channelMeta)}
             <span>Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.</span>
           </div>
         )}
@@ -711,7 +736,7 @@ const UpdatesSettings = () => {
       </div>
 
       <div className="version-info">
-        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" data-current-channel={currentChannel} style={{ display: currentChannel !== 'stable' ? 'inline-block' : 'none', '--update-channel-color': currentChannelMeta?.color }}>{currentChannelMeta?.shortLabel ?? ''}</span></span>
+        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" data-current-channel={currentChannel} style={{ display: currentChannel !== 'stable' ? 'inline-block' : 'none', '--update-channel-color': currentChannelMeta?.color }}>{currentChannelMeta?.shortLabel ?? ''} {getChannelIcon(currentChannelMeta)}</span></span>
         <span>WebRadio by Your Elite Systems</span>
       </div>
 

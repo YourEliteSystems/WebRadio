@@ -147,35 +147,94 @@
   }
 
   // ─── Main-to-Renderer-Kommandos empfangen ────────────────────────────────────
-  // Der Main-Prozess sendet Kommandos via window.electronAPI (preload).
-  // Da dieser Code im Renderer läuft, verwenden wir window.require('electron')
-  // (durch preload.js via contextBridge bereitgestellt) oder directly
-  // den IPC-Channel, den die App offenbart.
-  function listenToCommands() {
-    if (window._mediahubCommandHandler) return;
+  // Der Main-Prozess sendet Kommandos über mainWindow.webContents.send()
+  // auf dem Kanal "mediahub:command". Der Preload exponiert das sichere
+  // Abonnieren über window.mediaHubPlayerAPI.onCommand() – der Renderer
+  // hat selbst KEINEN ipcRenderer-Zugriff.
+  let unsubscribeCommands = null;
 
-    window._mediahubCommandHandler = (message) => {
+  function listenToCommands() {
+    if (unsubscribeCommands) return;
+
+    const api = window.mediaHubPlayerAPI;
+    if (!api || typeof api.onCommand !== 'function') {
+      console.warn('[YouTube Plugin] mediaHubPlayerAPI nicht verfügbar – MediaHub-Kommandos werden nicht empfangen');
+      return;
+    }
+
+    unsubscribeCommands = api.onCommand((message) => {
       if (!message || !message.channel) {
         console.warn('[YouTube Plugin] mediahub:command ohne Channel:', message);
         return;
       }
-
-      // Verarbeite Befehle in der empfangenen Reihenfolge
       processCommand(message);
-    };
+    });
+  }
 
-    // electronAPI wird durch preload.js (contextBridge) bereitgestellt
-    if (window.electronAPI && typeof window.electronAPI.on !== 'function') {
-      // Fallback: Fenster-Ereignis oder direktes IPC-Interface prüfen
-      if (window.ipcRenderer && window.ipcRenderer.on) {
-        window.ipcRenderer.on('mediahub:command', (_event, message) => {
-          window._mediahubCommandHandler(message);
-        });
-      }
+  // Teardown: entfernt AUSSCHLIESSLICH den eigenen Listener, damit keine
+  // weiteren (z.B. Radio-)Listener betroffen sind.
+  function stopListening() {
+    if (!unsubscribeCommands) return;
+    try {
+      unsubscribeCommands();
+    } catch (err) {
+      console.warn('[YouTube Plugin] Listener konnte nicht entfernt werden:', err);
     }
+    unsubscribeCommands = null;
+    console.log('[YouTube Plugin] MediaHub-Kommandos abgemeldet');
   }
 
   // ─── Kommando-Verarbeitung (inkl. Queue, bis IFrame bereit) ────────────────
+  // Die Queue ist bewusst begrenzt: Kommandos dürfen sich nicht unkontrolliert
+  // ansammeln, wenn der Player nie initialisiert wird.
+  const MAX_PENDING_COMMANDS = 8;
+
+  function queueCommand(message) {
+    if (pendingCommands.length >= MAX_PENDING_COMMANDS) {
+      pendingCommands.shift();
+      console.warn('[YouTube Plugin] Pending-Command-Queue voll – ältestes Kommando verworfen');
+    }
+    pendingCommands.push(message);
+  }
+
+  // Meldet, dass ein Kommando nicht ausgeführt werden konnte – ohne einen
+  // erfundenen Zustand zu setzen (Main korrigiert über den Renderer-Report).
+  function reportNotExecuted(command, reason) {
+    console.warn(`[YouTube Plugin] ${command} nicht ausgeführt: ${reason}`);
+  }
+
+  /**
+   * Erzeugt bei Bedarf einen unsichtbaren Player, damit die globalen
+   * Controls (Play/Stop der Player-Leiste, Medientasten) auch ohne
+   * geöffnete YouTube-Ansicht auf den eigentlichen Player wirken.
+   */
+  function ensurePlayer(videoId) {
+    if (ytPlayer) return true;
+    if (!ytReady) return false;
+
+    let host = document.getElementById('yt-plugin-standalone-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'yt-plugin-standalone-host';
+      host.setAttribute('aria-hidden', 'true');
+      host.style.position = 'fixed';
+      host.style.width = '1px';
+      host.style.height = '1px';
+      host.style.opacity = '0';
+      host.style.pointerEvents = 'none';
+      host.style.bottom = '0';
+      host.style.right = '0';
+      document.body.appendChild(host);
+    }
+
+    host.innerHTML = '';
+    const slot = document.createElement('div');
+    slot.id = 'yt-plugin-standalone-player';
+    host.appendChild(slot);
+
+    return Boolean(createYouTubePlayer(slot.id, videoId, { autoplay: true, controls: false }));
+  }
+
   function processCommand(message) {
     if (!message || !message.channel) return;
 
@@ -194,20 +253,13 @@
 
         const videoId = message.videoId || currentVideoId;
         if (!videoId) {
-          // Keine Video-ID; Befehl als pending
-          pendingCommands.push(message);
+          reportNotExecuted('play', 'keine Video-ID vorhanden');
           return;
         }
 
         if (!ytReady) {
-          // IFrame noch nicht bereit → pending
-          pendingCommands.push(message);
-          return;
-        }
-
-        if (!ytPlayer) {
-          // Kein Player erstellt; initialisiere zuerst
-          pendingCommands.push(message);
+          // IFrame-API noch nicht bereit → begrenzt vormerken
+          queueCommand(message);
           return;
         }
 
@@ -216,15 +268,21 @@
           ytPlayer = null;
         }
 
+        if (!ensurePlayer(videoId)) {
+          reportNotExecuted('play', 'YouTube-Player nicht initialisierbar');
+          return;
+        }
+
         if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
           ytPlayer.playVideo();
         } else if (ytPlayer && typeof ytPlayer.cueVideoById === 'function') {
           ytPlayer.cueVideoById(videoId);
         } else {
-          console.warn('[YouTube Plugin] YouTube Player nicht initialisiert');
+          reportNotExecuted('play', 'YouTube Player Methoden nicht verfügbar');
+          return;
         }
 
-        // Status-Meldung an Main senden
+        // Status-Meldung an Main senden (nur bei tatsächlich ausgeführtem Befehl)
         if (window.playerAPI) {
           window.playerAPI.reportProviderState('mediahub', { state: 'playing' });
         }
@@ -237,9 +295,14 @@
         }
         if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
           ytPlayer.pauseVideo();
-        }
-        if (window.playerAPI) {
-          window.playerAPI.reportProviderState('mediahub', { state: 'paused' });
+          if (window.playerAPI) {
+            window.playerAPI.reportProviderState('mediahub', { state: 'paused' });
+          }
+        } else {
+          reportNotExecuted('pause', 'YouTube-Player nicht verfügbar');
+          if (window.playerAPI) {
+            window.playerAPI.reportProviderState('mediahub', { state: 'idle' });
+          }
         }
         break;
       }
@@ -262,13 +325,20 @@
           console.warn('[YouTube Plugin] setVolume ohne commandId');
           return;
         }
-        const volume = Math.max(0, Math.min(1, Number(message.volume) || 0));
+        // Genau EINE Umrechnung: Main liefert 0..1, die YouTube IFrame API
+        // erwartet 0..100.
+        const volume = Math.max(0, Math.min(1, Number(message.volume)));
+        if (Number.isNaN(volume)) {
+          console.warn('[YouTube Plugin] setVolume ohne gültigen Wert:', message.volume);
+          return;
+        }
         if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
           ytPlayer.setVolume(volume * 100);
+        } else {
+          reportNotExecuted('setVolume', 'YouTube-Player nicht verfügbar');
         }
-        if (window.playerAPI) {
-          window.playerAPI.reportProviderState('mediahub', { state: 'volume-changed', volume });
-        }
+        // Der globale Lautstärke-State wird vom PlayerManager verwaltet –
+        // hier wird kein eigener (ungültiger) Zustand gemeldet.
         break;
       }
       default:
@@ -363,7 +433,7 @@
 
   // Plugin-API global verfügbar machen
   window.youtubePlugin = {
-    initPlayer,
+    initPlayer: createYouTubePlayer,
     playVideo,
     pauseVideo,
     stopVideo,
@@ -377,6 +447,17 @@
     isReady: () => ytReady,
     getCurrentVideoId: () => currentVideoId
   };
+
+  // Beim Laden des Skripts sofort abonnieren (nicht erst beim Öffnen der
+  // YouTube-Ansicht), damit globale Player-Controls jederzeit funktionieren.
+  listenToCommands();
+
+  // Teardown-Hook für den Plugin-Lebenszyklus: RendererPluginManager ruft
+  // destroy() beim Deaktivieren des Plugins auf – danach bleibt kein
+  // IPC-Listener zurück.
+  if (typeof window.registerPluginRenderer === 'function') {
+    window.registerPluginRenderer('youtube', { destroy: stopListening });
+  }
 
   console.log('[YouTube Plugin] Renderer script loaded');
 

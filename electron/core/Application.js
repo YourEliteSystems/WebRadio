@@ -409,6 +409,13 @@ class Application {
         // MediaHubProvider registrieren (wird aktiv, wenn MediaHub-Plugin startet)
         playerManager.registerProvider("mediahub", mediaHubProvider);
 
+        // MainWindow-Zugriff für den Main→Renderer-Kommando-Kanal
+        // ("mediahub:command") bereitstellen. Der Main-Prozess sendet
+        // ausschließlich über webContents.send() – kein ipcRenderer.
+        if (typeof mediaHubProvider.setWindowManager === "function") {
+            mediaHubProvider.setWindowManager(this.windowManager);
+        }
+
         // DiscordPresenceAdapter initialisieren – abonniert ab sofort
         // PlayerState-Änderungen über playerManager.subscribe()
         discordPresenceAdapter.initialize(playerManager, DiscordRichPresence);

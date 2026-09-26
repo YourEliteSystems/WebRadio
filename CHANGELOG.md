@@ -6,13 +6,24 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ## [v1.0.7-alpha.3] – 2026-09-26
 
-> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher und erweitert das Packaging-Audit-Testframework.
+> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher, erweitert das Packaging-Audit-Testframework und stellt die MediaHub-Player-Steuerung auf eine sichere Main→Renderer-IPC-Brücke (`mainWindow.webContents.send` → `mediaHubPlayerAPI.onCommand()` → YouTube-Plugin) um.
 
 ### 🐧 Linux & Arch Packaging
 
 - **Dynamische Binary-Erkennung im PKGBUILD:** `package()` in `packaging/arch/PKGBUILD` prüft nun dynamisch das Vorhandensein von `WebRadio` (standardmäßig durch `electron-builder.yml` als `executableName: WebRadio` generiert) oder `${_pkgname}` (`webradio`).
 - **Berechtigungen & Symlink-Auflösung:** Die ermittelte Binärdatei erhält präzise Ausführungsrechte (`chmod 755`) und wird als Ziel für den symbolischen Link `/usr/bin/webradio` verknüpft, sodass Anwendungsstarts über Desktop-Launcher und Terminal fehlerfrei funktionieren.
 - **Audit-Testabdeckung:** `scripts/tests/artifact-audit.test.js` prüft nun automatisiert, dass der Symlink im PKGBUILD konsistent auf die installierte Binärdatei verweist.
+
+### 🎧 MediaHub – Sichere Main→Renderer-Player-Brücke
+
+- **`ipcRenderer` aus dem Main-Prozess entfernt:** `MediaHubProvider._sendCommand()` sendet die Kommandos `play/pause/stop/setVolume` ausschließlich über `mainWindow.webContents.send("mediahub:command", …)`. Der Window-Zugriff wird per `setWindowManager()` aus `Application.initializePlayer()` injiziert; fehlende bzw. zerstörte Fenster werden geprüft und führen zu `false` statt zu einer Exception.
+- **Vollständige Nachrichten-Nutzlast:** Neben `channel`, `commandId`, `videoId`, `sessionId` und `timestamp` gehen nun auch `title`, `artist`, `artwork`, `source` und `volume` unverändert an den Renderer – zuvor ging insbesondere `volume` verloren.
+- **Neue Preload-API `window.mediaHubPlayerAPI.onCommand(cb)`:** Exponiert ausschließlich das Abonnieren des `mediahub:command`-Kanals und gibt eine Unsubscribe-Funktion zurück, die nur den eigenen Listener entfernt. Kein generisches `send`/`invoke`, kein `ipcRenderer` im Renderer.
+- **YouTube-Plugin bindet die Kommandos:** `plugins/youtube/renderer.js` hängt sich beim Laden (nicht erst beim Öffnen der Ansicht) an `mediaHubPlayerAPI.onCommand()`, führt die IFrame-Befehle `playVideo/pauseVideo/stopVideo/setVolume` aus und meldet ausschließlich tatsächlich ausgeführte Zustände zurück. Die Command-Queue ist auf 8 Einträge begrenzt, ungültige/veraltete Kommandos werden protokolliert ignoriert. Beim Deaktivieren des Plugins ruft der `destroy()`-Hook von `registerPluginRenderer('youtube', …)` den Listener ab – kein Leak beim Teardown.
+- **Fehlerbehebung `initPlayer`:** `window.youtubePlugin` referenzierte eine nicht existierende Funktion und warf beim Skriptladen einen `ReferenceError`, wodurch die YouTube-Ansicht nie registriert wurde; jetzt korrekt an `createYouTubePlayer` gebunden.
+- **Status-Modell:** `MediaHubProvider` meldet einen Zustand nur, wenn das Kommando tatsächlich versendet wurde; `setVolume` löst keine `loading`-Statusmeldung mehr aus. Der Renderer korrigiert nicht ausführbare Befehle (`idle`) statt einen erfundenen Zustand zu melden.
+- **Globale Controls respektieren den aktiven Provider:** Medientasten-/Tray-Stop läuft über die Unified Player API (Legacy-Radio-Stop nur, wenn Radio aktiv ist), die Player-Leiste und die Medientasten-Lautstärke steuern den Radio-Gain nicht, solange MediaHub aktiv ist, und Medientasten-Lautstärke erreicht jetzt auch den YouTube-Player.
+- **Tests:** `scripts/tests/mediahub-player.test.js` (13 Tests) verifiziert Main-IPC ohne `ipcRenderer`, Nachrichtenformat, 0..1-Volumen, Preload-Vertrag (inkl. Unsubscribe-Isolation), Renderer-Ausführung der vier Befehle, Provider-Wechsel-Routing und den Listener-Teardown; in `npm test` integriert.
 
 ---
 

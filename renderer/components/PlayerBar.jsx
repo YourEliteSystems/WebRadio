@@ -132,6 +132,12 @@ export default function PlayerBar({
   // (Ohne die `legacyOnVolumeChange` Runde verändert der Unified-Slider
   //  den Audio-Pegel nicht, weil die PlayerAPI-setVolume-Basis im Main
   //  (RadioProvider.setVolume) als no-op fungiert.)
+  //
+  // Ist dagegen MediaHub aktiv, darf der Radio-Gain NICHT zusätzlich
+  // verändert werden – die Lautstärke läuft ausschließlich über die
+  // Unified Player API zum YouTube-Player.
+  const mediahubActive = playerState?.source?.id === 'mediahub';
+
   const handleVolumeChange = (val) => {
     const clamped = Math.max(0, Math.min(1, val));
     setLocalVolume(clamped);
@@ -139,14 +145,25 @@ export default function PlayerBar({
     localStorage.setItem('webradio_volume', clamped.toString());
 
     if (hasUnifiedApi) {
-      // Aktualisiere den tatsächlichen Gain im Renderer (ungeringt, kein Provider-Specifisch).
-      legacyOnVolumeChange?.(clamped);
+      // Aktualisiere den tatsächlichen Gain im Renderer (nur bei Radio aktiv).
+      if (!mediahubActive) {
+        legacyOnVolumeChange?.(clamped);
+      }
       // Synchronisiere mit dem Unified-Player-State.
       setUnifiedVolume(clamped);
     } else if (legacyOnVolumeChange) {
       legacyOnVolumeChange(clamped);
     }
   };
+
+  // Beim Wechsel zurück auf Radio den Radio-Gain erneut anwenden, damit
+  // Slider-Anzeige und tatsächlicher Radio-Pegel wieder zusammenpassen.
+  useEffect(() => {
+    if (mediahubActive) return;
+    if (typeof legacyOnVolumeChange !== 'function') return;
+    legacyOnVolumeChange(localVolume);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediahubActive]);
 
   const handleMuteToggle = () => {
     if (localVolume > 0) {

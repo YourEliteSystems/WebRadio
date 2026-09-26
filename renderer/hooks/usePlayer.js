@@ -33,6 +33,42 @@ export function usePlayer() {
     }
   }, []);
 
+  // Vom Unified Player gemeldeter aktiver Provider (z.B. "radio" / "mediahub").
+  // Steuert, ob Medientasten den Radio-Gain oder den MediaHub-Player bedienen.
+  const activeSourceId = useRef(null);
+
+  useEffect(() => {
+    if (!window.playerAPI) return;
+
+    let unsub = null;
+    window.playerAPI.getState()
+      .then((state) => { activeSourceId.current = state?.source?.id ?? null; })
+      .catch(() => {});
+    if (window.playerAPI.onStateChanged) {
+      unsub = window.playerAPI.onStateChanged((state) => {
+        activeSourceId.current = state?.source?.id ?? null;
+      });
+    }
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
+
+  // Wendet Lautstärke auf den aktiven Weg an:
+  //  - Radio-Gain nur, solange MediaHub NICHT aktiv ist
+  //  - Unified Player API immer (MediaHub → YouTube IFrame, Radio → no-op)
+  const applyVolume = useCallback((next) => {
+    if (activeSourceId.current !== 'mediahub') {
+      setVolume(next);
+    }
+    if (window.playerAPI?.setVolume) {
+      window.playerAPI.setVolume(next)
+        .catch((err) => console.warn('setVolume fehlgeschlagen:', err));
+    }
+    localStorage.setItem('webradio_volume', next.toString());
+  }, []);
+
   // Medientasten: VolumeUp / VolumeDown / Mute (Linux + Windows)
   useEffect(() => {
     const STEP = 0.05;
@@ -40,8 +76,7 @@ export function usePlayer() {
     const onUp = () => {
       setVolumeState(prev => {
         const next = Math.min(1, parseFloat((prev + STEP).toFixed(2)));
-        setVolume(next);
-        localStorage.setItem('webradio_volume', next.toString());
+        applyVolume(next);
         if (next > 0) setIsMuted(false);
         return next;
       });
@@ -50,8 +85,7 @@ export function usePlayer() {
     const onDown = () => {
       setVolumeState(prev => {
         const next = Math.max(0, parseFloat((prev - STEP).toFixed(2)));
-        setVolume(next);
-        localStorage.setItem('webradio_volume', next.toString());
+        applyVolume(next);
         if (next === 0) setIsMuted(true);
         return next;
       });
@@ -62,30 +96,32 @@ export function usePlayer() {
         if (prev > 0) {
           // Stumm schalten
           premuteVolume.current = prev;
-          setVolume(0);
+          applyVolume(0);
           setIsMuted(true);
           return 0;
         } else {
           // Wieder einschalten
           const restore = premuteVolume.current ?? 0.5;
-          setVolume(restore);
-          localStorage.setItem('webradio_volume', restore.toString());
+          applyVolume(restore);
           setIsMuted(false);
           return restore;
         }
       });
     };
 
-    window.media?.onVolumeUp?.(onUp);
-    window.media?.onVolumeDown?.(onDown);
-    window.media?.onMute?.(onMute);
+    const unsubUp   = window.media?.onVolumeUp?.(onUp);
+    const unsubDown = window.media?.onVolumeDown?.(onDown);
+    const unsubMute = window.media?.onMute?.(onMute);
 
     // Cleanup beim Unmount
     return () => {
-      // ipcRenderer-Listener werden über removeListener- Funktionen
+      // ipcRenderer-Listener werden über removeListener-Funktionen
       // im Preload bereinigt (jeweils als Rückgabewert der on*-Methoden).
+      if (typeof unsubUp === 'function') unsubUp();
+      if (typeof unsubDown === 'function') unsubDown();
+      if (typeof unsubMute === 'function') unsubMute();
     };
-  }, []);
+  }, [applyVolume]);
 
   const handlePlay = useCallback((url, station) => {
     if (!url) return;

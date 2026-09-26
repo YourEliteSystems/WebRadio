@@ -344,6 +344,29 @@ contextBridge.exposeInMainWorld("playerAPI", {
 });
 
 // ─────────────────────────────────────────────
+// MEDIAHUB PLAYER COMMANDS (Main → Renderer)
+// Der Main-Prozess (MediaHubProvider) sendet Play/Pause/Stop/setVolume
+// über mainWindow.webContents.send("mediahub:command", …).
+// Exponiert wird AUSSCHLIESSLICH das Abonnieren – kein generisches
+// send/invoke, damit Renderer keinen freien Zugriff auf IPC-Kanäle haben.
+// ─────────────────────────────────────────────
+contextBridge.exposeInMainWorld("mediaHubPlayerAPI", {
+  /**
+   * Abonniert Main→Renderer-Kommandos des MediaHub-Players.
+   * @param {(message: object) => void} callback  Erhält { channel, commandId, videoId, … }
+   * @returns {() => void}  Entfernt ausschließlich diesen einen Listener.
+   */
+  onCommand: (callback) => {
+    if (typeof callback !== "function") {
+      throw new TypeError("mediaHubPlayerAPI.onCommand erwartet eine Funktion");
+    }
+    const handler = (_event, message) => callback(message);
+    ipcRenderer.on("mediahub:command", handler);
+    return () => ipcRenderer.removeListener("mediahub:command", handler);
+  }
+});
+
+// ─────────────────────────────────────────────
 // PLUGIN HTTP ORIGIN API
 // Gibt dem Renderer die URL des lokalen Plugin-HTTP-Servers.
 // Wird von MediaHub genutzt, um Assets über http:// zu laden.

@@ -110,11 +110,37 @@ export default function App() {
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
   // Media Control Listeners – nur einmalig registrieren
+  // Der Medientasten-/Tray-Stop stoppt IMMER den aktiven Provider.
+  // Bei aktivem MediaHub wird ausschließlich die Unified Player API bedient
+  // (YouTube), der Radio-Provider wird nicht zusätzlich gestoppt.
   useEffect(() => {
-    if (window.media) {
-      window.media.onStop(() => handleStop());
-      // window.media.onPlayPause(() => ...)
-    }
+    if (!window.media || !window.media.onStop) return;
+
+    const unsub = window.media.onStop(() => {
+      if (!window.playerAPI || !window.playerAPI.stop) {
+        handleStop();
+        return;
+      }
+
+      window.playerAPI.getState()
+        .catch(() => null)
+        .then((state) => {
+          const radioActive = !state || !state.source || state.source.id === 'radio';
+          if (radioActive) {
+            // Radio-Pfad: Legacy-Aufruf räumt zusätzlich die lokale
+            // Audioschiene (Buffer, AudioContext) auf.
+            handleStop();
+            return;
+          }
+          // MediaHub-Pfad: nur den aktiven (YouTube-) Provider stoppen.
+          return window.playerAPI.stop()
+            .catch((err) => console.warn('Media-Stop fehlgeschlagen:', err));
+        });
+    });
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, [handleStop]);
 
   // Load initial popular stations

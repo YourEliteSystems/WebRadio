@@ -222,6 +222,49 @@ test("getAllUpdateChannelMetadata enthält alpha/beta/stable", () => {
   assert.ok(list.some((m) => m.id === "stable"));
 });
 
+test("ChannelMetadata alpha enthält gültiges Icon-SVG", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  const icon = ChannelMetadata.CHANNEL_METADATA.alpha.icon;
+  assert.ok(typeof icon === "string", "Icon ist String");
+  assert.ok(icon.includes("<svg"), "Icon enthält <svg>");
+  assert.ok(icon.includes("viewBox"), "Icon enthält viewBox");
+  assert.ok(icon.includes("currentColor"), "Icon enthält currentColor");
+});
+
+test("ChannelMetadata beta enthält gültiges Icon-SVG", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  const icon = ChannelMetadata.CHANNEL_METADATA.beta.icon;
+  assert.ok(typeof icon === "string", "Icon ist String");
+  assert.ok(icon.includes("<svg"), "Icon enthält <svg>");
+  assert.ok(icon.includes("viewBox"), "Icon enthält viewBox");
+  assert.ok(icon.includes("currentColor"), "Icon enthält currentColor");
+});
+
+test("ChannelMetadata stable enthält gültiges Icon-SVG", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  const icon = ChannelMetadata.CHANNEL_METADATA.stable.icon;
+  assert.ok(typeof icon === "string", "Icon ist String");
+  assert.ok(icon.includes("<svg"), "Icon enthält <svg>");
+  assert.ok(icon.includes("viewBox"), "Icon enthält viewBox");
+  assert.ok(icon.includes("currentColor") || icon.includes("stroke"), "Icon enthält currentColor oder stroke");
+});
+
+test("ChannelMetadata-Copy enthält mindenfalls Icon", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  const copied = ChannelMetadata.getUpdateChannelMetadata("alpha");
+  assert.ok(copied.icon && copied.icon.trim(), "Copied alpha enthält Icon");
+});
+
+test("Alle Channel-Metadata enthalten Icon, Label und Farbe", () => {
+  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+  for (const id of ChannelMetadata.CHANNEL_IDS) {
+    const meta = ChannelMetadata.CHANNEL_METADATA[id];
+    assert.ok(meta.icon && meta.icon.trim(), `${id} enthält Icon`);
+    assert.ok(meta.label, `${id} enthält Label`);
+    assert.ok(meta.color, `${id} enthält Farbe`);
+  }
+});
+
 console.log("\n==========================================");
 console.log(`Tests abgeschlossen: ${testsPassed} bestanden, ${testsFailed} fehlgeschlagen`);
 console.log("==========================================");
