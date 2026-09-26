@@ -1,0 +1,141 @@
+# MkDocs configuration for WebRadio.
+# Documentation source: docs/ (Single Source of Truth)
+# Build locally: mkdocs build --strict
+# Serve locally:  mkdocs serve
+
+site_name: WebRadio
+site_description: Open-source cross-platform desktop WebRadio application built with Electron and React.
+site_url: https://webradio.readthedocs.io/
+repo_url: https://github.com/YourEliteSystems/WebRadio
+repo_name: YourEliteSystems/WebRadio
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+# Never publish local-only files: the internal strategy document is excluded
+# from version control (.gitignore) and the requirements file is build tooling.
+exclude_docs: |
+  internal/
+  requirements.txt
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+# Navigation is built exclusively from files that exist in docs/.
+# Missing pages are not linked anywhere.
+nav:
+  - Home: index.md
+  - Getting Started: Readme.md
+  - Architecture:
+      - Overview: architecture/readme.md
+      - Architecture Guide: architecture.md
+      - Application: architecture/01-Application.md
+      - StorageManager: architecture/02-StorageManager.md
+      - WindowManager: architecture/03-WindowManager.md
+      - Diagnostics: architecture/04-Diagnostics.md
+      - IPC: architecture/05-IPC.md
+      - ThemeManager: architecture/06-ThemeManager.md
+      - PluginManager: architecture/07-PluginManager.md
+      - MediaKeys: architecture/08-MediaKeys.md
+      - Tray: architecture/09-Tray.md
+      - Updater: architecture/10-Updater.md
+  - API Reference:
+      - Overview: api-reference/README.md
+      - Application: api-reference/Application.md
+      - Plugin: api-reference/Plugin.md
+      - PluginContext: api-reference/PluginContext.md
+      - PluginManager: api-reference/PluginManager.md
+      - Theme: api-reference/Theme.md
+      - ThemeManager: api-reference/ThemeManager.md
+      - Settings: api-reference/Settings.md
+      - Storage: api-reference/Storage.md
+      - Events: api-reference/Events.md
+      - Hooks: api-reference/Hooks.md
+      - Commands: api-reference/Commands.md
+      - Menus: api-reference/Menus.md
+      - Notifications: api-reference/Notifications.md
+      - Permissions: api-reference/Permissions.md
+      - Windows: api-reference/Windows.md
+      - StreamManager: api-reference/StreamManager.md
+      - RadioBrowserService: api-reference/RadioBrowserService.md
+      - Logger: api-reference/Logger.md
+  - Plugin SDK:
+      - Overview: plugin-sdk/README.md
+      - Getting Started: plugin-sdk/01-GettingStarted.md
+      - Plugin Manifest: plugin-sdk/02-Manifest.md
+      - Project Structure: plugin-sdk/03-ProjectStructure.md
+      - Plugin Lifecycle: plugin-sdk/04-Lifecycle.md
+      - Plugin Context: plugin-sdk/05-Context.md
+      - Plugin API: plugin-sdk/06-PluginAPI.md
+      - Storage: plugin-sdk/06-Storage.md
+      - Events: plugin-sdk/07-Events.md
+      - Hooks: plugin-sdk/08-Hooks.md
+      - Navigation Extension API: plugin-sdk/08-Navigation.md
+      - UI Integration: plugin-sdk/09-UI.md
+      - Best Practices: plugin-sdk/10-BestPractices.md
+      - Hello World: plugin-sdk/11-HelloWorld.md
+      - FAQ: plugin-sdk/12-FAQ.md
+      - Capabilities & Plugin HTTP: plugin-sdk/13-Capabilities.md
+  - Theme SDK:
+      - Overview: theme-sdk/README.md
+      - Getting Started: theme-sdk/01-GettingStarted.md
+      - Theme Manifest: theme-sdk/02-ThemeManifest.md
+      - Directory Structure: theme-sdk/03-DirectoryStructure.md
+      - CSS Variables: theme-sdk/04-CSSVariables.md
+      - Components: theme-sdk/05-Components.md
+      - Assets: theme-sdk/06-Assets.md
+      - Best Practices: theme-sdk/07-BestPractices.md
+      - Hello Theme: theme-sdk/08-HelloTheme.md
+      - FAQ: theme-sdk/09-FAQ.md
+  - Integrations:
+      - Integration SDK: IntegrationSDK.md
+      - Verified Integrations: VERIFIED_INTEGRATIONS.md
+  - Updates:
+      - Update Architecture: UPDATE_ARCHITECTURE.md
+  - Cross Platform:
+      - Cross-Platform Setup: CROSS_PLATFORM_SETUP.md
+
+# Warn (and fail under `mkdocs build --strict`) about broken links or
+# navigation entries that do not point to a real file. Nothing is silenced.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    absolute_links: warn
+    unrecognized_links: warn
+    anchors: warn

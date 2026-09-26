@@ -6,7 +6,7 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ## [v1.0.7-alpha.3] – 2026-09-26
 
-> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher, erweitert das Packaging-Audit-Testframework, stellt die MediaHub-Player-Steuerung auf eine sichere Main→Renderer-IPC-Brücke (`mainWindow.webContents.send` → `mediaHubPlayerAPI.onCommand()` → YouTube-Plugin) um und ergänzt die Update-Kanal-Auswahl um durchgängig dargestellte Kanal-Icons.
+> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher, erweitert das Packaging-Audit-Testframework, stellt die MediaHub-Player-Steuerung auf eine sichere Main→Renderer-IPC-Brücke (`mainWindow.webContents.send` → `mediaHubPlayerAPI.onCommand()` → YouTube-Plugin) um, ergänzt die Update-Kanal-Auswahl um durchgängig dargestellte Kanal-Icons, entfernt veraltete Legacy-Dokumentation und richtet die bestehende `docs/`-Dokumentation über Read the Docs (MkDocs) ein.
 
 ### 🐧 Linux & Arch Packaging
 
@@ -31,6 +31,21 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - **Zentrale `getChannelIcon(meta)`:** Liefert bevorzugt das Icon aus den Channel-Metadaten (`ChannelMetadata`) und fällt bei fehlender, leerer oder ungültiger Angabe auf den passenden Fallback (sonst `stable`) zurück. Damit ist an jeder Stelle garantiert ein Icon dargestellt.
 - **Icon überall dargestellt:** Zusätzlich zum Kanal-Label erscheint das Icon nun auch im Badge der aktuell installierten Version, in den auswählbaren Kanal-Optionen sowie im Alpha-/Beta-Hinweis; zuvor wurde `channelMeta?.icon` an diesen Stellen teils gar nicht, teils nur als roher String gerendert.
 - **Tests:** `scripts/tests/update-channel.test.js` um fünf Fälle erweitert (36 Tests gesamt): Icon-SVG-Validierung für alpha/beta/stable (`<svg>`, `viewBox`, `currentColor`/`stroke`), Kopie-Verhalten von `getUpdateChannelMetadata()` sowie Vollständigkeit von Icon, Label und Farbe über alle Kanal-IDs.
+
+### 🧹 Projektstruktur – Legacy-Dokumentation entfernt
+
+- **14 veraltete Dokumente gelöscht (3.498 Zeilen):** `ABSCHLUSSBERICHT_SETTINGS_MIGRATION.md`, `ARCHITECTURE_DIAGRAM.md`, `AUDIT_REPORT_1.0.7-alpha.1.md`, `INSTALL.md`, `MIGRATION_SETTINGS_REACT.md`, `vorstellungen.md` sowie der komplette Ordner `docs_legacy/` mit `roadmap.md`, `theme-development-guide.md`, `plugin-development-guide.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `README.md` und `internal-notes.md`.
+- **Begründung:** Abgeschlossene Migrations-/Audit-Berichte, durch die aktuelle Dokumentation abgelöste Leitfäden und veraltete Projektunterlagen – die inhaltlich gültigen Fassungen existieren weiterhin: `ROADMAP.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` und `README.md` im Projektstamm, die Leitfäden unter `docs/plugin-sdk/` und `docs/theme-sdk/`.
+- **`.gitignore`:** Ordner `protected/` (lokale, nicht versionierte Schutzdateien) ergänzt.
+
+### 📚 Read the Docs – Dokumentations-Pipeline
+
+- **`.readthedocs.yaml` (neu):** Read-the-Docs-Konfiguration in Version 2 mit `ubuntu-24.04`, Python `3.12`, MkDocs-Build über `mkdocs.yml`, Abhängigkeiten aus `docs/requirements.txt` und `fail_on_warning: true` – gebrochene Links oder ungültige Navigation brechen den Build ab, statt sie zu unterdrücken.
+- **`mkdocs.yml` (neu):** MkDocs 1.6 mit Material-Theme; Navigation, Startseite und Sitemap werden ausschließlich aus den real vorhandenen Dateien in `docs/` erzeugt. `docs/` bleibt damit Single Source of Truth – keine zweite Dokumentationsstruktur, keine Duplikate, keine umbenannten Dateien. `markdown_extensions` auf `tables`, `toc`, `attr_list`, `pymdownx.highlight` und `pymdownx.superfences` begrenzt.
+- **Neue Startseite `docs/index.md`:** schlanke Landingpage mit Features und Dokumentations-Übersicht; die vorhandene `docs/Readme.md` bleibt unverändert und trägt den Eintrag „Getting Started".
+- **Tote Links bereinigt:** Sieben nicht existierende Ziele in `docs/api-reference/README.md` aufgelöst – `StorageManager`, `Navigation` und `UI` verweisen jetzt auf die vorhandenen Seiten unter `docs/architecture/` bzw. `docs/plugin-sdk/`, `RuntimeDetector` und `UpdateManager` auf `docs/UPDATE_ARCHITECTURE.md`. Für `UnifiedPlayer` und `PluginHttpOrigin` existiert keine Seite, diese Einträge sind daher bewusst ohne Link als Text geführt.
+- **Saubere Build-Grenzen:** `exclude_docs` hält `docs/requirements.txt` und den nicht versionierten Ordner `docs/internal/` (durch `.gitignore` geschützt) aus dem veröffentlichten Build; das Ausgabeverzeichnis `site/` wurde `.gitignore` hinzugefügt.
+- **Verifikation:** `mkdocs build --strict` läuft lokal und auf einem frischen Klon des Repositorys ohne einen einzigen Warnung durch (64 HTML-Seiten inkl. Start- und 404-Seite).
 
 ---
 

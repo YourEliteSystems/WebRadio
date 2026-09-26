@@ -15,6 +15,9 @@ docs/internal/*
 out
 out/*
 
+site
+site/*
+
 data
 data/*
 

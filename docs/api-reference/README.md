@@ -95,7 +95,7 @@ Each category is documented separately.
 * [Application](./Application.md)
 * [PluginManager](./PluginManager.md)
 * [ThemeManager](./ThemeManager.md)
-* [StorageManager](./StorageManager.md)
+* [StorageManager](../architecture/02-StorageManager.md)
 
 ---
 
@@ -108,20 +108,20 @@ Each category is documented separately.
 
 # Platform and Update Core
 
-* [RuntimeDetector](./RuntimeDetector.md)
-* [UpdateManager](./UpdateManager.md)
+* [RuntimeDetector](../UPDATE_ARCHITECTURE.md)
+* [UpdateManager](../UPDATE_ARCHITECTURE.md)
 
 ---
 
 # Player API
 
-* [UnifiedPlayer](./UnifiedPlayer.md)
+* UnifiedPlayer
 
 ---
 
 # Plugin HTTP Origin API
 
-* [PluginHttpOrigin](./PluginHttpOrigin.md)
+* PluginHttpOrigin
 
 ---
 
@@ -130,8 +130,8 @@ Each category is documented separately.
 * [Events](./Events.md)
 * [Storage](./Storage.md)
 * [Settings](./Settings.md)
-* [Navigation](./Navigation.md)
-* [UI](./UI.md)
+* [Navigation](../plugin-sdk/08-Navigation.md)
+* [UI](../plugin-sdk/09-UI.md)
 
 > In WebRadio 1.0.7-alpha.1, some API reference pages describe future-facing plugin services that are not yet implemented. Those pages now document their current "not yet implemented" status.
 
