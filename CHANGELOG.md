@@ -8,6 +8,35 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 > Vorabversion 1.0.7-alpha.1. Alpha-Update-Kanal mit dauerhaft gespeicherter Kanal-Auswahl, Unified Player mit Now-Playing-Anzeige und zentraler Lautstärkeregelung, Paket-System mit Validierung, Plugin-Capabilities samt lokal kontrollierter Plugin-HTTP-Umgebung, zentrale Channel-Metadaten und Release-Channel-Ableitung, umfangreiches Doku-Refactoring sowie deutlich erweiterte Testabdeckung. Das Diagnose-/Profiling-System und das Electron-Upgrade auf 44.4.1 sind unter [v1.0.6](#v106--2026-09-18) dokumentiert.
 
+## [v1.0.7-alpha.2] – 2026-09-26
+
+> Abrufvorbereitung 1.0.7-alpha.2: MediaHub-Provider-Activation via Unified Player API (setActiveProvider), Main-to-Renderer-Playback-Kommandos (play/pause/stop/setVolume) mit `mediahub:command`-Kanal und verarbeiteter Status-Rückmeldung, Discord Rich Presence Persistence/Startup (Einstellung aus settings.json laden, bei Aktivierung initialisieren, IPC-Update mit Rollback) und zentrale Provider-Kontrolle.
+
+### 🎧 MediaHub – Provider-Activation & Main-to-Renderer-Kommandos
+
+- **Neue `playerAPI.setActiveProvider(id)`-Methode:** Der Renderer kann den MediaHub-Provider aus dem Renderer-Code über `playerAPI.setActiveProvider('mediahub')` aktivieren. `PlayerManager` akzeptiert nur Meldungen von aktiven Providern (`activeProviderId`), daher war der Provider bisher nie in den Zuständigkeitswechsel eingetreten.
+- **`MediaHubProvider.activate()` / `deactivate()`:** Explicite Aktivierung/Deaktivierung des Providers via Unified Player API; `play()/pause()/stop()/setVolume()` rufen `_ensureActivated()` auf, bevor sie State und Kommandos senden.
+- **Neuer IPC-Kanal `player:setActiveProvider`:** `PlayerManager.setActiveProvider(id)` im Main-Prozess, validiert Provider-IDs, gibt `ok:true/false` mit `activeProviderId|error` zurück.
+- **Main-to-Renderer-Kommandos:** `MediaHubProvider` sendet pro Kommand `commandId`, `videoId`, `sessionId`, `timestamp` über `mediahub:command` an den Renderer. Der Renderer (YouTube-Plugin) hängt sich auf diesen Kanal und verarbeitet `play/pause/stop/setVolume` als echte IFrame-Steuerungen.
+- **Kommando-Queue & Verfallsmanagement:** Befehle, die vor der IFrame-Bereitschaft (`ytReady`/`ytPlayer`) eintreffen, werden einer Warteschlange zugeordnet und nur nach vollständiger Initialisierung ausgeführt. Ältere Befehle mit abgelaufener `timestamp` werden verworfen.
+- **Status-Rückmeldungen:** Renderer meldet nach jedem Befehl `playerAPI.reportProviderState('mediahub', { state: 'playing'|'paused'|'stopped'|'volume-changed', ... })`; PlayerBar und Unified Player zeigen den tatsächlichen Status.
+- **Zustandsverluste verhindert:** Doppelte Player-Instanzen werden nicht erzeugt (`ytPlayer.destroyed` prüft), Session und Metadaten bleiben (Stop nicht unnötig zerstören).
+
+### 💬 Discord Rich Presence – Persistence & Startup
+
+- **Ladereihenfolge korrigiert:** `DiscordRichPresence.initialize()` liest jetzt ausdrücklich die gespeicherte Einstellung aus `settings.json` via `loadStoredSettings()`, validiert den Wert (`true`/`false`) und fällt bei ungültigem/fehlendem Wert auf `false` ohne andere Einstellungen zu löschen.
+- **`updateSettings(enabled)`:** Akzeptiert Boolean, validiert, speichert dauerhaft (Main-Prozess nur), gibt `{ok, changed, enabled}` zurück. Bei Speicherfehlern wird der vorherige gültige Wert wiederhergestellt (Rollback); kein erfolgreicher Toggle bei schreibgeschützter Konfiguration.
+- **Startup-Initialisierung:** Discord wird nur bei `isEnabled = true` initialisiert (`connect()`). `setupEventListeners()` ist unabhängig von der Einstellung registriert, damit das Handler-Verhalten konsistent bleibt.
+- **IPC & Preload:** `integrations:get`, `integrations:toggle`, `integrations:update` für `discord-rpc`; Renderer erhält `enabled`-Status über `integrationsAPI.get()` und wird bei `enabled` nie als `discordConnected` bewertet.
+- **UI-Differenzierung:** Renderer zeigt `Rich Presence aktiviert/deaktiviert` sowie `verbunden/nicht verbunden` und `Aktivität veröffentlicht/nicht veröffentlicht` separat; kein falsches `connected`-Statement.
+- **Regressionssicherheit:** Disconnect/Reconnect-Logik (Initialversuche, Delay-Faktor, Maximum) bleibt vollständig erhalten; Shutdown entfernt EventBus-Listener und disconnectet sauber.
+
+### 📦 Sonstiges
+
+- **`package.json`** auf `1.0.7-alpha.2` angehoben; `scripts/release/validate.js` und `CHANGELOG.md` aktualisiert.
+- Alle existierenden Tests (`npm test`), Build (`npm run build`), Lint (`npm run lint`) und Release-Validierung (`npm run release:validate`) bestanden.
+- **Keine Breaking Changes:** Unified Player API, Plugin-System, Discord RPC, Update-Kanäle und PackageManager bleiben unverändert.
+
 ### 🔄 Update-System & Channel-Persistenz
 
 - **Persistente Speicherung:** Der vom Benutzer ausgewählte Update-Channel (Alpha, Beta, Stable) wird dauerhaft im Electron-Main-Prozess (`settings.json` im `userData`-Verzeichnis) über das zentrale `SettingsManager`- und `StorageManager`-System gespeichert.
