@@ -6,7 +6,7 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ## [v1.0.7-alpha.3] – 2026-09-26
 
-> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher, erweitert das Packaging-Audit-Testframework und stellt die MediaHub-Player-Steuerung auf eine sichere Main→Renderer-IPC-Brücke (`mainWindow.webContents.send` → `mediaHubPlayerAPI.onCommand()` → YouTube-Plugin) um.
+> Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher, erweitert das Packaging-Audit-Testframework, stellt die MediaHub-Player-Steuerung auf eine sichere Main→Renderer-IPC-Brücke (`mainWindow.webContents.send` → `mediaHubPlayerAPI.onCommand()` → YouTube-Plugin) um und ergänzt die Update-Kanal-Auswahl um durchgängig dargestellte Kanal-Icons.
 
 ### 🐧 Linux & Arch Packaging
 
@@ -24,6 +24,13 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - **Status-Modell:** `MediaHubProvider` meldet einen Zustand nur, wenn das Kommando tatsächlich versendet wurde; `setVolume` löst keine `loading`-Statusmeldung mehr aus. Der Renderer korrigiert nicht ausführbare Befehle (`idle`) statt einen erfundenen Zustand zu melden.
 - **Globale Controls respektieren den aktiven Provider:** Medientasten-/Tray-Stop läuft über die Unified Player API (Legacy-Radio-Stop nur, wenn Radio aktiv ist), die Player-Leiste und die Medientasten-Lautstärke steuern den Radio-Gain nicht, solange MediaHub aktiv ist, und Medientasten-Lautstärke erreicht jetzt auch den YouTube-Player.
 - **Tests:** `scripts/tests/mediahub-player.test.js` (13 Tests) verifiziert Main-IPC ohne `ipcRenderer`, Nachrichtenformat, 0..1-Volumen, Preload-Vertrag (inkl. Unsubscribe-Isolation), Renderer-Ausführung der vier Befehle, Provider-Wechsel-Routing und den Listener-Teardown; in `npm test` integriert.
+
+### 🏷️ Update-Kanal – Icons in den Einstellungen
+
+- **Fester SVG-Iconsatz als Fallback:** `renderer/components/settings/UpdatesSettings.jsx` definiert `FALLBACK_ICONS` für `alpha`, `beta` und `stable` – inline-SVG-Pfad-Daten in `currentColor`, keine externen Dateien und kein Icon-Server.
+- **Zentrale `getChannelIcon(meta)`:** Liefert bevorzugt das Icon aus den Channel-Metadaten (`ChannelMetadata`) und fällt bei fehlender, leerer oder ungültiger Angabe auf den passenden Fallback (sonst `stable`) zurück. Damit ist an jeder Stelle garantiert ein Icon dargestellt.
+- **Icon überall dargestellt:** Zusätzlich zum Kanal-Label erscheint das Icon nun auch im Badge der aktuell installierten Version, in den auswählbaren Kanal-Optionen sowie im Alpha-/Beta-Hinweis; zuvor wurde `channelMeta?.icon` an diesen Stellen teils gar nicht, teils nur als roher String gerendert.
+- **Tests:** `scripts/tests/update-channel.test.js` um fünf Fälle erweitert (36 Tests gesamt): Icon-SVG-Validierung für alpha/beta/stable (`<svg>`, `viewBox`, `currentColor`/`stroke`), Kopie-Verhalten von `getUpdateChannelMetadata()` sowie Vollständigkeit von Icon, Label und Farbe über alle Kanal-IDs.
 
 ---
 
