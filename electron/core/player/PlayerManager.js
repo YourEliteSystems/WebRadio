@@ -18,16 +18,41 @@ const PLAYER_STATES = Object.freeze({
 });
 
 /**
+ * Default-Capabilities – werden verwendet, wenn kein Provider aktiv ist.
+ */
+const DEFAULT_CAPABILITIES = Object.freeze({
+  play:     true,
+  pause:    true,
+  stop:     true,
+  volume:   true,
+  mute:     true,
+  seek:     false,
+  next:     false,
+  previous: false
+});
+
+/**
  * Default-State – wird beim Start und nach einem Stop zurückgesetzt.
+ * Entspricht dem vollständigen Unified Player State Schema (§5).
  */
 function createDefaultState() {
   return {
-    state:   PLAYER_STATES.IDLE,
-    title:   null,
-    artist:  null,
-    artwork: null,
-    volume:  1.0,
-    source:  null   // { id, name, provider, type }
+    state:    PLAYER_STATES.IDLE,
+    title:    null,
+    artist:   null,
+    artwork:  null,
+    volume:   1.0,
+    muted:    false,
+
+    provider: null,   // { id, name, type } – aktiver Provider (§5)
+
+    source:   null,   // { id, type, url } – aktive Quelle
+
+    capabilities: { ...DEFAULT_CAPABILITIES },
+
+    position: null,   // Wiedergabeposition in Sekunden (§29 optional)
+    duration: null,   // Gesamtdauer in Sekunden (§29 optional)
+    error:    null    // { code, message } bei state === 'error'
   };
 }
 
@@ -121,11 +146,29 @@ class PlayerManager {
     if (this.activeProviderId && this.activeProviderId !== id) {
       logger.info(`Provider-Wechsel: ${this.activeProviderId} → ${id}`);
       this._safeProviderCall(this.activeProviderId, "stop");
-      // Bei Provider-Wechsel: State reset für sauberen Übergang
-      this._setState(createDefaultState());
     }
 
     this.activeProviderId = id;
+
+    // Provider-Metadaten für den State ermitteln (§19)
+    const provider = this.providers.get(id);
+    const providerMeta = {
+      id,
+      name: provider?.name || id,
+      type: provider?.type || "unknown"
+    };
+
+    // Capabilities des neuen Providers übernehmen
+    const capabilities = this._getProviderCapabilities(id);
+
+    // Sauberer State-Reset beim Provider-Wechsel mit neuem provider-Objekt
+    const nextState = {
+      ...createDefaultState(),
+      provider:     providerMeta,
+      capabilities
+    };
+    this._setState(nextState);
+
     logger.info(`Aktiver Provider: ${id}`);
   }
 
@@ -144,35 +187,66 @@ class PlayerManager {
   /**
    * Startet die Wiedergabe. Optionale Parameter werden an den Provider weitergegeben.
    * @param  {...any} args  Provider-spezifische Parameter (z.B. url, station)
+   * @returns {{ success: boolean, error?: { code: string, message: string } }}
    */
   async play(...args) {
-    const provider = this.getActiveProvider();
-    if (!provider) {
+    if (!this.getActiveProvider()) {
       logger.warn("play() aufgerufen, aber kein aktiver Provider.");
-      return;
+      return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein aktiver Provider." } };
     }
-    await this._safeProviderCall(this.activeProviderId, "play", ...args);
+    try {
+      await this._safeProviderCall(this.activeProviderId, "play", ...args);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
+    }
   }
 
+  /**
+   * @returns {{ success: boolean, error?: { code: string, message: string } }}
+   */
   async pause() {
-    const provider = this.getActiveProvider();
-    if (!provider) return;
-    await this._safeProviderCall(this.activeProviderId, "pause");
+    if (!this.getActiveProvider()) {
+      return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein aktiver Provider." } };
+    }
+    try {
+      await this._safeProviderCall(this.activeProviderId, "pause");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
+    }
   }
 
+  /**
+   * @returns {{ success: boolean, error?: { code: string, message: string } }}
+   */
   async stop() {
-    const provider = this.getActiveProvider();
-    if (!provider) return;
-    await this._safeProviderCall(this.activeProviderId, "stop");
+    if (!this.getActiveProvider()) {
+      return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein aktiver Provider." } };
+    }
+    try {
+      await this._safeProviderCall(this.activeProviderId, "stop");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
+    }
   }
 
+  /**
+   * Wechselt zwischen Wiedergabe und Pause.
+   * Bei loading wird kein zweiter Start ausgelöst (§3.4).
+   * @returns {{ success: boolean, error?: object }}
+   */
   async toggle() {
     const state = this.currentState.state;
-    if (state === PLAYER_STATES.PLAYING) {
-      await this.pause();
-    } else {
-      await this.play();
+    if (state === PLAYER_STATES.LOADING) {
+      logger.info("toggle() bei loading – kein zweiter Start.");
+      return { success: true };
     }
+    if (state === PLAYER_STATES.PLAYING) {
+      return this.pause();
+    }
+    return this.play();
   }
 
   /**
@@ -191,16 +265,65 @@ class PlayerManager {
     this._notifySubscribers(this.currentState);
   }
 
+  /**
+   * Gibt die aktuelle Lautstärke zurück (0.0 – 1.0).
+   * @returns {number}
+   */
+  getVolume() {
+    return this.currentState.volume;
+  }
+
+  /**
+   * Setzt den Mute-Status.
+   * @param {boolean} muted
+   */
+  async setMuted(muted) {
+    this.currentState = { ...this.currentState, muted: Boolean(muted) };
+
+    const provider = this.getActiveProvider();
+    if (provider && typeof provider.setMuted === "function") {
+      await this._safeProviderCall(this.activeProviderId, "setMuted", Boolean(muted));
+    }
+
+    this._notifySubscribers(this.currentState);
+  }
+
+  /**
+   * Wechselt den Mute-Status.
+   */
+  async toggleMute() {
+    await this.setMuted(!this.currentState.muted);
+  }
+
+  /**
+   * Gibt die Capabilities des aktiven Providers zurück.
+   * @returns {object}
+   */
+  getCapabilities() {
+    const provider = this.getActiveProvider();
+    if (provider && typeof provider.getCapabilities === "function") {
+      try {
+        return provider.getCapabilities();
+      } catch (err) {
+        logger.error(`getCapabilities failed: ${err.message}`);
+        return createDefaultState().capabilities;
+      }
+    }
+    return createDefaultState().capabilities;
+  }
+
   // ─────────────────────────────────────────────
   // State Management
   // ─────────────────────────────────────────────
 
   /**
-   * Gibt den aktuellen Player-State zurück (shallow copy).
+   * Gibt den vollständigen Unified Player State zurück (§5).
+   * Capabilities werden immer frisch vom aktiven Provider gelesen.
    * @returns {object}
    */
   getState() {
-    return { ...this.currentState };
+    const capabilities = this._getProviderCapabilities(this.activeProviderId);
+    return { ...this.currentState, capabilities };
   }
 
   /**
@@ -244,7 +367,10 @@ class PlayerManager {
     const next = {
       ...this.currentState,
       ...partialState,
-      volume: this.currentState.volume  // Volume bleibt immer unter PlayerManager-Kontrolle
+      // Diese Felder bleiben immer unter PlayerManager-Kontrolle:
+      volume:   this.currentState.volume,
+      muted:    partialState.muted !== undefined ? partialState.muted : this.currentState.muted,
+      provider: this.currentState.provider  // provider-Objekt nicht überschreibbar
     };
 
     this._setState(next);
@@ -271,6 +397,30 @@ class PlayerManager {
   }
 
   /**
+   * Liest die Capabilities des angegebenen Providers.
+   * Fällt auf DEFAULT_CAPABILITIES zurück wenn nicht vorhanden.
+   * @param {string|null} providerId
+   * @returns {object}
+   */
+  _getProviderCapabilities(providerId) {
+    if (!providerId) return { ...DEFAULT_CAPABILITIES };
+    const provider = this.providers.get(providerId);
+    if (!provider) return { ...DEFAULT_CAPABILITIES };
+    if (typeof provider.getCapabilities === "function") {
+      try {
+        return { ...DEFAULT_CAPABILITIES, ...provider.getCapabilities() };
+      } catch (err) {
+        logger.error(`getCapabilities(${providerId}) fehlgeschlagen: ${err.message}`);
+      }
+    }
+    // Fallback: capabilities-Objekt direkt auf dem Provider
+    if (provider.capabilities && typeof provider.capabilities === "object") {
+      return { ...DEFAULT_CAPABILITIES, ...provider.capabilities };
+    }
+    return { ...DEFAULT_CAPABILITIES };
+  }
+
+  /**
    * Ruft eine Methode auf einem Provider sicher auf.
    * Fehler des Providers propagieren nicht nach außen.
    */
@@ -290,3 +440,4 @@ class PlayerManager {
 module.exports = new PlayerManager();
 module.exports.PlayerManager = PlayerManager;
 module.exports.PLAYER_STATES = PLAYER_STATES;
+module.exports.DEFAULT_CAPABILITIES = DEFAULT_CAPABILITIES;

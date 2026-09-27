@@ -106,7 +106,7 @@ Multiple plugins may receive the same event.
 
 ---
 
-# Example Events (1.0.7-alpha.1)
+# Example Events (1.0.7-alpha.4)
 
 The following event names are used by the current application and plugin-facing event channel.
 
@@ -203,7 +203,7 @@ Registering an event should require minimal code.
 
 ---
 
-# Best Practices (1.0.7-alpha.1)
+# Best Practices (1.0.7-alpha.4)
 
 ✔ Register listeners during `init()`.
 

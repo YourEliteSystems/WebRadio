@@ -2,7 +2,7 @@
 
 This chapter describes the current capability model, how plugin permissions relate to capabilities, and how the plugin HTTP environment is controlled by the core.
 
-It is written for WebRadio **1.0.7-alpha.1**.
+It is written for WebRadio **1.0.7-alpha.4**.
 
 ---
 
@@ -58,7 +58,7 @@ For the current permission list, see the plugin manifest and Plugin API document
 
 ---
 
-## Known Capabilities (1.0.7-alpha.1)
+## Known Capabilities (1.0.7-alpha.4)
 
 The following capabilities are currently defined by the core:
 
@@ -246,7 +246,7 @@ This documentation does not claim more than the implementation provides.
 
 ## What Is Not Implemented Yet
 
-The following are **not** part of 1.0.7-alpha.1:
+The following are **not** part of 1.0.7-alpha.4:
 
 - Plugin Store
 - Theme Store

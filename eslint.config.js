@@ -11,6 +11,8 @@ export default tseslint.config(
             "**/node_modules/**",
             "**/dist/**",
             "**/out/**",
+            "**/site/**",
+            "site/**",
             "**/.kilo/**",
             "docs/**",
             "docs_legacy/**",

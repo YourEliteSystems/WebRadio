@@ -65,6 +65,7 @@ function sha256(filePath) {
 function renderPkgbuild(template, ctx) {
     return template
         .replace(/__PKGVER__/g, ctx.pkgver)
+        .replace(/__SEMVER__/g, ctx.pkgver)
         .replace(/__APPIMAGE_PATH__/g, ctx.appimage)
         .replace(/__DESKTOP_PATH__/g, ctx.desktop)
         .replace(/__ICON_PATH__/g, ctx.icon)

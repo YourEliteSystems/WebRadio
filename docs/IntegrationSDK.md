@@ -232,10 +232,10 @@ Integrationen kommunizieren ausschließlich über die PluginAPI:
 - ✅ EventBus
 - ✅ Settings (global, wo verfügbar)
 - ✅ Storage (plugin- bzw. komponentenbezogen)
-- ❌ Notifications (in 1.0.7-alpha.1 nicht als öffentliche Plugin-API verfügbar)
+- ❌ Notifications (in 1.0.7-alpha.4 nicht als öffentliche Plugin-API verfügbar)
 - ✅ Player (wo die korrespondierende Berechtigung vorliegt)
-- ❌ Window (in 1.0.7-alpha.1 nicht als öffentliche Plugin-API verfügbar)
-- ❌ Dialoge (in 1.0.7-alpha.1 nicht als öffentliche Plugin-API verfügbar)
+- ❌ Window (in 1.0.7-alpha.4 nicht als öffentliche Plugin-API verfügbar)
+- ❌ Dialoge (in 1.0.7-alpha.4 nicht als öffentliche Plugin-API verfügbar)
 
 ❌ **Direkte Core-Imports sind nicht erlaubt**
 
@@ -338,7 +338,7 @@ Integrationen werden konzeptionell über eine eigene Konfigurationsdatei verwalt
 }
 ```
 
-> Diese Konfigurationsform ist ein Konzept und nicht zwingend der einzige Konfigurationsweg für alle offiziellen Komponenten in 1.0.7-alpha.1.
+> Diese Konfigurationsform ist ein Konzept und nicht zwingend der einzige Konfigurationsweg für alle offiziellen Komponenten in 1.0.7-alpha.4.
 
 
 ---

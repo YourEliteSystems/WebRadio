@@ -2,7 +2,7 @@
 
 > Ein moderner, erweiterbarer Desktop-Radioplayer von **Your Elite Systems** – gebaut mit Electron, React 19 und FFmpeg.
 
-[![Version](https://img.shields.io/badge/version-1.0.7--alpha.1-6366f1?style=flat-square)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.7--alpha.4-6366f1?style=flat-square)](./CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=flat-square)](./LICENSE)
 
@@ -341,7 +341,7 @@ Der Kanal wird zentral ermittelt (User-Setting → Versions-Fallback → Stable-
 
 **Persistenz & Neustart:** Die Auswahl (Alpha, Beta, Stable) bleibt nach einem vollständigen Neustart erhalten und ist danach in UI und Updater identisch aktiv. Fehlt eine Einstellung, greift der bestehende Standard (Versions-Erkennung; bei Stable-Builds `stable`). Ein ungültig gespeicherter Wert fällt sicher auf den Standard zurück und löscht keine anderen Einstellungen.
 
-**Kanal-Wechsel:** Der Wechsel wirkt sofort für manuelle und automatische Update-Prüfungen – ein Neustart ist dafür nicht nötig. Die installierte Version (z. B. `1.0.7-alpha.1`) bleibt bis zum nächsten installierten Update unverändert; die UI kennzeichnet Kanal der installierten Version und aktiven Update-Kanal getrennt.
+**Kanal-Wechsel:** Der Wechsel wirkt sofort für manuelle und automatische Update-Prüfungen – ein Neustart ist dafür nicht nötig. Die installierte Version (z. B. `1.0.7-alpha.4`) bleibt bis zum nächsten installierten Update unverändert; die UI kennzeichnet Kanal der installierten Version und aktiven Update-Kanal getrennt.
 
 **Update-API:** `window.updatesAPI` (alias `window.updateAPI`) bietet `getChannel()`, `getStoredChannel()`, `setChannel()`, `getChannelMetadata()`, `getAllChannelMetadata()` und `getCurrentVersion()`. Alle Werte werden im Main-Prozess validiert; der Renderer hat keinen Dateisystemzugriff und kann keine Pfade oder Manager-Instanzen beeinflussen.
 
@@ -352,7 +352,7 @@ Der Kanal wird zentral ermittelt (User-Setting → Versions-Fallback → Stable-
 Releases folgen strikt [SemVer](https://semver.org/):
 
 ```
-v1.0.7-alpha.1   (alpha)
+v1.0.7-alpha.4   (alpha)
 v1.0.7-beta.1    (beta)
 v1.0.7           (stable)
 ```

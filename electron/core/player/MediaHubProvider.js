@@ -1,5 +1,7 @@
 "use strict";
 
+const { randomUUID } = require("crypto");
+
 /**
  * MediaHubProvider – Adapter zwischen der Unified Player API und dem
  * MediaHub YouTube Player.
@@ -26,11 +28,29 @@ const logger = LogManager.getLogger("MediaHubProvider");
 
 const PROVIDER_ID = "mediahub";
 
-const SOURCE = Object.freeze({
-  id: "mediahub",
+/** Metadaten des Providers (§17) */
+const PROVIDER_META = Object.freeze({
+  id:   PROVIDER_ID,
   name: "MediaHub",
-  provider: "YouTube",
   type: "youtube"
+});
+
+/** Capabilities des MediaHub-Providers (§14) */
+const PROVIDER_CAPABILITIES = Object.freeze({
+  play:     true,
+  pause:    true,
+  stop:     true,
+  volume:   true,
+  mute:     true,
+  seek:     false,  // seek wird im Rahmen von v1 noch nicht angeboten (§32)
+  next:     false,
+  previous: false
+});
+
+const SOURCE = Object.freeze({
+  id:   "mediahub",
+  type: "youtube",
+  url:  null
 });
 
 // ─── Main-to-Renderer-Kommando-Kanal ──────────────────────────────────────────
@@ -38,17 +58,18 @@ const SOURCE = Object.freeze({
 // eine Status-Möglichkeit (callback/reply), damit veraltete Befehle verworfen
 // werden können, wenn sie vor der IFrame-Bereitschaft eintreffen.
 const COMMAND_EVENTS = Object.freeze({
-  PLAY:       "player:command:play",
-  PAUSE:      "player:command:pause",
-  STOP:       "player:command:stop",
-  SET_VOLUME: "player:command:setVolume"
+  PLAY:       "play",
+  PAUSE:      "pause",
+  STOP:       "stop",
+  SET_VOLUME: "setVolume"
 });
 
 /**
  * IPC-Kanal (Main → Renderer), auf dem die Kommandos versendet werden.
- * Der Renderer abonniert diesen Kanal über window.mediaHubPlayerAPI.onCommand().
+ * Der Renderer abonniert diesen Kanal über window.playerAPI.onCommand().
+ * Dies ist eine generische Schnittstelle, die von allen Providern verwendet werden kann.
  */
-const COMMAND_CHANNEL = "mediahub:command";
+const COMMAND_CHANNEL = "player:command";
 
 class MediaHubProvider {
   constructor() {
@@ -58,6 +79,11 @@ class MediaHubProvider {
     this._artwork    = null;
     this._videoId    = null;
     this._commandId  = 0;
+
+    // Eindeutige Session-ID pro Wiedergabe-Session (§27, §28).
+    // Jeder play()-Aufruf mit neuer Video-ID erhält eine neue UUID.
+    // Veraltete Kommandos aus alten Sessions können damit verworfen werden.
+    this._sessionId = randomUUID();
 
     // Bei schnellem Titelwechsel kann ein neuer Befehl eintreffen, bevor
     // das letzte verarbeitet wurde. Diese Referenz kennzeichnet den
@@ -84,6 +110,11 @@ class MediaHubProvider {
     // mainWindow.webContents.send().
     this._windowManager = null;
   }
+
+  /** Provider-Metadaten (§17) */
+  get id()   { return PROVIDER_ID; }
+  get name() { return PROVIDER_META.name; }
+  get type() { return PROVIDER_META.type; }
 
   /**
    * Injection der zentralen Window-Verwaltung.
@@ -150,6 +181,12 @@ class MediaHubProvider {
       return false;
     }
 
+    // Neue Video-ID → neue Session (§27)
+    const isNewVideo = videoId && videoId !== this._videoId;
+    if (isNewVideo) {
+      this._sessionId = randomUUID();
+    }
+
     this._videoId = targetVideoId;
     if (videoId) {
       // Explizite (ggf. neue) Video-ID → Metadaten neu setzen
@@ -166,6 +203,7 @@ class MediaHubProvider {
 
     this._activeCommandId++;
     const commandId = this._activeCommandId;
+    const sessionId = this._sessionId;
 
     // Sicherstellen, dass der Provider aktiv ist (damit updateProviderState
     // akzeptiert wird).
@@ -174,11 +212,12 @@ class MediaHubProvider {
     // Kommando nach Renderer ausgeben (synchron, bevor IFrame läuft)
     const sent = this._sendCommand(COMMAND_EVENTS.PLAY, {
       commandId,
+      sessionId,
       videoId: targetVideoId,
       title: this._title,
       artist: this._artist,
       artwork: this._artwork,
-      source: SOURCE
+      source: { ...SOURCE, id: targetVideoId }
     });
 
     // Status nur melden, wenn das Kommando tatsächlich versendet werden
@@ -187,23 +226,24 @@ class MediaHubProvider {
       this._reportState(PLAYER_STATES.LOADING, { commandId });
     }
 
-    logger.info(`MediaHub play: ${targetVideoId} (commandId=${commandId}, sent=${sent})`);
+    logger.info(`MediaHub play: ${targetVideoId} (commandId=${commandId}, sessionId=${sessionId}, sent=${sent})`);
     return sent;
   }
 
   async pause() {
     this._activeCommandId++;
     const commandId = this._activeCommandId;
+    const sessionId = this._sessionId;
 
     this._ensureActivated();
 
-    const sent = this._sendCommand(COMMAND_EVENTS.PAUSE, { commandId });
+    const sent = this._sendCommand(COMMAND_EVENTS.PAUSE, { commandId, sessionId });
 
     if (sent) {
       this._reportState(PLAYER_STATES.PAUSED, { commandId });
     }
 
-    logger.info(`MediaHub pause (commandId=${commandId}, sent=${sent})`);
+    logger.info(`MediaHub pause (commandId=${commandId}, sessionId=${sessionId}, sent=${sent})`);
     return sent;
   }
 
@@ -215,16 +255,19 @@ class MediaHubProvider {
 
     this._activeCommandId++;
     const commandId = this._activeCommandId;
+    // Neuer Stop → neue Session (veraltete Kommandos aus laufender Session abschneiden)
+    this._sessionId = randomUUID();
+    const sessionId = this._sessionId;
 
     this._ensureActivated();
 
-    const sent = this._sendCommand(COMMAND_EVENTS.STOP, { commandId, videoId: null });
+    const sent = this._sendCommand(COMMAND_EVENTS.STOP, { commandId, sessionId, videoId: null });
 
     if (sent) {
       this._reportState(PLAYER_STATES.STOPPED, { commandId });
     }
 
-    logger.info(`MediaHub stop (commandId=${commandId}, sent=${sent})`);
+    logger.info(`MediaHub stop (commandId=${commandId}, sessionId=${sessionId}, sent=${sent})`);
     return sent;
   }
 
@@ -243,11 +286,13 @@ class MediaHubProvider {
 
     this._activeCommandId++;
     const commandId = this._activeCommandId;
+    const sessionId = this._sessionId;
 
     this._ensureActivated();
 
     const sent = this._sendCommand(COMMAND_EVENTS.SET_VOLUME, {
       commandId,
+      sessionId,
       volume: vol
     });
 
@@ -255,6 +300,13 @@ class MediaHubProvider {
       logger.warn("setVolume: Kommando konnte nicht versendet werden");
     }
     return sent;
+  }
+
+  /**
+   * Gibt den aktuellen Capabilities-Snapshot zurück (§14).
+   */
+  getCapabilities() {
+    return { ...PROVIDER_CAPABILITIES };
   }
 
   /**
@@ -267,7 +319,7 @@ class MediaHubProvider {
       artist:  this._artist,
       artwork: this._artwork,
       videoId: this._videoId,
-      source:  SOURCE
+      source:  { ...SOURCE, id: this._videoId || SOURCE.id }
     };
   }
 
@@ -365,25 +417,26 @@ class MediaHubProvider {
    * Der Versand erfolgt IMMER über mainWindow.webContents.send() – der
    * Main-Prozess hat keinen ipcRenderer und darf auch keinen verwenden.
    *
-   * @param {string} channel   Eintrag aus COMMAND_EVENTS
+   * @param {string} command   Eintrag aus COMMAND_EVENTS (play, pause, stop, setVolume)
    * @param {object} payload   Zusätzliche Nutzdaten (commandId, volume, …)
    * @returns {boolean} true, wenn die Nachricht an den Renderer übergeben wurde
    */
-  _sendCommand(channel, payload = {}) {
-    if (!Object.values(COMMAND_EVENTS).includes(channel)) {
-      logger.warn(`Unbekannter Kommando-Kanal abgelehnt: ${String(channel)}`);
+  _sendCommand(command, payload = {}) {
+    if (!Object.values(COMMAND_EVENTS).includes(command)) {
+      logger.warn(`Unbekannter Kommando-Typ abgelehnt: ${String(command)}`);
       return false;
     }
 
     const message = {
-      channel,
+      providerId: PROVIDER_ID,
+      command,
       commandId: payload.commandId,
+      sessionId: payload.sessionId || this._sessionId,  // immer aktuelle Session-ID
       videoId:   payload.videoId !== undefined ? payload.videoId : this._videoId,
       title:     payload.title   !== undefined ? payload.title   : this._title,
       artist:    payload.artist  !== undefined ? payload.artist  : this._artist,
       artwork:   payload.artwork !== undefined ? payload.artwork : this._artwork,
-      source:    payload.source  || SOURCE,
-      sessionId: payload.sessionId || PROVIDER_ID,
+      source:    payload.source  || { ...SOURCE, id: this._videoId || SOURCE.id },
       timestamp: Date.now()
     };
     if (payload.volume !== undefined) {
@@ -392,7 +445,7 @@ class MediaHubProvider {
 
     const win = this._getWindow();
     if (!win) {
-      logger.warn(`Kommando "${channel}" nicht gesendet: kein verfügbares Hauptfenster`);
+      logger.warn(`Kommando "${command}" nicht gesendet: kein verfügbares Hauptfenster`);
       return false;
     }
 
@@ -400,7 +453,7 @@ class MediaHubProvider {
       win.webContents.send(COMMAND_CHANNEL, message);
       return true;
     } catch (err) {
-      logger.warn(`Kommando "${channel}" nicht gesendet: ${err.message}`);
+      logger.warn(`Kommando "${command}" nicht gesendet: ${err.message}`);
       return false;
     }
   }

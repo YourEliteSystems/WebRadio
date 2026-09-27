@@ -104,7 +104,7 @@ Health checks can help identify configuration problems before they cause failure
 
 ---
 
-# Current Diagnostics Components (1.0.7-alpha.1)
+# Current Diagnostics Components (1.0.7-alpha.4)
 
 The Diagnostics subsystem provides:
 
@@ -152,7 +152,7 @@ Potential future enhancements include:
 * theme diagnostics
 * additional profiling surfaces
 
-These are future or planned uses. They are not fully implemented in 1.0.7-alpha.1.
+These are future or planned uses. They are not fully implemented in 1.0.7-alpha.4.
 
 ---
 

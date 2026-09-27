@@ -311,7 +311,7 @@ contextBridge.exposeInMainWorld("mediaHubAuth", {
 // });
 
 // ─────────────────────────────────────────────
-// UNIFIED PLAYER API
+// UNIFIED PLAYER API v1
 // Erlaubt dem Renderer, den Unified Player State zu lesen, zu
 // steuern und State-Änderungen zu abonnieren.
 // ─────────────────────────────────────────────
@@ -326,44 +326,65 @@ contextBridge.exposeInMainWorld("playerAPI", {
   toggle:    ()      => ipcRenderer.invoke("player:toggle"),
   setVolume: (value) => ipcRenderer.invoke("player:setVolume", value),
 
-  // Provider-Activation (Main-to-Renderer: aktiviere/Deaktiviere Provider)
-  // Als Funktion, nicht IPC-Handler, um kein Rendererverhalten zu brüchen
-  setActiveProvider: (id) => ipcRenderer.invoke("player:setActiveProvider", id),
+  // Volume
+  getVolume: () => ipcRenderer.invoke("player:getVolume"),
+  setMuted:  (muted) => ipcRenderer.invoke("player:setMuted", muted),
+  toggleMute: () => ipcRenderer.invoke("player:toggleMute"),
+
+  // Capabilities
+  getCapabilities: () => ipcRenderer.invoke("player:getCapabilities"),
 
   // State Subscription – gibt Unsubscribe-Funktion zurück (kein Memory Leak)
-  onStateChanged: (callback) => {
+  subscribe: (callback) => {
+    if (typeof callback !== "function") {
+      throw new TypeError("playerAPI.subscribe erwartet eine Funktion");
+    }
+    // Initialer State über getState
+    ipcRenderer.invoke("player:getState").then(initialState => {
+      callback(initialState);
+    }).catch(err => {
+      console.error("playerAPI.subscribe: Konnte initialen State nicht laden:", err);
+    });
+    // Änderungen abonnieren
     const handler = (_event, state) => callback(state);
     ipcRenderer.on("player:stateChanged", handler);
     return () => ipcRenderer.removeListener("player:stateChanged", handler);
   },
 
+  // Alias für subscribe (für Abwärtskompatibilität)
+  onStateChanged: (callback) => {
+    if (typeof callback !== "function") {
+      throw new TypeError("playerAPI.onStateChanged erwartet eine Funktion");
+    }
+    const handler = (_event, state) => callback(state);
+    ipcRenderer.on("player:stateChanged", handler);
+    return () => ipcRenderer.removeListener("player:stateChanged", handler);
+  },
+
+  // Generic Command Listener (Main → Renderer)
+  // Plugins können auf generische Player-Commands lauschen
+  onCommand: (callback) => {
+    if (typeof callback !== "function") {
+      throw new TypeError("playerAPI.onCommand erwartet eine Funktion");
+    }
+    const handler = (_event, message) => callback(message);
+    ipcRenderer.on("player:command", handler);
+    return () => ipcRenderer.removeListener("player:command", handler);
+  },
+
   // Provider-State-Reporting (Renderer-seitige Provider, z.B. MediaHub YouTube)
   // Erlaubt Plugin-Renderer-Skripte, ihren State an den Main-Prozess zu melden.
   reportProviderState: (providerId, state) =>
-    ipcRenderer.invoke("player:reportProviderState", providerId, state)
-});
+    ipcRenderer.invoke("player:reportProviderState", providerId, state),
 
-// ─────────────────────────────────────────────
-// MEDIAHUB PLAYER COMMANDS (Main → Renderer)
-// Der Main-Prozess (MediaHubProvider) sendet Play/Pause/Stop/setVolume
-// über mainWindow.webContents.send("mediahub:command", …).
-// Exponiert wird AUSSCHLIESSLICH das Abonnieren – kein generisches
-// send/invoke, damit Renderer keinen freien Zugriff auf IPC-Kanäle haben.
-// ─────────────────────────────────────────────
-contextBridge.exposeInMainWorld("mediaHubPlayerAPI", {
-  /**
-   * Abonniert Main→Renderer-Kommandos des MediaHub-Players.
-   * @param {(message: object) => void} callback  Erhält { channel, commandId, videoId, … }
-   * @returns {() => void}  Entfernt ausschließlich diesen einen Listener.
-   */
-  onCommand: (callback) => {
-    if (typeof callback !== "function") {
-      throw new TypeError("mediaHubPlayerAPI.onCommand erwartet eine Funktion");
-    }
-    const handler = (_event, message) => callback(message);
-    ipcRenderer.on("mediahub:command", handler);
-    return () => ipcRenderer.removeListener("mediahub:command", handler);
-  }
+  // Provider-Activation (Main-to-Renderer: aktiviere/Deaktiviere Provider)
+  // Als Funktion, nicht IPC-Handler, um kein Rendererverhalten zu brüchen
+  setActiveProvider: (id) => ipcRenderer.invoke("player:setActiveProvider", id),
+
+  // Provider Registration (nur für autorisierte Plugin-/Core-Kontexte)
+  // Normale Renderer-Komponenten sollen diese nicht verwenden
+  registerProvider: (provider) => ipcRenderer.invoke("player:registerProvider", provider),
+  unregisterProvider: (id) => ipcRenderer.invoke("player:unregisterProvider", id)
 });
 
 // ─────────────────────────────────────────────

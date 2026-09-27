@@ -1,6 +1,6 @@
 # Plugin Surface
 
-In WebRadio 1.0.7-alpha.1, the plugin-facing surface is the object exported by a plugin entry point and the `context` passed to it.
+In WebRadio 1.0.7-alpha.4, the plugin-facing surface is the object exported by a plugin entry point and the `context` passed to it.
 
 Plugins should integrate through the public Plugin API rather than by extending a prescribed plugin class.
 

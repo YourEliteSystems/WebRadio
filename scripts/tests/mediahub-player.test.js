@@ -1,6 +1,6 @@
 // MediaHub Player IPC-Brücke Tests
-// Main → Renderer: mainWindow.webContents.send("mediahub:command", …)
-// → Preload window.mediaHubPlayerAPI.onCommand() → YouTube-Plugin
+// Main → Renderer: mainWindow.webContents.send("player:command", …)
+// → Preload window.playerAPI.onCommand() → YouTube-Plugin
 "use strict";
 
 const assert = require("assert");
@@ -197,22 +197,20 @@ function loadYouTubeRenderer() {
     };
 
     const windowMock = {
-        mediaHubPlayerAPI: {
+        playerAPI: {
             onCommand: (cb) => {
                 commandCallbacks.push(cb);
                 return () => {
                     const idx = commandCallbacks.indexOf(cb);
                     if (idx >= 0) commandCallbacks.splice(idx, 1);
                 };
-            }
-        },
-        registerPluginRenderer: (id, hook) => { hooks.set(id, hook); },
-        playerAPI: {
+            },
             reportProviderState: (providerId, state) => {
                 reports.push({ providerId, state });
                 return Promise.resolve();
             }
-        }
+        },
+        registerPluginRenderer: (id, hook) => { hooks.set(id, hook); }
     };
 
     const src = fs.readFileSync(RENDERER_PATH, "utf8");
@@ -224,7 +222,8 @@ function loadYouTubeRenderer() {
     };
 
     const msg = (overrides = {}) => Object.assign({
-        channel: COMMAND_EVENTS.PLAY,
+        providerId: "mediahub",
+        command: COMMAND_EVENTS.PLAY,
         commandId: 1,
         videoId: "dQw4w9WgXcQ",
         timestamp: Date.now()
@@ -253,7 +252,7 @@ test("[1] Main-Prozess verwendet kein ipcRenderer", () => {
     assert.ok(!/ipcRenderer/.test(src), "MediaHubProvider darf kein ipcRenderer verwenden");
     assert.ok(!/require\(["']electron["']\)/.test(src), "MediaHubProvider darf electron nicht direkt requiren");
     assert.ok(/webContents\.send/.test(src), "Versand über webContents.send()");
-    assert.ok(/mediaHubPlayerAPI/.test(raw), "Doku/Vertrag nennt den Preload-Kanal (Kommentar)");
+    assert.ok(/playerAPI/.test(raw), "Doku/Vertrag nennt den generischen Preload-Kanal (Kommentar)");
 });
 
 // [2] _sendCommand sendet über mainWindow.webContents.send
@@ -266,9 +265,10 @@ test("[2] _sendCommand sendet über mainWindow.webContents.send", () => {
     assert.strictEqual(sent, true, "Senden muss true zurückgeben");
     assert.strictEqual(mock.sent.length, 1, "Genau eine Nachricht gesendet");
     assert.strictEqual(mock.sent[0].channel, COMMAND_CHANNEL);
-    assert.strictEqual(mock.sent[0].message.channel, COMMAND_EVENTS.PLAY);
+    assert.strictEqual(mock.sent[0].message.command, COMMAND_EVENTS.PLAY);
     assert.strictEqual(mock.sent[0].message.commandId, 42);
     assert.strictEqual(mock.sent[0].message.videoId, "abcdefghijk");
+    assert.strictEqual(mock.sent[0].message.providerId, "mediahub");
 });
 
 // [3] Fehlendes oder zerstörtes Fenster wird sicher behandelt
@@ -293,7 +293,7 @@ test("[3] Fehlendes oder zerstörtes Fenster wird sicher behandelt", () => {
 
     const unknown = createFreshProvider(createWindowMock().windowManager);
     assert.strictEqual(unknown._sendCommand("player:command:hacks", { commandId: 1 }), false,
-        "Unbekannte Kanäle müssen abgelehnt werden");
+        "Unbekannte Kommandos müssen abgelehnt werden");
 });
 
 // [4] Alle vier Kommandos nutzen das vereinbarte Nachrichtenformat
@@ -318,17 +318,45 @@ test("[4] Alle vier Kommandos nutzen das vereinbarte Nachrichtenformat", () => {
     mock.sent.forEach((entry, i) => {
         const m = entry.message;
         assert.strictEqual(entry.channel, COMMAND_CHANNEL, `Kanal #${i}`);
-        assert.strictEqual(m.channel, expected[i], `message.channel #${i}`);
+        assert.strictEqual(m.command, expected[i], `message.command #${i}`);
+        assert.strictEqual(m.providerId, "mediahub", `providerId #${i}`);
         assert.strictEqual(typeof m.commandId, "number", `commandId #${i}`);
-        assert.strictEqual(m.sessionId, "mediahub", `sessionId #${i}`);
+        assert.strictEqual(typeof m.sessionId, "string", `sessionId ist ein String #${i}`);
+        assert.ok(m.sessionId.length > 0, `sessionId ist gesetzt #${i}`);
+        assert.notStrictEqual(m.sessionId, "mediahub", `sessionId ist keine Provider-ID #${i}`);
         assert.strictEqual(typeof m.timestamp, "number", `timestamp #${i}`);
         assert.ok(Date.now() - m.timestamp < 5000, `timestamp ist aktuell #${i}`);
         assert.ok("videoId" in m, `videoId-Key vorhanden #${i}`);
         assert.ok("source" in m && m.source && m.source.id === "mediahub", `source #${i}`);
     });
 
+    // Ohne Session-Wechsel teilen alle Kommandos dieselbe Session-ID (§27).
+    const sessions = mock.sent.map((entry) => entry.message.sessionId);
+    assert.strictEqual(new Set(sessions).size, 1, "alle Kommandos teilen dieselbe Session");
+
     assert.strictEqual(mock.sent[3].message.volume, 0.5, "volume nur beim setVolume-Kommando");
     assert.ok(!("volume" in mock.sent[0].message), "play ohne volume-Feld");
+});
+
+// [4b] stop() eröffnet eine neue Session – Folgekommandos laufen darin
+test("[4b] stop() eröffnet eine neue Session und Folgekommandos folgen ihr", async () => {
+    const mock = createWindowMock();
+    const provider = createFreshProvider(mock.windowManager);
+
+    const previousSession = provider._sessionId;
+    const sentStop = await provider.stop();
+
+    assert.strictEqual(sentStop, true, "stop sendet ein Kommando");
+    assert.strictEqual(mock.sent.length, 1, "Genau ein stop-Kommando gesendet");
+    assert.strictEqual(mock.sent[0].message.command, COMMAND_EVENTS.STOP, "stop-Kommando");
+    assert.notStrictEqual(mock.sent[0].message.sessionId, previousSession,
+        "stop vergibt eine neue Session-ID");
+    assert.strictEqual(provider._sessionId, mock.sent[0].message.sessionId,
+        "Provider führt die neue Session-ID");
+
+    provider.setVolume(0.25);
+    assert.strictEqual(mock.sent[1].message.sessionId, mock.sent[0].message.sessionId,
+        "Folgekommandos laufen in der Session nach dem Stop");
 });
 
 // [5] setVolume wird als 0..1-Wert übergeben (Konvertierung genau einmal)
@@ -350,22 +378,21 @@ test("[5] setVolume wird als 0..1-Wert übergeben (Konvertierung genau einmal)",
     assert.ok(/volume\s*\*\s*100/.test(rendererSrc), "Renderer rechnet exakt einmal in 0..100 um");
 });
 
-// [6] Preload exponiert mediaHubPlayerAPI.onCommand
-test("[6] Preload exponiert mediaHubPlayerAPI.onCommand", () => {
+// [6] Preload exponiert playerAPI.onCommand
+test("[6] Preload exponiert playerAPI.onCommand", () => {
     const { exposed } = loadPreload();
 
-    assert.ok(exposed.mediaHubPlayerAPI, "mediaHubPlayerAPI wird exponiert");
-    assert.strictEqual(typeof exposed.mediaHubPlayerAPI.onCommand, "function", "onCommand ist eine Funktion");
-    assert.strictEqual(Object.keys(exposed.mediaHubPlayerAPI).length, 1,
-        "Nur onCommand – kein generisches send/invoke");
+    assert.ok(exposed.playerAPI, "playerAPI wird exponiert");
+    assert.strictEqual(typeof exposed.playerAPI.onCommand, "function", "onCommand ist eine Funktion");
+    assert.ok(typeof exposed.playerAPI.getState === "function", "playerAPI hat getState");
+    assert.ok(typeof exposed.playerAPI.play === "function", "playerAPI hat play");
+    assert.ok(typeof exposed.playerAPI.pause === "function", "playerAPI hat pause");
+    assert.ok(typeof exposed.playerAPI.stop === "function", "playerAPI hat stop");
+    assert.ok(typeof exposed.playerAPI.setVolume === "function", "playerAPI hat setVolume");
 
     const src = fs.readFileSync(PRELOAD_PATH, "utf8");
-    const match = src.match(/exposeInMainWorld\("mediaHubPlayerAPI",[\s\S]*?\n\}\);/);
-    assert.ok(match, "mediaHubPlayerAPI-Block gefunden");
-    const block = match[0];
-    assert.ok(!/\.send\(/.test(block), "Kein send() in der mediaHubPlayerAPI");
-    assert.ok(!/\.invoke\(/.test(block), "Kein invoke() in der mediaHubPlayerAPI");
-    assert.ok(/mediahub:command/.test(block), "Kanal mediahub:command wird abonniert");
+    assert.ok(/onCommand:\s*\(callback\)/.test(src), "playerAPI.onCommand ist definiert");
+    assert.ok(/player:command/.test(src), "Kanal player:command wird abonniert");
 });
 
 // [7] onCommand gibt eine funktionierende Unsubscribe-Funktion zurück
@@ -373,18 +400,18 @@ test("[7] onCommand gibt eine funktionierende Unsubscribe-Funktion zurück", asy
     const { exposed, listeners, dispatch } = loadPreload();
 
     const received = [];
-    const unsub = exposed.mediaHubPlayerAPI.onCommand((m) => received.push(m));
+    const unsub = exposed.playerAPI.onCommand((m) => received.push(m));
 
     assert.strictEqual(typeof unsub, "function", "Rückgabe muss eine Funktion sein");
-    assert.strictEqual(listeners.get(COMMAND_CHANNEL).size, 1, "Ein Listener registriert");
+    assert.strictEqual(listeners.get("player:command").size, 1, "Ein Listener registriert");
 
-    dispatch(COMMAND_CHANNEL, { channel: COMMAND_EVENTS.PLAY, commandId: 1 });
+    dispatch("player:command", { providerId: "mediahub", command: COMMAND_EVENTS.PLAY, commandId: 1 });
     assert.strictEqual(received.length, 1, "Nachricht wird zugestellt");
-    assert.strictEqual(received[0].channel, COMMAND_EVENTS.PLAY, "Nur die Payload wird übergeben (kein Event)");
+    assert.strictEqual(received[0].command, COMMAND_EVENTS.PLAY, "Nur die Payload wird übergeben (kein Event)");
 
     unsub();
-    assert.strictEqual(listeners.get(COMMAND_CHANNEL).size, 0, "Listener entfernt");
-    dispatch(COMMAND_CHANNEL, { channel: COMMAND_EVENTS.PLAY, commandId: 2 });
+    assert.strictEqual(listeners.get("player:command").size, 0, "Listener entfernt");
+    dispatch("player:command", { providerId: "mediahub", command: COMMAND_EVENTS.PLAY, commandId: 2 });
     assert.strictEqual(received.length, 1, "Keine Zustellung nach Unsubscribe");
 });
 
@@ -394,19 +421,19 @@ test("[8] Unsubscribe entfernt nur den eigenen Listener", () => {
 
     const a = [];
     const b = [];
-    const unsubA = exposed.mediaHubPlayerAPI.onCommand((m) => a.push(m));
-    exposed.mediaHubPlayerAPI.onCommand((m) => b.push(m));
+    const unsubA = exposed.playerAPI.onCommand((m) => a.push(m));
+    exposed.playerAPI.onCommand((m) => b.push(m));
 
-    assert.strictEqual(listeners.get(COMMAND_CHANNEL).size, 2, "Zwei Listener registriert");
+    assert.strictEqual(listeners.get("player:command").size, 2, "Zwei Listener registriert");
 
     unsubA();
-    assert.strictEqual(listeners.get(COMMAND_CHANNEL).size, 1, "Nur eigener Listener entfernt");
+    assert.strictEqual(listeners.get("player:command").size, 1, "Nur eigener Listener entfernt");
 
-    dispatch(COMMAND_CHANNEL, { channel: COMMAND_EVENTS.PAUSE, commandId: 9 });
+    dispatch("player:command", { providerId: "mediahub", command: COMMAND_EVENTS.PAUSE, commandId: 9 });
     assert.strictEqual(a.length, 0, "Abgemeldeter Listener wird nicht aufgerufen");
     assert.strictEqual(b.length, 1, "Anderer Listener bleibt aktiv");
 
-    assert.throws(() => exposed.mediaHubPlayerAPI.onCommand("not-a-function"),
+    assert.throws(() => exposed.playerAPI.onCommand("not-a-function"),
         TypeError, "onCommand muss Nicht-Funktionen ablehnen");
 });
 
@@ -417,9 +444,10 @@ test("[9] Ungültige, veraltete und unbekannte Kommandos werden ignoriert", () =
 
     ctx.dispatch(null);
     ctx.dispatch({});
-    ctx.dispatch({ channel: COMMAND_EVENTS.PLAY });                       // ohne commandId
-    ctx.dispatch({ channel: COMMAND_EVENTS.PLAY, commandId: 1, videoId: "", timestamp: Date.now() - 60000 });
-    ctx.dispatch({ channel: "player:command:hack", commandId: 1, timestamp: Date.now() });
+    ctx.dispatch({ providerId: "other", command: COMMAND_EVENTS.PLAY });              // falscher Provider
+    ctx.dispatch({ providerId: "mediahub", command: COMMAND_EVENTS.PLAY }); // ohne commandId
+    ctx.dispatch({ providerId: "mediahub", command: COMMAND_EVENTS.PLAY, commandId: 1, videoId: "", timestamp: Date.now() - 60000 });
+    ctx.dispatch({ providerId: "mediahub", command: "player:command:hack", commandId: 1, timestamp: Date.now() });
 
     assert.strictEqual(ctx.playerCalls.length, 0, "Kein Player-Aufruf bei ungültigen Kommandos");
     assert.strictEqual(ctx.reports.length, 0, "Kein erfundener Status bei ungültigen Kommandos");
@@ -439,13 +467,13 @@ test("[10] MediaHub-Renderer führt die passenden Player-Befehle aus", async () 
     assert.ok(ctx.reports.some(r => r.state && r.state.state === "playing"),
         "Renderer meldet den tatsächlich ausgeführten Zustand");
 
-    ctx.dispatch(ctx.msg({ channel: COMMAND_EVENTS.PAUSE, commandId: 2 }));
+    ctx.dispatch(ctx.msg({ command: COMMAND_EVENTS.PAUSE, commandId: 2 }));
     assert.ok(ctx.playerCalls.includes("pause"), "pause führt zu ytPlayer.pauseVideo()");
 
-    ctx.dispatch(ctx.msg({ channel: COMMAND_EVENTS.STOP, commandId: 3 }));
+    ctx.dispatch(ctx.msg({ command: COMMAND_EVENTS.STOP, commandId: 3 }));
     assert.ok(ctx.playerCalls.includes("stop"), "stop führt zu ytPlayer.stopVideo()");
 
-    ctx.dispatch(ctx.msg({ channel: COMMAND_EVENTS.SET_VOLUME, commandId: 4, volume: 0.5 }));
+    ctx.dispatch(ctx.msg({ command: COMMAND_EVENTS.SET_VOLUME, commandId: 4, volume: 0.5 }));
     assert.ok(ctx.playerCalls.includes("volume:50"), "0.5 wird exakt einmal in 50 (0..100) umgerechnet");
 
     assert.ok(ctx.reports.every(r => r.providerId === "mediahub"),
@@ -536,10 +564,10 @@ test("[12] Provider-Wechsel leitet Kommandos nicht mehr an den vorherigen Provid
 test("[13] Plugin-Teardown entfernt den Kommando-Listener", () => {
     // Preload-Seite: Unsubscribe hinterlässt keinen Listener
     const pre = loadPreload();
-    const unsub = pre.exposed.mediaHubPlayerAPI.onCommand(() => {});
-    assert.strictEqual(pre.listeners.get(COMMAND_CHANNEL).size, 1, "Listener registriert");
+    const unsub = pre.exposed.playerAPI.onCommand(() => {});
+    assert.strictEqual(pre.listeners.get("player:command").size, 1, "Listener registriert");
     unsub();
-    assert.strictEqual(pre.listeners.get(COMMAND_CHANNEL).size, 0, "Kein Listener nach Teardown");
+    assert.strictEqual(pre.listeners.get("player:command").size, 0, "Kein Listener nach Teardown");
 
     // Renderer-Seite: destroy()-Hook des Plugin-Lebenszyklus meldet ab
     const ctx = loadYouTubeRenderer();

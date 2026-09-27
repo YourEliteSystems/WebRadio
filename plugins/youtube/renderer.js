@@ -10,6 +10,10 @@
   let currentVideoId = null;
   let playerState = 'unstarted';
 
+  // Aktuelle Session-ID (§27, §28): Kommandos aus veralteten Sessions werden verworfen.
+  // Der erste gültige play-Befehl setzt die initiale Session-ID.
+  let currentSessionId = null;
+
   // Punkte, an denen ein Befehl noch nicht verarbeitet wurde (per commandId).
   // Defer Kommandos, bis das IFrame vollständig initialisiert ist.
   let pendingCommands = [];
@@ -148,23 +152,27 @@
 
   // ─── Main-to-Renderer-Kommandos empfangen ────────────────────────────────────
   // Der Main-Prozess sendet Kommandos über mainWindow.webContents.send()
-  // auf dem Kanal "mediahub:command". Der Preload exponiert das sichere
-  // Abonnieren über window.mediaHubPlayerAPI.onCommand() – der Renderer
-  // hat selbst KEINEN ipcRenderer-Zugriff.
+  // auf dem generischen Kanal "player:command". Der Preload exponiert das sichere
+  // Abonnieren über window.playerAPI.onCommand() – der Renderer hat selbst
+  // KEINEN ipcRenderer-Zugriff.
   let unsubscribeCommands = null;
 
   function listenToCommands() {
     if (unsubscribeCommands) return;
 
-    const api = window.mediaHubPlayerAPI;
+    const api = window.playerAPI;
     if (!api || typeof api.onCommand !== 'function') {
-      console.warn('[YouTube Plugin] mediaHubPlayerAPI nicht verfügbar – MediaHub-Kommandos werden nicht empfangen');
+      console.warn('[YouTube Plugin] playerAPI nicht verfügbar – Player-Kommandos werden nicht empfangen');
       return;
     }
 
     unsubscribeCommands = api.onCommand((message) => {
-      if (!message || !message.channel) {
-        console.warn('[YouTube Plugin] mediahub:command ohne Channel:', message);
+      // Provider-Filter: Nur MediaHub-Commands verarbeiten
+      if (!message || message.providerId !== 'mediahub') {
+        return;
+      }
+      if (!message.command) {
+        console.warn('[YouTube Plugin] player:command ohne command:', message);
         return;
       }
       processCommand(message);
@@ -236,16 +244,27 @@
   }
 
   function processCommand(message) {
-    if (!message || !message.channel) return;
+    if (!message || !message.command) return;
 
     // Nanoseconds / Timestamp-Sicherheit: kein Kommandoverfalls ignorieren
     if (message.timestamp && Date.now() - message.timestamp > 30000) {
-      console.warn(`[YouTube Plugin] Veraltetes Kommand ${message.channel}`);
+      console.warn(`[YouTube Plugin] Veraltetes Kommand ${message.command}`);
       return;
     }
 
-    switch (message.channel) {
-      case 'player:command:play': {
+    // Session-Check (§28): Kommandos aus alten Sessions verwerfen.
+    // play-Kommandos dürfen eine neue Session starten.
+    if (message.sessionId) {
+      if (message.command !== 'play' && currentSessionId && message.sessionId !== currentSessionId) {
+        console.warn(`[YouTube Plugin] Kommando "${message.command}" aus alter Session verworfen (session=${message.sessionId}, current=${currentSessionId})`);
+        return;
+      }
+      // Session übernehmen (bei play immer, bei anderen nur wenn gleich oder erste)
+      currentSessionId = message.sessionId;
+    }
+
+    switch (message.command) {
+      case 'play': {
         if (message.commandId === undefined) {
           console.warn('[YouTube Plugin] play ohne commandId');
           return;
@@ -288,7 +307,7 @@
         }
         break;
       }
-      case 'player:command:pause': {
+      case 'pause': {
         if (message.commandId === undefined) {
           console.warn('[YouTube Plugin] pause ohne commandId');
           return;
@@ -306,7 +325,7 @@
         }
         break;
       }
-      case 'player:command:stop': {
+      case 'stop': {
         if (message.commandId === undefined) {
           console.warn('[YouTube Plugin] stop ohne commandId');
           return;
@@ -320,7 +339,7 @@
         }
         break;
       }
-      case 'player:command:setVolume': {
+      case 'setVolume': {
         if (message.commandId === undefined) {
           console.warn('[YouTube Plugin] setVolume ohne commandId');
           return;
@@ -342,7 +361,7 @@
         break;
       }
       default:
-        console.warn(`[YouTube Plugin] Unbekanntes Kommand ${message.channel}`);
+        console.warn(`[YouTube Plugin] Unbekanntes Kommand ${message.command}`);
     }
   }
 

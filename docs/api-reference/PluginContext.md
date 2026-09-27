@@ -51,9 +51,9 @@ class HelloPlugin extends Plugin {
 
 ---
 
-# Available Services (1.0.7-alpha.1)
+# Available Services (1.0.7-alpha.4)
 
-In WebRadio 1.0.7-alpha.1, the PluginContext exposes a controlled subset of the public SDK.
+In WebRadio 1.0.7-alpha.4, the PluginContext exposes a controlled subset of the public SDK.
 
 The current plugin-facing surface includes:
 

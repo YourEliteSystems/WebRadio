@@ -1,18 +1,24 @@
 "use strict";
 
 /**
- * IPC Handler für die Unified Player API.
+ * IPC Handler für die Unified Player API v1.
  *
  * Channels (zentral definiert, keine beliebigen Strings):
-   player:getState           → PlayerManager.getState()
-   player:play               → PlayerManager.play()
-   player:pause              → PlayerManager.pause()
-   player:stop               → PlayerManager.stop()
-   player:toggle             → PlayerManager.toggle()
-   player:setVolume          → PlayerManager.setVolume(value)
-   player:setActiveProvider  → PlayerManager.setActiveProvider(id)
-   player:reportProviderState → PlayerManager.updateProviderState(id, state)
-   player:stateChanged       → Push-Event (Main → Renderer)
+ *   player:getState           → PlayerManager.getState()
+ *   player:play               → PlayerManager.play()
+ *   player:pause              → PlayerManager.pause()
+ *   player:stop               → PlayerManager.stop()
+ *   player:toggle             → PlayerManager.toggle()
+ *   player:setVolume          → PlayerManager.setVolume(value)
+ *   player:getVolume          → PlayerManager.getVolume()
+ *   player:setMuted           → PlayerManager.setMuted(muted)
+ *   player:toggleMute         → PlayerManager.toggleMute()
+ *   player:getCapabilities    → PlayerManager.getCapabilities()
+ *   player:setActiveProvider  → PlayerManager.setActiveProvider(id)
+ *   player:registerProvider   → PlayerManager.registerProvider(id, provider)
+ *   player:unregisterProvider → PlayerManager.unregisterProvider(id)
+ *   player:reportProviderState → PlayerManager.updateProviderState(id, state)
+ *   player:stateChanged       → Push-Event (Main → Renderer)
  */
 
 const { ipcMain } = require("electron");
@@ -32,7 +38,13 @@ const PLAYER_CHANNELS = Object.freeze({
   STOP:                  "player:stop",
   TOGGLE:                "player:toggle",
   SET_VOLUME:            "player:setVolume",
+  GET_VOLUME:            "player:getVolume",
+  SET_MUTED:             "player:setMuted",
+  TOGGLE_MUTE:           "player:toggleMute",
+  GET_CAPABILITIES:      "player:getCapabilities",
   SET_ACTIVE_PROVIDER:   "player:setActiveProvider",
+  REGISTER_PROVIDER:     "player:registerProvider",
+  UNREGISTER_PROVIDER:   "player:unregisterProvider",
   REPORT_PROVIDER_STATE: "player:reportProviderState",
   STATE_CHANGED:         "player:stateChanged"   // Push-Channel (Main → Renderer)
 });
@@ -53,28 +65,89 @@ function registerPlayerHandlers(windowManager) {
 
   // ─── Controls ───────────────────────────────
   ipcMain.handle(PLAYER_CHANNELS.PLAY, async () => {
-    await playerManager.play();
+    const result = await playerManager.play();
+    return result || { success: true };
   });
 
   ipcMain.handle(PLAYER_CHANNELS.PAUSE, async () => {
-    await playerManager.pause();
+    const result = await playerManager.pause();
+    return result || { success: true };
   });
 
   ipcMain.handle(PLAYER_CHANNELS.STOP, async () => {
-    await playerManager.stop();
+    const result = await playerManager.stop();
+    return result || { success: true };
   });
 
   ipcMain.handle(PLAYER_CHANNELS.TOGGLE, async () => {
-    await playerManager.toggle();
+    const result = await playerManager.toggle();
+    return result || { success: true };
   });
 
   ipcMain.handle(PLAYER_CHANNELS.SET_VOLUME, async (_event, value) => {
     const vol = parseFloat(value);
     if (isNaN(vol)) {
       logger.warn(`setVolume: ungültiger Wert: ${value}`);
-      return;
+      return { success: false, error: { code: "INVALID_VOLUME", message: "Volume muss eine Zahl zwischen 0 und 1 sein" } };
+    }
+    if (vol < 0 || vol > 1) {
+      logger.warn(`setVolume: Wert außerhalb des Bereichs: ${vol}`);
+      return { success: false, error: { code: "INVALID_VOLUME", message: "Volume muss zwischen 0 und 1 liegen" } };
     }
     await playerManager.setVolume(vol);
+    return { success: true };
+  });
+
+  ipcMain.handle(PLAYER_CHANNELS.GET_VOLUME, () => {
+    return playerManager.getVolume();
+  });
+
+  ipcMain.handle(PLAYER_CHANNELS.SET_MUTED, async (_event, muted) => {
+    await playerManager.setMuted(Boolean(muted));
+    return { success: true };
+  });
+
+  ipcMain.handle(PLAYER_CHANNELS.TOGGLE_MUTE, async () => {
+    await playerManager.toggleMute();
+    return { success: true };
+  });
+
+  ipcMain.handle(PLAYER_CHANNELS.GET_CAPABILITIES, () => {
+    return playerManager.getCapabilities();
+  });
+
+  // ─── Provider Registration ──────────────────
+  // Registriert einen neuen Provider (nur für autorisierte Plugin-/Core-Kontexte)
+  ipcMain.handle(PLAYER_CHANNELS.REGISTER_PROVIDER, (_event, id, provider) => {
+    if (!id || typeof id !== "string") {
+      logger.warn(`registerProvider: ungültige ID: ${JSON.stringify(id)}`);
+      return { success: false, error: { code: "INVALID_ARGUMENT", message: "Provider-ID muss eine Zeichenkette sein" } };
+    }
+    if (!provider || typeof provider !== "object") {
+      logger.warn(`registerProvider(${id}): provider muss ein Objekt sein`);
+      return { success: false, error: { code: "INVALID_ARGUMENT", message: "Provider muss ein Objekt sein" } };
+    }
+    try {
+      playerManager.registerProvider(id, provider);
+      return { success: true, providerId: id };
+    } catch (err) {
+      logger.error(`registerProvider(${id}): ${err.message}`);
+      return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
+    }
+  });
+
+  ipcMain.handle(PLAYER_CHANNELS.UNREGISTER_PROVIDER, (_event, id) => {
+    if (!id || typeof id !== "string") {
+      logger.warn(`unregisterProvider: ungültige ID: ${JSON.stringify(id)}`);
+      return { success: false, error: { code: "INVALID_ARGUMENT", message: "Provider-ID muss eine Zeichenkette sein" } };
+    }
+    try {
+      playerManager.unregisterProvider(id);
+      return { success: true, providerId: id };
+    } catch (err) {
+      logger.error(`unregisterProvider(${id}): ${err.message}`);
+      return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
+    }
   });
 
   // ─── Provider Activation ────────────────────

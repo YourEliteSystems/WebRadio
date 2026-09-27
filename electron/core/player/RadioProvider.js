@@ -26,11 +26,29 @@ const logger = LogManager.getLogger("RadioProvider");
 
 const PROVIDER_ID = "radio";
 
+/** Metadaten des Providers für den Unified Player State (§5, §17) */
+const PROVIDER_META = Object.freeze({
+  id:   PROVIDER_ID,
+  name: "Radio",
+  type: "radio"
+});
+
+/** Capabilities des Radio-Providers (§14) – kein seek/next/previous, kein echtes pause */
+const PROVIDER_CAPABILITIES = Object.freeze({
+  play:     true,
+  pause:    false,  // Radio hat kein echtes Pause (wird als Stop behandelt)
+  stop:     true,
+  volume:   true,
+  mute:     true,
+  seek:     false,
+  next:     false,
+  previous: false
+});
+
 const SOURCE = Object.freeze({
-  id:       "radio",
-  name:     "Radio",
-  provider: "FFmpeg",
-  type:     "radio"
+  id:   "radio",
+  type: "radio",
+  url:  null      // wird dynamisch gesetzt (nicht im statischen Objekt)
 });
 
 class RadioProvider {
@@ -39,6 +57,7 @@ class RadioProvider {
     this._title     = null;
     this._artist    = null;
     this._station   = null;
+    this._streamUrl = null;
 
     // Bound handlers für sauberes Off()
     this._onPlay     = this._handlePlay.bind(this);
@@ -47,6 +66,11 @@ class RadioProvider {
 
     this._listening = false;
   }
+
+  /** Provider-Metadaten (§17) */
+  get id()   { return PROVIDER_ID; }
+  get name() { return PROVIDER_META.name; }
+  get type() { return PROVIDER_META.type; }
 
   // ─────────────────────────────────────────────
   // Provider Interface
@@ -63,9 +87,10 @@ class RadioProvider {
       return;
     }
 
-    this._station = station || null;
-    this._title   = null;
-    this._artist  = null;
+    this._station   = station || null;
+    this._streamUrl = url;
+    this._title     = null;
+    this._artist    = null;
 
     this._reportState(PLAYER_STATES.LOADING, station);
 
@@ -92,6 +117,14 @@ class RadioProvider {
   }
 
   /**
+   * Gibt den aktuellen Capabilities-Snapshot zurück (§14).
+   * @returns {object}
+   */
+  getCapabilities() {
+    return { ...PROVIDER_CAPABILITIES };
+  }
+
+  /**
    * Gibt den aktuellen State-Snapshot zurück.
    */
   getState() {
@@ -100,7 +133,7 @@ class RadioProvider {
       title:   this._title,
       artist:  this._artist,
       artwork: this._station?.favicon || this._station?.logo || null,
-      source:  SOURCE
+      source:  { ...SOURCE, url: this._streamUrl }
     };
   }
 

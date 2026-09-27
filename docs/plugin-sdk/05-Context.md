@@ -45,9 +45,9 @@ The context should be stored if it is needed later.
 
 ---
 
-# What the Context Provides (1.0.7-alpha.1)
+# What the Context Provides (1.0.7-alpha.4)
 
-In WebRadio 1.0.7-alpha.1, the public plugin context provides:
+In WebRadio 1.0.7-alpha.4, the public plugin context provides:
 
 ```text id="te3k6w"
 Context
@@ -74,7 +74,7 @@ In this release there is **no** `context.hooks`, `context.commands`, `context.no
 
 Provides access to plugin-specific persistent data.
 
-In WebRadio 1.0.7-alpha.1, the plugin-facing Storage API is synchronous and operates on a plugin's isolated storage file.
+In WebRadio 1.0.7-alpha.4, the plugin-facing Storage API is synchronous and operates on a plugin's isolated storage file.
 
 Example:
 
@@ -115,7 +115,7 @@ Events allow plugins to react to application activity.
 
 # Hooks
 
-Hooks are **not** part of the current plugin-facing context in WebRadio 1.0.7-alpha.1.
+Hooks are **not** part of the current plugin-facing context in WebRadio 1.0.7-alpha.4.
 
 Plugins should not rely on `context.hooks` in this release.
 
@@ -141,7 +141,7 @@ Using the shared logger ensures consistent diagnostics and log formatting.
 
 Plugins can read and write selected global settings through `context.settings`.
 
-In WebRadio 1.0.7-alpha.1, the plugin-facing Settings API is synchronous.
+In WebRadio 1.0.7-alpha.4, the plugin-facing Settings API is synchronous.
 
 Example:
 
@@ -166,7 +166,7 @@ These are the current public UI integration points for plugins.
 
 # Notifications
 
-Notifications are **not** part of the current plugin-facing context in WebRadio 1.0.7-alpha.1.
+Notifications are **not** part of the current plugin-facing context in WebRadio 1.0.7-alpha.4.
 
 Even though `notifications` may appear in the current permission set, there is no public `context.notifications` API to use in this release.
 

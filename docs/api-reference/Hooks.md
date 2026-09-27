@@ -1,6 +1,6 @@
 # Hooks Status
 
-In WebRadio 1.0.7-alpha.1, the plugin-facing Hooks service is **not** part of the current public Plugin API surface.
+In WebRadio 1.0.7-alpha.4, the plugin-facing Hooks service is **not** part of the current public Plugin API surface.
 
 The current plugin extension points are:
 

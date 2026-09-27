@@ -64,7 +64,7 @@ Multiple listeners may receive the same event.
 
 ---
 
-# Methods (1.0.7-alpha.1)
+# Methods (1.0.7-alpha.4)
 
 The current plugin-facing event API provides:
 
@@ -138,7 +138,7 @@ events.emit(eventName, payload);
 | payload   | Any    | Event data       |
 
 
-> **Note:** In WebRadio 1.0.7-alpha.1, the plugin-facing event API does not include a `removeAllListeners()` method. Plugins should track and remove their own listeners during shutdown.
+> **Note:** In WebRadio 1.0.7-alpha.4, the plugin-facing event API does not include a `removeAllListeners()` method. Plugins should track and remove their own listeners during shutdown.
 ---
 
 # Event Names

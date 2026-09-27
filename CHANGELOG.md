@@ -4,6 +4,65 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7-alpha.4] – 2026-09-27
+
+> Vorabversion 1.0.7-alpha.4: Führt die Unified Player API auf den vollständigen v1-Vertrag (Provider-Metadaten, Capabilities, Mute, strukturierte Fehlerantworten, IPC-Registrierung von Providern, Preload-Vertrag `playerAPI.subscribe()`/`onCommand()`), vereinheitlicht den Main→Renderer-Kommando-Kanal auf den generischen Kanal `player:command`, ergänzt Provider-Capabilities in Radio- und MediaHub-Provider samt Session-Konsistenz (UUID, neue Session bei `stop`), entfernt die letzten nicht referenzierten Legacy-Dateien (2.197 Zeilen), unterstützt `__SEMVER__` im Arch-PKGBUILD und ergänzt die Testabdeckung um IPC- und End-to-End-Tests. Alle Versionsangaben in Dokumentation, README und Roadmap sind auf `1.0.7-alpha.4` synchronisiert.
+
+### 🎮 Unified Player API v1
+
+- **Vollständiges State-Schema:** `PlayerManager.createDefaultState()` liefert zusätzlich `provider` (`{ id, name, type }`), `source` (`{ id, type, url }`), `capabilities`, `muted`, `position`, `duration` und `error`.
+- **Capabilities pro Provider:** Neue Konstante `DEFAULT_CAPABILITIES` (`play`, `pause`, `stop`, `volume`, `mute`, `seek`, `next`, `previous`) und `PlayerManager._getProviderCapabilities(id)`. Gelesen wird `provider.getCapabilities()`; fehlt die Methode, greift `provider.capabilities`, sonst die Defaults. Fehler in `getCapabilities()` werden protokolliert und fallen auf die Defaults zurück.
+- **Capabilities immer aktuell:** `getState()` ermittelt die Capabilities live über den aktiven Provider statt aus einem veralteten Snapshot – auch nach einem Provider-Wechsel.
+- **Mute-Steuerung:** Neu `PlayerManager.getVolume()`, `setMuted(muted)` und `toggleMute()`; `_setState()` schützt `volume`, `muted` und `provider` dauerhaft vor Überschreiben durch Provider-Meldungen.
+- **Provider-Wechsel:** `setActiveProvider(id)` übernimmt Provider-Metadaten und Capabilities in den State; der Zustandsreset erfolgt erst nach dem erfolgreichen Wechsel (zuvor wurde der State vor dem Wechsel zurückgesetzt).
+- **Strukturierte Antworten:** `play()`, `pause()`, `stop()` und `toggle()` geben `{ success, error: { code, message } }` zurück (u. a. `NO_ACTIVE_PROVIDER`, `PROVIDER_ERROR`) statt `undefined`; die IPC-Handler reichen die Ergebnisse an den Renderer durch.
+- **Neue IPC-Kanäle:** `player:getVolume`, `player:setMuted`, `player:toggleMute`, `player:getCapabilities`, `player:registerProvider` und `player:unregisterProvider` – ausschließlich über die zentral definierten `PLAYER_CHANNELS`, mit Main-seitiger Argumentprüfung und strukturierten Fehlercodes (`INVALID_VOLUME`, `INVALID_MUTED`, `INVALID_ARGUMENT`, `PROVIDER_ERROR`).
+- **Provider zur Laufzeit:** Provider können über IPC registriert und deregistriert werden; `unregisterProvider` räumt Subscriptions auf.
+- **Preload-Vertrag:** `playerAPI.subscribe(cb)` lädt den initialen State über `player:getState` und abonniert danach `player:stateChanged` (inklusive Unsubscribe-Funktion); `onStateChanged()` bleibt als Alias erhalten. Nicht-Funktionen lösen einen `TypeError` aus.
+- **Generischer Kommando-Kanal:** Der Main→Renderer-Kanal heißt jetzt `player:command` und wird über `playerAPI.onCommand()` abonniert; das separate `mediaHubPlayerAPI` entfällt und ist vollständig in `playerAPI` integriert. Weiterhin kein generisches `send`/`invoke` und kein `ipcRenderer` im Renderer.
+
+### 📻 Radio-Provider – Metadaten & Capabilities
+
+- **Provider-Metadaten:** `id`, `name` und `type` als Getter (`radio` / `Radio` / `radio`) für den Unified Player State.
+- **Capabilities:** `getCapabilities()` mit `pause: false` (Radio kennt kein echtes Pause – es wird als Stop behandelt) sowie ohne `seek`/`next`/`previous`.
+- **Quelle mit Stream-URL:** `getState().source` enthält die tatsächlich angespielte Stream-URL (`{ id: "radio", type: "radio", url }`) statt eines statischen Objekts.
+
+### 🎧 MediaHub-Provider – Capabilities & Sessions
+
+- **Capabilities & Metadaten:** `getCapabilities()` (alle v1-Fähigkeiten außer `seek`/`next`/`previous`) und Provider-Metadaten (`id: "mediahub"`, `name: "MediaHub"`, `type: "youtube"`).
+- **Kommando-Format:** Nachrichten tragen `providerId` und `command` (Werte `play`, `pause`, `stop`, `setVolume`); unbekannte Kommandos werden abgelehnt und protokolliert.
+- **Session-Konsistenz (§27/§28):** `sessionId` ist eine echte UUID; `stop` und `play` mit neuer Video-ID eröffnen eine neue Session, jede Nachricht trägt die aktuell gültige Session-ID.
+- **Quelle:** `source.id` entspricht der aktiven Video-ID (Fallback `mediahub`).
+- **YouTube-Plugin:** nutzt `playerAPI.onCommand()`, filtert auf `providerId === 'mediahub'`, verarbeitet die `command`-Werte und verwirft Kommandos aus veralteten Sessions.
+
+### 🧪 Tests & Qualitätssicherung
+
+- **Neu `scripts/tests/player-ipc.test.js` (19 Tests):** prüft alle IPC-Kanäle, Argumentvalidierung, strukturierte Fehlercodes, Provider-Registrierung/-Deregistrierung sowie die vollständigen Capabilities-Felder.
+- **Neu `scripts/tests/player-e2e.test.js` (16 Tests):** verifiziert die durchgängige Kette UI → `playerAPI` → Preload → IPC → `PlayerManager` → Provider → State-Push.
+- **`scripts/tests/mediahub-player.test.js` angepasst:** Nachrichtenformat auf `providerId`/`command`/UUID-Session umgestellt; der neue Test `[4b]` belegt, dass `stop()` eine neue Session eröffnet und Folgekommandos dieser Session folgen (14 Tests, alle grün).
+- **Testkette:** `player-ipc.test.js` und `player-e2e.test.js` sind in `npm test` integriert (25 Suiten).
+
+### 🧹 Projektstruktur – Legacy-Dateien entfernt
+
+- **Gelöscht (2.197 Zeilen):** `electron/core/settings.js` (roher `settings.json`-Zugriff), `renderer/settings.js` (Vanilla-Einstellungsseite; `settings.html` lädt `dist/settings.js` aus `settings.jsx`), `renderer/settings.html.backup` (Sicherungskopie) und `renderer/components/NowPlayingDisplay.jsx` (veraltete Kopie; verwendet wird `renderer/components/player/NowPlayingDisplay.jsx`).
+- **Keine Referenzen:** Kein Codepfad importierte diese Dateien; Build, Lint und Testkette bleiben unverändert.
+
+### 🐧 Packaging
+
+- **Arch-PKGBUILD:** `_semver` verwendet im Template den Platzhalter `__PKGVER__`; zusätzlich unterstützt `scripts/build-linux-arch.js` nun `__SEMVER__`. Der Versionsstring im erzeugten PKGBUILD wird damit in jedem Fall korrekt ersetzt.
+
+### 📚 Dokumentation & Version
+
+- **`package.json` und `package-lock.json`** auf `1.0.7-alpha.4` angehoben.
+- **Versionsangaben synchronisiert:** `README.md` (Versions-Badge, Kanal-Beispiel und SemVer-Beispiele), `ROADMAP.md` (aktueller Milestone und „Explicitly Not Implemented") sowie die betroffenen Seiten unter `docs/` (`api-reference/`, `plugin-sdk/`, `theme-sdk/`, `architecture/`, `architecture.md`, `IntegrationSDK.md`, `Readme.md`) nennen jetzt `1.0.7-alpha.4` – einschließlich der Manifest-Beispiele (`engines.webradio`, `application`).
+- **Release-Validierung:** Der neue Changelog-Eintrag erfüllt die Prüfung von `npm run release:validate` (Version aus `package.json` muss im Changelog enthalten sein).
+- **Lint-Bereinigung:** Das generierte MkDocs-Ausgabeverzeichnis `site/` (bereits in `.gitignore`) ist aus den ESLint-`ignores` ausgenommen – `npm run lint` prüft damit ausschließlich versionierten Quellcode statt Build-Artefakte.
+
+### ⚠️ Hinweise
+
+- **Keine Bruchstelle für Plugins und Themes:** Die Neuerungen betreffen die internen Provider- und IPC-Schichten. Plugin- und Theme-Manifeste bleiben unverändert gültig, `playerAPI.onStateChanged()` bleibt als Alias verfügbar.
+- **Umbenannter Kommando-Kanal:** `mediaHubPlayerAPI.onCommand()` (eingeführt in v1.0.7-alpha.3) entfällt zugunsten von `playerAPI.onCommand()`. Es handelt sich um eine interne Preload-Schnittstelle, kein öffentlicher SDK-Vertrag; das offizielle YouTube-Plugin ist bereits umgestellt.
+
 ## [v1.0.7-alpha.3] – 2026-09-26
 
 > Vorabversion 1.0.7-alpha.3: Behebt die Diskrepanz zwischen Arch Linux PKGBUILD Binary-Namen und electron-builder Konfiguration (`WebRadio` vs. `webradio`), stellt dynamische Berechtigungsvergabe (`chmod 755`) und korrekte `/usr/bin/webradio` Symlink-Auflösung sicher, erweitert das Packaging-Audit-Testframework, stellt die MediaHub-Player-Steuerung auf eine sichere Main→Renderer-IPC-Brücke (`mainWindow.webContents.send` → `mediaHubPlayerAPI.onCommand()` → YouTube-Plugin) um, ergänzt die Update-Kanal-Auswahl um durchgängig dargestellte Kanal-Icons, entfernt veraltete Legacy-Dokumentation und richtet die bestehende `docs/`-Dokumentation über Read the Docs (MkDocs) ein.
@@ -1226,4 +1285,4 @@ Keine neuen Abhängigkeiten. Alle Pakete auf demselben Stand wie v1.0.4.
 
 ---
 
-*Changelog zuletzt aktualisiert: 2026-07-24 · Erstellt von Antigravity · WebRadio by YourEliteSystems*
+*Changelog zuletzt aktualisiert: 2026-09-27 · Erstellt von Antigravity · WebRadio by YourEliteSystems*

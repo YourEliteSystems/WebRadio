@@ -101,7 +101,7 @@ module.exports = {
 };
 ```
 
-In WebRadio 1.0.7-alpha.1 legt der Plugin-Runtime die aktuelle Konvention `init(context)` und `destroy()` zugrunde.
+In WebRadio 1.0.7-alpha.4 legt der Plugin-Runtime die aktuelle Konvention `init(context)` und `destroy()` zugrunde.
 
 When the plugin is enabled, WebRadio calls `init()`.
 

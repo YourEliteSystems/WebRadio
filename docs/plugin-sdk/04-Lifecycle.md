@@ -122,7 +122,7 @@ If loading fails, the plugin is marked as failed and the error is reported throu
 
 After the plugin has been loaded successfully, WebRadio calls the entry-point initialization that the plugin exported.
 
-In WebRadio 1.0.7-alpha.1, the current runtime convention is:
+In WebRadio 1.0.7-alpha.4, the current runtime convention is:
 
 ```javascript
 init(context)
@@ -161,7 +161,7 @@ This is the normal operating state.
 
 When WebRadio exits or the plugin is disabled, the PluginRuntime calls the cleanup function that the plugin exported.
 
-In WebRadio 1.0.7-alpha.1, the current runtime convention is:
+In WebRadio 1.0.7-alpha.4, the current runtime convention is:
 
 ```javascript
 destroy()
@@ -187,7 +187,7 @@ A plugin should never continue executing after it has been unloaded.
 
 ---
 
-# Lifecycle Diagram (1.0.7-alpha.1)
+# Lifecycle Diagram (1.0.7-alpha.4)
 
 ```text
 Discovery
@@ -216,7 +216,7 @@ Unload
 
 Every plugin follows this exact sequence.
 
-> **Hinweis:** Die Methoden `init()` und `destroy()` sind die aktuelle Konvention in WebRadio 1.0.7-alpha.1.
+> **Hinweis:** Die Methoden `init()` und `destroy()` sind die aktuelle Konvention in WebRadio 1.0.7-alpha.4.
 
 ---
 

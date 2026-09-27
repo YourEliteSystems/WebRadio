@@ -70,7 +70,7 @@ The ThemeManager coordinates each stage.
 
 ---
 
-# ThemeManager Access (1.0.7-alpha.1)
+# ThemeManager Access (1.0.7-alpha.4)
 
 The ThemeManager is managed internally by WebRadio.
 
@@ -125,7 +125,7 @@ Applying a theme typically deactivates the currently active theme.
 
 Theme reload is available for development and live preview use.
 
-In WebRadio 1.0.7-alpha.1, theme management also supports:
+In WebRadio 1.0.7-alpha.4, theme management also supports:
 
 * built-in themes
 * user themes
@@ -136,7 +136,7 @@ In WebRadio 1.0.7-alpha.1, theme management also supports:
 
 ---
 
-# Theme States (1.0.7-alpha.1)
+# Theme States (1.0.7-alpha.4)
 
 A theme may exist in one of the following states.
 
@@ -160,7 +160,7 @@ Only one theme can be active simultaneously.
 
 ---
 
-# Validation (1.0.7-alpha.1)
+# Validation (1.0.7-alpha.4)
 
 Before registering a theme, the ThemeManager validates:
 
@@ -176,7 +176,7 @@ Invalid themes are skipped and reported through the logging system.
 
 ---
 
-# Error Handling (1.0.7-alpha.1)
+# Error Handling (1.0.7-alpha.4)
 
 If a theme fails validation or loading:
 
@@ -188,7 +188,7 @@ A broken theme should never prevent WebRadio from starting.
 
 ---
 
-# Best Practices (1.0.7-alpha.1)
+# Best Practices (1.0.7-alpha.4)
 
 ✔ Validate every theme before registration.
 
@@ -202,7 +202,7 @@ A broken theme should never prevent WebRadio from starting.
 
 ---
 
-# Common Mistakes (1.0.7-alpha.1)
+# Common Mistakes (1.0.7-alpha.4)
 
 Typical implementation issues include:
 
@@ -217,7 +217,7 @@ The ThemeManager should always maintain a consistent visual state.
 
 ---
 
-# Related APIs (1.0.7-alpha.1)
+# Related APIs (1.0.7-alpha.4)
 
 The ThemeManager works closely with:
 

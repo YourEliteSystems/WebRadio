@@ -40,7 +40,7 @@ ThemeManager
 
 Each component performs a specific task during the theme lifecycle.
 
-> **Hinweis:** `ThemeRuntime` ist in WebRadio 1.0.7-alpha.1 nicht mehr Teil des Theme-Systems. CSS-basierte Themes werden über Theme-Management und Renderer-Anwendung geladen, ohne eine separate Runtime-Komponente.
+> **Hinweis:** `ThemeRuntime` ist in WebRadio 1.0.7-alpha.4 nicht mehr Teil des Theme-Systems. CSS-basierte Themes werden über Theme-Management und Renderer-Anwendung geladen, ohne eine separate Runtime-Komponente.
 ---
 
 # Theme Lifecycle

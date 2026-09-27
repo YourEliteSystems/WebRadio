@@ -97,7 +97,7 @@ Supported providers:
 * **LinuxAppImageUpdateProvider** – prepared for AppImageUpdate, currently GitHub fallback.
 * **UnsupportedUpdateProvider** – used for deb, arch and other package types without automatic updates.
 
-> macOS automatic updates are not implemented in 1.0.7-alpha.1.
+> macOS automatic updates are not implemented in 1.0.7-alpha.4.
 
 ---
 
@@ -115,7 +115,7 @@ A typical update workflow consists of:
 
 ---
 
-# Update Channels & Persistenz (1.0.7-alpha.1)
+# Update Channels & Persistenz (1.0.7-alpha.4)
 
 WebRadio unterstützt drei offizielle Update-Kanäle:
 
@@ -139,7 +139,7 @@ Die gültigen IDs stammen ausschließlich aus der Core-Implementierung (`UpdateS
 
 * **Speicherort:** Gespeichert im Electron-Main-Prozess in `settings.json` im `userData`-Bereich über das `SettingsManager` / `StorageManager`-System (Schlüssel: `updateChannel` bzw. `updates.channel`).
 * **Sicherheit:** Der Renderer-Prozess besitzt keinen direkten Dateisystemzugriff. Änderungen werden ausschließlich über validierte IPC-Kanäle abgewickelt.
-* **Erster Start (Default):** Ist keine Einstellung vorhanden, greift die automatische Versions-Erkennung (`detectChannelFromVersion()`). Bei Standard-Builds ist der Standardkanal `stable`; Pre-Release-Builds verwenden den Kanal ihrer eigenen Version (z. B. `1.0.7-alpha.1` → `alpha`).
+* **Erster Start (Default):** Ist keine Einstellung vorhanden, greift die automatische Versions-Erkennung (`detectChannelFromVersion()`). Bei Standard-Builds ist der Standardkanal `stable`; Pre-Release-Builds verwenden den Kanal ihrer eigenen Version (z. B. `1.0.7-alpha.4` → `alpha`).
 * **Ungültige Einstellungen:** Wurde ein ungültiger Wert in der Konfiguration hinterlegt, fällt das System sicher auf den Standardkanal zurück, ohne andere Benutzereinstellungen zu überschreiben oder zu löschen. Es entsteht keine ungültige Updater-Konfiguration.
 * **Neustart-Sicherheit:** Ein vom Benutzer explizit ausgewählter Kanal (z. B. `alpha`) bleibt über jeden Anwendungsneustart hinweg garantiert erhalten.
 * **Channel-Wechsel:** Der Wechsel über die UI speichert die Wahl unmittelbar und rekonfiguriert den AutoUpdater zur Laufzeit. Die laufende Radio- oder MediaHub-Wiedergabe wird zu keinem Zeitpunkt unterbrochen. Für die Wirksamkeit des Kanals ist **kein Neustart** erforderlich – der Kanal gilt sofort für manuelle und automatische Update-Prüfungen.
