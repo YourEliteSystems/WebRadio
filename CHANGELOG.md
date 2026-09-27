@@ -49,7 +49,9 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ### 🐧 Packaging
 
-- **Arch-PKGBUILD:** `_semver` verwendet im Template den Platzhalter `__PKGVER__`; zusätzlich unterstützt `scripts/build-linux-arch.js` nun `__SEMVER__`. Der Versionsstring im erzeugten PKGBUILD wird damit in jedem Fall korrekt ersetzt.
+- **Arch-Packaging – `pkgver` und Artefaktname strikt getrennt:** Das PKGBUILD leitet den AppImage-Dateinamen nicht mehr aus einer Version ab. Der neue Platzhalter `__APPIMAGE_FILE__` wird mit dem tatsächlichen Namen des electron-builder-Artefakts gefüllt (Schreibweise, Bindestriche und Groß-/Kleinschreibung bleiben erhalten); `source=()` und `package()` verwenden ausschließlich die Variable `_appimage`. `pkgver` ist die Arch-Paketversion (`1.0.7-alpha.4` → `1.0.7.alpha.4`), `_semver` dient nur noch der Anzeige (`pkgdesc`).
+- **Artefakt-Ermittlung statt Namensraten:** `scripts/build-linux-arch.js` kopiert das gefundene AppImage unverändert ins Build-Verzeichnis (neue, einzeln testbare Funktionen `toArchPkgver()`, `appImageFileName()`, `selectAppImage()`, `stageSources()`); beide Workflows (`build-linux.yml`, `release.yml`) ermitteln genau ein `*.AppImage`, berechnen die Checksumme daraus und brechen bei Mehrdeutigkeit ab. Ein Guard verhindert, dass unersetzte Platzhalter in den `makepkg`-Build gelangen.
+- **Tests:** `scripts/tests/artifact-audit.test.js` prüft die Trennung für `1.0.7-alpha.4`, `1.0.7-beta.1` und `1.0.7` (pkgver, `_semver`, Artefaktname, keine Rekonstruktion aus Versionen) sowie das Staging des tatsächlichen Artefaktnamens.
 
 ### 📚 Dokumentation & Version
 

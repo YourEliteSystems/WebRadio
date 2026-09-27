@@ -76,42 +76,73 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/arch-build
-          cd dist/arch-build
 
-          # AppImage mit normalisiertem Namen ablegen.
-          APPIMAGE_SRC="$(ls ../*.AppImage | head -n1)"
-          # SemVer aus package.json (z.B. "1.0.6-beta.2")
-          SEMVER="$(node -p "require('../../package.json').version")"
-          # Arch pkgver darf KEINE Bindestriche enthalten → ersetze durch Punkte
+          # ── Versionen strikt getrennt ──────────────────────────────────────
+          #   SEMVER      = SemVer aus package.json  (1.0.7-alpha.4)  → Artefakt
+          #   PKGVER_ARCH = Arch-Paketversion        (1.0.7.alpha.4)  → pkgver
+          # Der AppImage-Dateiname wird NICHT aus einer Version rekonstruiert.
+          SEMVER="$(node -p "require('./package.json').version")"
           PKGVER_ARCH="${SEMVER//-/.}"
 
-          cp "$APPIMAGE_SRC" "./webradio-${SEMVER}.AppImage"
-          chmod +x "./webradio-${SEMVER}.AppImage"
+          # Tatsächliches AppImage-Artefakt ermitteln (genau eines erwartet).
+          mapfile -t APPIMAGES < <(find dist -maxdepth 1 -type f -name '*.AppImage' -print)
+          if [ "${#APPIMAGES[@]}" -ne 1 ]; then
+            echo "::error::Genau ein AppImage-Artefakt erwartet, gefunden: ${#APPIMAGES[@]}"
+            printf '  %s\n' "${APPIMAGES[@]}"
+            exit 1
+          fi
+          APPIMAGE_FILE="$(basename "${APPIMAGES[0]}")"
+          echo "AppImage-Artefakt: ${APPIMAGE_FILE}"
 
-          cp ../../assets/webradio.desktop .
-          cp ../../assets/icons/tray.png .
+          # Artefakt unverändert (gleicher Dateiname) ins Build-Verzeichnis legen.
+          cp "${APPIMAGES[0]}" "dist/arch-build/${APPIMAGE_FILE}"
+          chmod +x "dist/arch-build/${APPIMAGE_FILE}"
+
+          cp assets/webradio.desktop dist/arch-build/
+          cp assets/icons/tray.png dist/arch-build/
+
+          {
+            echo "SEMVER=${SEMVER}"
+            echo "PKGVER_ARCH=${PKGVER_ARCH}"
+            echo "APPIMAGE_FILE=${APPIMAGE_FILE}"
+          } >> "$GITHUB_ENV"
 
       - name: PKGBUILD aus Template rendern
         run: |
           set -euo pipefail
           cd dist/arch-build
-          SEMVER="$(node -p "require('../../package.json').version")"
-          PKGVER_ARCH="${SEMVER//-/.}"
-          APP_SHA="$(sha256sum "webradio-${SEMVER}.AppImage" | awk '{print $1}')"
+
+          APP_SHA="$(sha256sum "${APPIMAGE_FILE}" | awk '{print $1}')"
           DESK_SHA="$(sha256sum webradio.desktop | awk '{print $1}')"
           ICON_SHA="$(sha256sum tray.png | awk '{print $1}')"
-          # __PKGVER__ = Arch-Version (ohne Bindestriche)
-          # __SEMVER__  = Original SemVer für Dateinamen und pkgdesc
+
+          # __PKGVER__        = Arch-Paketversion (ohne Bindestriche)
+          # __SEMVER__        = Original-SemVer (nur pkgdesc/Anzeige)
+          # __APPIMAGE_FILE__ = tatsächlicher Dateiname des AppImage-Artefakts
           sed \
             -e "s|__PKGVER__|${PKGVER_ARCH}|g" \
             -e "s|__SEMVER__|${SEMVER}|g" \
+            -e "s|__APPIMAGE_FILE__|${APPIMAGE_FILE}|g" \
             -e "s|__APPIMAGE_SHA256__|${APP_SHA}|g" \
             -e "s|__DESKTOP_SHA256__|${DESK_SHA}|g" \
             -e "s|__ICON_SHA256__|${ICON_SHA}|g" \
             ../../packaging/arch/PKGBUILD \
             > PKGBUILD
-          echo "--- PKGBUILD (head) ---"
-          head -n 45 PKGBUILD
+
+          echo "--- PKGBUILD (Kopf) ---"
+          head -n 50 PKGBUILD
+
+          # Sicherheitsnetz: kein unersetzter Platzhalter darf in den Build.
+          if grep -n '__[A-Z][A-Z_]*__' PKGBUILD; then
+            echo "::error::Unersetzte Platzhalter im gerenderten PKGBUILD."
+            exit 1
+          fi
+
+          # Der AppImage-Name im PKGBUILD muss dem vorhandenen Artefakt entsprechen.
+          if [ ! -f "${APPIMAGE_FILE}" ]; then
+            echo "::error::AppImage-Artefakt fehlt im Build-Verzeichnis: ${APPIMAGE_FILE}"
+            exit 1
+          fi
 
       - name: Arch-Paket im Container bauen
         run: |

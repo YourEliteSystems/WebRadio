@@ -16,6 +16,7 @@ const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const crypto = require("crypto");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const DIST = path.join(ROOT, "dist");
@@ -532,6 +533,228 @@ test("Wayland-Dokumentation erwähnt keine projektspezifischen Einschränkungen"
     const content = fs.readFileSync(doc, "utf8");
     assert.ok(/No project-specific Wayland limitations/i.test(content), 
         "Erklärung zu projektspezifischen Einschränkungen fehlt");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 13. Arch-Packaging: pkgver vs. AppImage-Artefaktname
+// ─────────────────────────────────────────────────────────────
+console.log("\n[13] Arch-Packaging – Version vs. Artefaktname");
+
+const archBuild = require(path.join(ROOT, "scripts", "build-linux-arch.js"));
+
+// Erwartetes Verhalten: Arch-pkgver wird normalisiert, der Artefaktname nicht.
+const archVersionCases = [
+    {
+        semver: "1.0.7-alpha.4",
+        pkgver: "1.0.7.alpha.4",
+        artifact: "WebRadio-1.0.7-alpha.4-linux-x86_64.AppImage"
+    },
+    {
+        semver: "1.0.7-beta.1",
+        pkgver: "1.0.7.beta.1",
+        artifact: "WebRadio-1.0.7-beta.1-linux-x86_64.AppImage"
+    },
+    {
+        semver: "1.0.7",
+        pkgver: "1.0.7",
+        artifact: "WebRadio-1.0.7-linux-x86_64.AppImage"
+    }
+];
+
+test("Arch: SemVer → pkgver (Bindestriche werden zu Punkten)", () => {
+    for (const c of archVersionCases) {
+        assert.strictEqual(
+            archBuild.toArchPkgver(c.semver),
+            c.pkgver,
+            `${c.semver} muss zu ${c.pkgver} werden`
+        );
+    }
+});
+
+test("Arch: AppImage-Dateiname bleibt unverändert (kein Namensschema)", () => {
+    for (const c of archVersionCases) {
+        assert.strictEqual(
+            archBuild.appImageFileName(path.join("/tmp/dist", c.artifact)),
+            c.artifact,
+            "Tatsächlicher Artefaktname muss unverändert übernommen werden"
+        );
+    }
+    // Produktname/Case darf nicht hartcodiert vorausgesetzt werden.
+    assert.strictEqual(
+        archBuild.appImageFileName("/tmp/dist/webraDio-1.0.7.alpha.4.AppImage"),
+        "webraDio-1.0.7.alpha.4.AppImage"
+    );
+});
+
+test("Arch: Artefaktauswahl bevorzugt die zur Version passende Datei", () => {
+    const candidates = [
+        "WebRadio-1.0.7-alpha.3-linux-x86_64.AppImage",
+        "WebRadio-1.0.7-alpha.4-linux-x86_64.AppImage"
+    ];
+    assert.strictEqual(
+        archBuild.selectAppImage(candidates, "1.0.7-alpha.4"),
+        "WebRadio-1.0.7-alpha.4-linux-x86_64.AppImage"
+    );
+    // Ein einzelnes Artefakt wird akzeptiert, auch wenn der Name nicht passt.
+    assert.strictEqual(
+        archBuild.selectAppImage(["webradio.AppImage"], "1.0.7-alpha.4"),
+        "webradio.AppImage"
+    );
+});
+
+test("Arch: mehrdeutige Artefakte führen zu einem Abbruch", () => {
+    assert.throws(
+        () =>
+            archBuild.selectAppImage(
+                [
+                    "WebRadio-1.0.7-alpha.4-linux-x86_64.AppImage",
+                    "WebRadio-1.0.7-alpha.4-linux-arm64.AppImage"
+                ],
+                "1.0.7-alpha.4"
+            ),
+        /nicht eindeutig/
+    );
+    assert.throws(() => archBuild.selectAppImage([], "1.0.7-alpha.4"), /Kein AppImage/);
+});
+
+test("Arch: PKGBUILD-Template trennt pkgver, SemVer und Artefaktname", () => {
+    const tpl = readPkgbuild();
+    assert.ok(/^pkgver=__PKGVER__$/m.test(tpl), "pkgver-Platzhalter fehlt");
+    assert.ok(/^_semver=__SEMVER__$/m.test(tpl), "_semver muss das Original-SemVer erhalten");
+    assert.ok(
+        /^_appimage="__APPIMAGE_FILE__"$/m.test(tpl),
+        "Artefaktname muss über __APPIMAGE_FILE__ übergeben werden"
+    );
+    assert.ok(
+        /source=\([\s\S]*"\$\{_appimage\}"/.test(tpl),
+        "source=() muss den tatsächlichen Artefaktnamen verwenden"
+    );
+    assert.ok(
+        !/\$\{_semver\}\.AppImage/.test(tpl),
+        "Dateiname darf nicht aus _semver gebildet werden"
+    );
+    assert.ok(
+        !/\$\{pkgver\}\.AppImage/.test(tpl),
+        "Dateiname darf nicht aus pkgver gebildet werden"
+    );
+});
+
+for (const c of archVersionCases) {
+    test(`Arch: gerendertes PKGBUILD für ${c.semver}`, () => {
+        const rendered = archBuild.renderPkgbuild(readPkgbuild(), {
+            pkgver: c.pkgver,
+            semver: c.semver,
+            appimageFile: c.artifact,
+            appimageSha: "a".repeat(64),
+            desktopSha: "b".repeat(64),
+            iconSha: "c".repeat(64)
+        });
+
+        assert.ok(
+            new RegExp(`^pkgver=${c.pkgver.replace(/\./g, "\\.")}$`, "m").test(rendered),
+            `pkgver muss ${c.pkgver} sein`
+        );
+        assert.ok(
+            new RegExp(`^_semver=${c.semver.replace(/\./g, "\\.")}$`, "m").test(rendered),
+            `_semver muss ${c.semver} sein`
+        );
+        assert.ok(
+            rendered.includes(`_appimage="${c.artifact}"`),
+            "Artefaktname muss unverändert im PKGBUILD stehen"
+        );
+        assert.ok(
+            !/__(PKGVER|SEMVER|APPIMAGE_FILE|APPIMAGE_SHA256|DESKTOP_SHA256|ICON_SHA256)__/.test(rendered),
+            "keine unersetzten Platzhalter im gerenderten PKGBUILD"
+        );
+        assert.ok(
+            !rendered.includes(`webradio-${c.pkgver}.AppImage`),
+            "pkgver darf nicht als Dateiname auftauchen"
+        );
+        assert.ok(
+            !rendered.includes(`webradio.${c.pkgver}.AppImage`),
+            "pkgver darf nicht als Dateiname auftauchen (Punkt-Variante)"
+        );
+        if (c.semver !== c.pkgver) {
+            assert.ok(
+                !rendered.includes(`webradio-${c.semver}.AppImage`),
+                "SemVer darf nicht als Dateiname auftauchen"
+            );
+        }
+    });
+}
+
+test("Arch: Staging kopiert das Artefakt unter seinem echten Namen", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "webradio-arch-"));
+    try {
+        const artifact = "WebRadio-1.0.7-alpha.4-linux-x86_64.AppImage";
+        const payload = "dummy-appimage-payload";
+        const src = path.join(tmp, artifact);
+        fs.writeFileSync(src, payload);
+        const desktop = path.join(tmp, "webradio.desktop");
+        fs.writeFileSync(desktop, "[Desktop Entry]\nName=WebRadio\n");
+        const icon = path.join(tmp, "tray.png");
+        fs.writeFileSync(icon, "png-bytes");
+
+        const workDir = path.join(tmp, "arch-build");
+        fs.mkdirSync(workDir);
+
+        const staged = archBuild.stageSources({
+            appimage: src,
+            workDir,
+            desktopFile: desktop,
+            iconFile: icon
+        });
+
+        assert.strictEqual(staged.appimageName, artifact, "echter Artefaktname");
+        assert.ok(
+            exists(path.join(workDir, artifact)),
+            "Artefakt muss unter dem echten Namen im Build-Verzeichnis liegen"
+        );
+        assert.strictEqual(
+            staged.appimageSha,
+            crypto.createHash("sha256").update(payload).digest("hex"),
+            "SHA256 muss aus dem tatsächlichen Artefakt stammen"
+        );
+        assert.strictEqual(
+            fs.readFileSync(path.join(workDir, artifact), "utf8"),
+            payload,
+            "Artefaktinhalt muss unverändert sein"
+        );
+        // Das Seitenwagen-Trio muss vollständig sein (Reihenfolge wie in source=()).
+        assert.ok(exists(path.join(workDir, "webradio.desktop")));
+        assert.ok(exists(path.join(workDir, "tray.png")));
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
+});
+
+test("Arch: Workflows nutzen den tatsächlichen Artefaktnamen", () => {
+    for (const file of ["build-linux.yml", "release.yml"]) {
+        const wf = fs.readFileSync(
+            path.join(ROOT, ".github", "workflows", file),
+            "utf8"
+        );
+        assert.ok(
+            wf.includes("__APPIMAGE_FILE__"),
+            `${file}: Platzhalter __APPIMAGE_FILE__ fehlt`
+        );
+        assert.ok(
+            wf.includes("basename"),
+            `${file}: Artefaktname muss aus dem tatsächlichen Artefakt ermittelt werden`
+        );
+        assert.ok(
+            /\$\{APPIMAGE_FILE\}/.test(wf),
+            `${file}: Checksumme muss aus dem tatsächlichen Artefakt berechnet werden`
+        );
+        assert.ok(
+            !/webradio[-.]\$\{SEMVER\}\.AppImage/.test(wf),
+            `${file}: Dateiname darf nicht aus SEMVER gebaut werden`
+        );
+        assert.ok(
+            !/\$\{PKGVER_ARCH\}\.AppImage/.test(wf),
+            `${file}: Dateiname darf nicht aus PKGVER_ARCH gebaut werden`
+        );
+    }
 });
 
 // ─────────────────────────────────────────────────────────────

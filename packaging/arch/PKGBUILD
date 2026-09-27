@@ -11,16 +11,26 @@
 #   • Keine Abhängigkeit von node, npm, electron oder ffmpeg
 #     auf dem Zielsystem – alles ist im Paket enthalten.
 #
-# Hinweis zur Versionierung:
-#   pkgver darf laut Arch-Policy KEINE Bindestriche enthalten.
-#   1.0.6-beta.2 (SemVer) → 1.0.6.beta.2 (Arch pkgver)
-#   Das echte SemVer-Tag ist im pkgdesc und url sichtbar.
+# Hinweis zur Versionierung – strikte Trennung:
+#
+#   pkgver      Arch-Paketversion. Darf laut Arch-Policy KEINE Bindestriche
+#               enthalten: 1.0.7-alpha.4 (SemVer) → 1.0.7.alpha.4
+#   _semver     Original-SemVer aus package.json. Ausschließlich für die
+#               Anzeige (pkgdesc) – niemals für Dateinamen.
+#   _appimage   Dateiname des von electron-builder erzeugten AppImage-Artefakts.
+#               Der Wert wird vom Build-Schritt mit dem tatsächlichen Dateinamen
+#               gesetzt (Variable _appimage) und NIE aus pkgver oder _semver
+#               rekonstruiert. Schreibweise, Bindestriche und
+#               Groß-/Kleinschreibung des Artefakts bleiben dadurch erhalten.
 
 pkgname=webradio
 _pkgname=webradio
 pkgver=__PKGVER__
 pkgrel=1
-_semver=__PKGVER__
+_semver=__SEMVER__
+# Name der AppImage-Quelldatei – tatsächlicher Artefaktname aus dem Build.
+# Bewusst NICHT aus pkgver/_semver zusammengesetzt.
+_appimage="__APPIMAGE_FILE__"
 pkgdesc="Modern desktop radio player with plugin system (v${_semver})"
 arch=('x86_64')
 url="https://github.com/YourEliteSystems/WebRadio"
@@ -69,9 +79,11 @@ conflicts=('webradio-bin' 'webradio-git')
 options=('!strip')
 
 # Die Quell-Dateien liegen bereits im Build-Verzeichnis (werden vom
-# CI-Skript vor makepkg dorthin kopiert). Keine URLs notwendig.
+# CI-Skript bzw. scripts/build-linux-arch.js vor makepkg dorthin kopiert).
+# Das AppImage wird dabei unter seinem tatsächlichen Artefaktnamen abgelegt –
+# kein Namensschema, das aus einer Version rekonstruiert wird.
 source=(
-  "webradio-${_semver}.AppImage"
+  "${_appimage}"
   "webradio.desktop"
   "tray.png"
 )
@@ -88,18 +100,23 @@ sha256sums=(
 
 package() {
   # 1) AppImage in ein Arbeitsverzeichnis entpacken.
+  #    Verwendet wird ausschließlich der tatsächliche Artefaktname ($_appimage);
+  #    der Dateiname wird an keiner Stelle aus pkgver oder _semver gebildet.
   cd "$srcdir"
   mkdir -p appimage-extract
-  chmod +x "webradio-${_semver}.AppImage"
+  chmod +x "$srcdir/${_appimage}"
   # --no-sandbox, damit das Entpacken auch in CI-Containern ohne
   # Kernel-Sandbox-Erweiterungen funktioniert.
-  "./webradio-${_semver}.AppImage" --appimage-extract >/dev/null 2>&1 || {
-    # Fallback: manuell entpacken (benötigt nur squashfs-tools + unzip)
+  "$srcdir/${_appimage}" --appimage-extract >/dev/null 2>&1 || {
+    # Fallback: manuell entpacken (benötigt nur squashfs-tools + unzip).
+    # Der Artefaktname wird als Argument übergeben – keine String-Interpolation
+    # eines Versionsstrings in den Dateinamen.
     bash -c '
       cd appimage-extract
-      offset=$(../webradio-'"${_semver}"'.AppImage --appimage-offset 2>/dev/null || echo 0)
-      tail -c +$((offset + 1)) ../webradio-'"${_semver}"'.AppImage | unsquashfs -d squashfs-root - >/dev/null 2>&1
-    '
+      _artifact="$1"
+      offset=$(../"$_artifact" --appimage-offset 2>/dev/null || echo 0)
+      tail -c +$((offset + 1)) ../"$_artifact" | unsquashfs -d squashfs-root - >/dev/null 2>&1
+    ' _ "${_appimage}"
   }
 
   # 2) Installations-Verzeichnisbaum anlegen.

@@ -5,9 +5,16 @@
  *
  * Ablauf:
  *   1) Voraussetzungen prüfen (makepkg, fakeroot, AppImage vorhanden).
- *   2) SHA256-Hashes der Quelldateien berechnen.
- *   3) PKGBUILD-Template mit aktuellen Werten aus package.json rendern.
- *   4) Optional: makepkg in einem Arch-Container aufrufen.
+ *   2) AppImage-Artefakt ermitteln und unverändert ins Build-Verzeichnis kopieren.
+ *   3) SHA256-Hashes der Quelldateien berechnen.
+ *   4) PKGBUILD-Template mit pkgver, SemVer, Artefaktname und Hashes rendern.
+ *   5) Optional: makepkg in einem Arch-Container aufrufen.
+ *
+ * Versionsbegriffe (strikt getrennt):
+ *   SemVer  1.0.7-alpha.4   → Version aus package.json (Artefaktname)
+ *   pkgver  1.0.7.alpha.4   → Arch-Paketversion (keine Bindestriche)
+ *   AppImage-Namen werden NIEMALS aus einer Version rekonstruiert, sondern
+ *   immer aus dem tatsächlich vorhandenen Artefakt übernommen.
  *
  * Standard-Verwendung:
  *   npm run make:linux:appimage   # baut das AppImage (electron-builder)
@@ -15,7 +22,8 @@
  *   npm run make:linux            # beides hintereinander
  *
  * Aufrufparameter (CLI):
- *   --appimage=<pfad>      Pfad zum AppImage (Default: dist/WebRadio-*-linux-x86_64.AppImage)
+ *   --appimage=<pfad>      Pfad zum AppImage (Default: tatsächliches
+ *                          *.AppImage in dist/, bevorzugt zur Version passend)
  *   --no-makepkg           Nur PKGBUILD/SHA256 erzeugen, nicht bauen
  *   --use-docker           Bauen in einem Arch-Linux-Container (lokal)
  */
@@ -37,8 +45,75 @@ function loadPkgVersion() {
     return pkg.version;
 }
 
-function findAppImage(explicit) {
-    if (explicit && fs.existsSync(explicit)) {
+/**
+ * Arch-Paketversion (pkgver).
+ *
+ * Arch erlaubt keine Bindestriche in pkgver:
+ *   1.0.7-alpha.4 (SemVer) → 1.0.7.alpha.4 (pkgver)
+ *
+ * Das Ergebnis ist AUSSCHLIESSLICH die Paketversion und niemals ein Dateiname.
+ *
+ * @param {string} semver
+ * @returns {string}
+ */
+function toArchPkgver(semver) {
+    return String(semver).trim().replace(/-/g, ".");
+}
+
+/**
+ * Dateiname des AppImage-Artefakts.
+ *
+ * Der Name wird direkt aus dem tatsächlich vorhandenen Artefakt übernommen –
+ * keine Rekonstruktion aus pkgver/SemVer. Damit bleiben Produktname
+ * (WebRadio/webradio), Bindestriche und Groß-/Kleinschreibung erhalten.
+ *
+ * @param {string} appImagePath
+ * @returns {string}
+ */
+function appImageFileName(appImagePath) {
+    return path.basename(appImagePath);
+}
+
+/**
+ * Wählt das AppImage-Artefakt aus den vorhandenen Kandidaten.
+ * Reine Funktion ohne Dateisystemzugriff (dadurch testbar).
+ *
+ * @param {string[]} candidates  Dateinamen (ohne Pfad)
+ * @param {string}   semver      Version aus package.json (z.B. "1.0.7-alpha.4")
+ * @returns {string} Dateiname des Artefakts
+ * @throws {Error}   wenn das Artefakt nicht eindeutig bestimmbar ist
+ */
+function selectAppImage(candidates, semver) {
+    const list = (candidates || []).slice().sort();
+    if (list.length === 0) {
+        throw new Error("Kein AppImage-Artefakt gefunden.");
+    }
+    const matching = semver ? list.filter((n) => n.includes(semver)) : [];
+    if (matching.length === 1) {
+        return matching[0];
+    }
+    if (list.length === 1) {
+        return list[0];
+    }
+    throw new Error(
+        `AppImage-Artefakt nicht eindeutig (${list.join(", ")}). ` +
+            "Bitte mit --appimage=<pfad> das gewünschte Artefakt angeben."
+    );
+}
+
+/**
+ * Ermittelt den Pfad zum AppImage-Artefakt.
+ *
+ * @param {string|null} explicit
+ * @param {string}      semver
+ * @returns {string|null}
+ * @throws {Error} bei ungültigem/mehrdeutigem Artefakt
+ */
+function findAppImage(explicit, semver) {
+    if (explicit) {
+        if (!fs.existsSync(explicit)) {
+            throw new Error(`Angegebenes AppImage existiert nicht: ${explicit}`);
+        }
         return explicit;
     }
     const distDir = path.join(ROOT, "dist");
@@ -46,15 +121,16 @@ function findAppImage(explicit) {
         return null;
     }
     const candidates = fs
-        .readdirSync(distDir)
+        .readdirSync(distDir, { withFileTypes: true })
         .filter(
-            (n) =>
-                n.toLowerCase().endsWith(".appimage") &&
-                (n.includes("linux") || n.includes("x64") || n.includes("x86_64"))
+            (entry) =>
+                entry.isFile() && entry.name.toLowerCase().endsWith(".appimage")
         )
-        .sort();
-    if (candidates.length === 0) return null;
-    return path.join(distDir, candidates[candidates.length - 1]);
+        .map((entry) => entry.name);
+    if (candidates.length === 0) {
+        return null;
+    }
+    return path.join(distDir, selectAppImage(candidates, semver));
 }
 
 function sha256(filePath) {
@@ -62,16 +138,61 @@ function sha256(filePath) {
     return crypto.createHash("sha256").update(buf).digest("hex");
 }
 
+/**
+ * Rendert das PKGBUILD-Template.
+ *
+ * @param {string} template
+ * @param {object} ctx  { pkgver, semver, appimageFile, appimageSha, desktopSha, iconSha }
+ * @returns {string}
+ */
 function renderPkgbuild(template, ctx) {
     return template
         .replace(/__PKGVER__/g, ctx.pkgver)
-        .replace(/__SEMVER__/g, ctx.pkgver)
-        .replace(/__APPIMAGE_PATH__/g, ctx.appimage)
-        .replace(/__DESKTOP_PATH__/g, ctx.desktop)
-        .replace(/__ICON_PATH__/g, ctx.icon)
+        .replace(/__SEMVER__/g, ctx.semver)
+        .replace(/__APPIMAGE_FILE__/g, ctx.appimageFile)
         .replace(/__APPIMAGE_SHA256__/g, ctx.appimageSha)
         .replace(/__DESKTOP_SHA256__/g, ctx.desktopSha)
         .replace(/__ICON_SHA256__/g, ctx.iconSha);
+}
+
+/**
+ * Kopiert die Quelldateien in das makepkg-Arbeitsverzeichnis.
+ *
+ * Das AppImage behält dabei seinen tatsächlichen Dateinamen (inklusive
+ * Produktname und Schreibweise) – der Name wird nicht aus einer Version
+ * gebildet. Liegt die Datei bereits am Zielort, wird sie nicht kopiert.
+ *
+ * @param {{ appimage: string, workDir: string, desktopFile: string, iconFile: string }} input
+ * @returns {{ appimageName: string, appimageSha: string, desktopSha: string, iconSha: string }}
+ */
+function stageSources({ appimage, workDir, desktopFile, iconFile }) {
+    const appimageName = appImageFileName(appimage);
+
+    const staging = [
+        [path.join(workDir, appimageName), appimage],
+        [path.join(workDir, "webradio.desktop"), desktopFile],
+        [path.join(workDir, "tray.png"), iconFile],
+    ];
+
+    for (const [target, src] of staging) {
+        if (path.resolve(target) === path.resolve(src)) {
+            continue; // Datei liegt bereits im Arbeitsverzeichnis
+        }
+        try {
+            fs.unlinkSync(target);
+        } catch {
+            /* ignore */
+        }
+        fs.copyFileSync(src, target);
+        fs.chmodSync(target, 0o644);
+    }
+
+    return {
+        appimageName,
+        appimageSha: sha256(appimage),
+        desktopSha: sha256(desktopFile),
+        iconSha: sha256(iconFile),
+    };
 }
 
 function parseArgs(argv) {
@@ -133,8 +254,18 @@ function buildInDocker(workDir, pkgName) {
 
 function main() {
     const args = parseArgs(process.argv.slice(2));
-    const pkgver = loadPkgVersion();
-    const appimage = findAppImage(args.appimage);
+
+    // ── Versionen strikt trennen ────────────────────────────────
+    const semver = loadPkgVersion();          // 1.0.7-alpha.4 (package.json)
+    const pkgver = toArchPkgver(semver);      // 1.0.7.alpha.4 (Arch pkgver)
+
+    let appimage;
+    try {
+        appimage = findAppImage(args.appimage, semver);
+    } catch (err) {
+        console.error(`❌ ${err.message}`);
+        process.exit(1);
+    }
 
     if (!appimage) {
         console.error(
@@ -143,7 +274,7 @@ function main() {
         process.exit(1);
     }
 
-    console.log(`📦 WebRadio v${pkgver}`);
+    console.log(`📦 WebRadio ${semver}  (Arch pkgver: ${pkgver})`);
     console.log(`   AppImage: ${appimage}`);
 
     if (!fs.existsSync(PKGBUILD_TEMPLATE)) {
@@ -164,34 +295,35 @@ function main() {
     const workDir = path.join(ROOT, "dist", "arch-build");
     fs.mkdirSync(workDir, { recursive: true });
 
-    // Symlinks auf Quelldateien, damit PKGBUILD `file://...` nutzen kann.
-    const appimageName = `webradio-${pkgver}.AppImage`;
-    const linkAppimage = path.join(workDir, appimageName);
-    const linkDesktop = path.join(workDir, "webradio.desktop");
-    const linkIcon = path.join(workDir, "tray.png");
-
-    for (const [target, src] of [
-        [linkAppimage, appimage],
-        [linkDesktop, DESKTOP_FILE],
-        [linkIcon, ICON_FILE],
-    ]) {
-        try {
-            fs.unlinkSync(target);
-        } catch {
-            /* ignore */
+    // Veraltete AppImage-Artefakte aus früheren Läufen entfernen, damit
+    // makepkg ausschließlich das aktuelle Artefakt vorfindet.
+    for (const entry of fs.readdirSync(workDir)) {
+        if (entry.toLowerCase().endsWith(".appimage")) {
+            try {
+                fs.unlinkSync(path.join(workDir, entry));
+            } catch {
+                /* ignore */
+            }
         }
-        fs.copyFileSync(src, target);
-        fs.chmodSync(target, 0o644);
     }
 
+    // Quelldateien bereitstellen – das AppImage behält seinen echten Namen.
+    const staged = stageSources({
+        appimage,
+        workDir,
+        desktopFile: DESKTOP_FILE,
+        iconFile: ICON_FILE,
+    });
+
+    console.log(`   Quelle:   ${staged.appimageName} (${staged.appimageSha.slice(0, 12)}…)`);
+
     const ctx = {
-        pkgver,
-        appimage: `./${appimageName}`,
-        desktop: `./webradio.desktop`,
-        icon: `./tray.png`,
-        appimageSha: sha256(appimage),
-        desktopSha: sha256(DESKTOP_FILE),
-        iconSha: sha256(ICON_FILE),
+        pkgver,                      // Arch-Paketversion      (1.0.7.alpha.4)
+        semver,                      // Original-SemVer        (1.0.7-alpha.4)
+        appimageFile: staged.appimageName,   // tatsächlicher Artefaktname
+        appimageSha: staged.appimageSha,
+        desktopSha: staged.desktopSha,
+        iconSha: staged.iconSha,
     };
 
     const template = fs.readFileSync(PKGBUILD_TEMPLATE, "utf8");
@@ -255,4 +387,19 @@ function main() {
     }
 }
 
-main();
+// ─────────────────────────────────────────────────────────────────────────────
+// Exporte für Tests (statische Prüfung der Version-/Artefakt-Trennung)
+// ─────────────────────────────────────────────────────────────────────────────
+module.exports = {
+    toArchPkgver,
+    appImageFileName,
+    selectAppImage,
+    findAppImage,
+    renderPkgbuild,
+    stageSources,
+    main,
+};
+
+if (require.main === module) {
+    main();
+}
