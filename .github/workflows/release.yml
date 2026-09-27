@@ -367,8 +367,8 @@ jobs:
           PKGVER_ARCH="${SEMVER//-/.}"
 
           # AppImage mit Original-SemVer-Namen ablegen (Dateiname bleibt)
-          cp "$APPIMAGE_SRC" "dist/arch-build/webradio-${SEMVER}.AppImage"
-          chmod +x "dist/arch-build/webradio-${SEMVER}.AppImage"
+          cp "$APPIMAGE_SRC" "dist/arch-build/webradio.${SEMVER}.AppImage"
+          chmod +x "dist/arch-build/webradio.${SEMVER}.AppImage"
 
           cp assets/webradio.desktop dist/arch-build/
           cp assets/icons/tray.png dist/arch-build/
