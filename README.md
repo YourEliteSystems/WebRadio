@@ -7,8 +7,10 @@
 [![Version](https://img.shields.io/badge/version-1.0.7--alpha.4-6366f1?style=for-the-badge)](./CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=for-the-badge)](./LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
-**[⬇️ Downloads](../../releases) · [📚 Documentation](./docs/Readme.md) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues)**
+**[⬇️ Downloads](../../releases) · [📚 Documentation](./docs/Readme.md) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions)**
 
 ---
 
@@ -74,7 +76,9 @@ WebRadio soll sich nicht wie eine Webseite im Desktop-Fenster anfühlen, sondern
 
 **Ziel:** eine klare Oberfläche, schnelle Navigation und ein Player, der während der gesamten Nutzung im Mittelpunkt bleibt.
 
-> 📸 **Screenshots und Demo-Material werden hier ergänzt, sobald die aktuelle UI-Darstellung finalisiert ist.**
+> 📸 **Screenshots und ein kurzer Demo-Clip folgen hier, sobald aktuelles Material aus der finalen UI vorliegt.**
+>
+> Wir verzichten bewusst darauf, veraltete Screenshots einzubauen – die README soll immer die tatsächlich aktuelle Anwendung zeigen.
 
 ---
 
@@ -173,6 +177,27 @@ Der Renderer greift über `useUnifiedPlayer` und die Player-API darauf zu.
 
 ---
 
+## ⬇️ Download
+
+Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumgebung**.
+
+| Plattform | Download | Format |
+| --- | --- | --- |
+| 🪟 **Windows** | [Releases](../../releases) | NSIS Installer / Portable |
+| 🐧 **Linux** | [Releases](../../releases) | AppImage / .deb |
+| 🐧 **Arch Linux** | [Releases](../../releases) | .pkg.tar.zst |
+| 🍎 **macOS** | [Releases](../../releases) | derzeit vorbereitet |
+
+### Welche Version?
+
+- **Stable** → für den normalen täglichen Einsatz
+- **Beta** → neue Funktionen früher testen
+- **Alpha** → aktuelle Entwicklung ausprobieren
+
+> Die verfügbaren Artefakte und Release Notes findest du immer direkt im jeweiligen **GitHub Release**.
+
+---
+
 ## 🚀 Schnellstart für Entwickler
 
 ### Voraussetzungen
@@ -190,6 +215,18 @@ npm run dev
 ```
 
 `npm run dev` baut das React-Frontend mit esbuild und startet anschließend Electron.
+
+---
+
+## 👋 Für wen ist WebRadio?
+
+**Für Hörer:** Sender suchen, Favoriten speichern und einfach Musik oder Radio hören.
+
+**Für Entwickler:** Eine Electron-/React-Anwendung mit klar getrennten Core-, Player-, Plugin- und UI-Bereichen.
+
+**Für Creator & Modder:** Eigene Plugins, Themes und Integrationen bauen und WebRadio um neue Funktionen erweitern.
+
+**Für Open-Source-Begeisterte:** Code lesen, testen, Fehler melden, Ideen einbringen oder direkt mitentwickeln.
 
 ---
 
