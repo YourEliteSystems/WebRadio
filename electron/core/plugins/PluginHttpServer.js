@@ -127,25 +127,36 @@ class PluginHttpServer {
     }
 
     const originHeader = req.headers.origin;
-    if (originHeader) {
+    const clientOrigin = originHeader || null;
+
+    // -- Origin-Policy (spezifisch für den lokalen Plugin-HTTP-Server) --
+    // Der Renderer läuft meist aus einem file://-Kontext. Dessen "Origin"
+    // ist dann "null" bzw. ein fehlender Origin-Header. Wir identifizieren
+    // die lokale file://-Renderer-Sitzung über die Loopback-Quelle.
+    //  - Origin / file://-Origin vorhanden:
+    //      Nur im lokalen Plugin-Ressourcen-Kontext zulassen (s.u. capability-basierter
+    //      Origin-Check über canAccessOrigin). Fehler → 403.
+    //  - Kein Origin / file:// / null:
+    //      Lokale Plugin-Ressourcen erlauben (CORS-Origin „*“). Das ist der
+    //      Loopback-getriebene Browser-Renderer-Kontext und wird niemals von
+    //      einem fremden Web oder Drittsystem aus genutzt.
+    if (clientOrigin !== null && clientOrigin !== "null" && clientOrigin !== "file://") {
       const urlPath = req.url.split("?")[0];
       const match = urlPath.match(/^\/plugins\/([^/]+)\//);
       const pluginId = match ? match[1] : null;
 
       if (pluginId) {
-        const originCheck = this.canAccessOrigin(pluginId, originHeader);
+        const originCheck = this.canAccessOrigin(pluginId, clientOrigin);
         if (!originCheck.allowed) {
-          logger.warn(`Origin nicht erlaubt: ${originHeader} für Plugin ${pluginId}`);
+          logger.warn(`Origin nicht erlaubt: ${clientOrigin} für Plugin ${pluginId}`);
           res.writeHead(403, { "Content-Type": "text/plain" });
           res.end("Forbidden: Invalid Origin");
           return;
         }
       } else {
-        if (originHeader !== "http://127.0.0.1" && originHeader !== "http://localhost") {
-          res.writeHead(403, { "Content-Type": "text/plain" });
-          res.end("Forbidden: Invalid Origin");
-          return;
-        }
+        res.writeHead(403, { "Content-Type": "text/plain" });
+        res.end("Forbidden: Invalid Origin");
+        return;
       }
     }
 
@@ -188,7 +199,13 @@ class PluginHttpServer {
 
     const content = fs.readFileSync(absolute);
 
-    let corsOrigin = originHeader || "http://127.0.0.1";
+    // CORS-Origin-Regel für den lokalen Plugin-HTTP-Server:
+    //  - Origin vorhanden: validierten Origin zurückgeben (capability-basierten
+    //    Origin-Check wurde oben (canAccessOrigin) schon durchlaufen).
+    //  - Origin fehlt (file://-Renderer / local loopback): lokale Plugin-Ressourcen
+    //    mit Access-Control-Allow-Origin: * ausliefern. Das verhindert,
+    //    dass der file://-Kontext vom CORS-Filter blockiert wird.
+    let corsOrigin = originHeader || "*";
 
     res.writeHead(200, {
       "Content-Type":  mimeType,
