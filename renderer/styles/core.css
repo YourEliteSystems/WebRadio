@@ -289,8 +289,34 @@ input[type="text"]:focus, select:focus {
 }
 
 .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   opacity: 0.85;
+}
+
+.nav-icon .inline-svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Symbole in Unterpunkten bleiben etwas kleiner als die der Hauptnavigation. */
+.subitem-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.subitem-icon .inline-svg {
+  width: 14px;
+  height: 14px;
 }
 
 .nav-label {
@@ -693,6 +719,38 @@ canvas#vu {
   margin-bottom: 20px;
 }
 
+/* Inline-SVG-Icons
+ * Kanal-Icons liegen core-seitig als SVG-String vor (ChannelMetadata.icon) und
+ * werden über <InlineSvg/> eingefügt. Der Wrapper sized sich an der
+ * Schriftgröße, damit Icons in Badges, Options und Hinweisen konsistent
+ * skalieren und nie als Markup-Text auftauchen.
+ *
+ * Wichtig: `fill`/`stroke` werden bewusst NICHT per CSS erzwungen. Die
+ * Quell-SVGs deklarieren `fill="currentColor"` bzw. `stroke="currentColor"`;
+ * ein erzwungenes `fill: currentColor` würde reine Stroke-Icons (z. B. das
+ * Stable-Häkchen) zusätzlich ausfüllen und damit zerstören. Die Farbe folgt
+ * automatisch der Schriftfarbe des Containers. */
+.inline-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  flex: none;
+  color: inherit;
+  vertical-align: -0.125em;
+}
+
+/* Die festen Größenattribute des Quell-SVGs werden beim Rendern entfernt
+ * (siehe renderer/components/InlineSvg.jsx), deshalb füllt das SVG den
+ * Wrapper vollständig aus. */
+.inline-svg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 /* Update Badge (Titlebar) */
 .update-badge {
   display: inline-flex;
@@ -929,13 +987,21 @@ canvas#vu {
 /* Allgemeine Badge-Grundform. Die Füll- und Randfarbe werden über
  * die zentralen Release-Channel-Design-Tokens gesetzt. */
 .channel-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Kanal-Icon innerhalb eines Badges folgt der Badge-Schriftzeile. */
+.channel-badge .inline-svg {
+  width: 0.95em;
+  height: 0.95em;
 }
 
 /* Kanal-spezifische Varianten – nutzen die zentralen Design-Tokens. */
@@ -990,6 +1056,39 @@ canvas#vu {
   margin-top: 2px;
   accent-color: var(--accent-color);
   cursor: pointer;
+}
+
+/* Kanal-Icon in der Channel-Auswahl: fester Chip, damit alle Zeilen bündig
+ * bleiben. Die Farbe kommt aus dem pro Zeile gesetzten Design-Token
+ * (`--channel-icon-color`), das Icon erbt sie über `currentColor`. */
+.channel-option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 6px;
+  color: var(--channel-icon-color, var(--text-muted));
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.channel-option-icon .inline-svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Hinweis-Icons (Beta-/Alpha-Hinweis) mit fester Größe. */
+.channel-hint-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Icon im Update-Badge der Titlebar: feste Größe, Farbe über die
+ * Badge-Klasse (`currentColor`). */
+.update-badge-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .channel-option-content {

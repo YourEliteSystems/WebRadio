@@ -193,6 +193,12 @@ window.registerPlugin = (plugin) => {
     logError("RendererPluginManager", "Plugin registration failed: Missing 'id'");
     return;
   }
+
+  // Automatische Zuordnung Renderer-ID → Plugin-ID (aus der Skript-URL).
+  if (loadingPluginId && !rendererOwners.has(plugin.id)) {
+    rendererOwners.set(plugin.id, loadingPluginId);
+  }
+
   activePlugins.set(plugin.id, plugin);
 
   if(typeof plugin.activate === "function"){

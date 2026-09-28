@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import InlineSvg from '../InlineSvg.jsx';
 
 const UpdatesSettings = () => {
   const [status, setStatus] = useState('checking');
@@ -99,15 +100,22 @@ const UpdatesSettings = () => {
       '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
   });
 
-  // Icon aus den zentralen Metadaten nehmen, falls vorhanden.
+  // Icon-Markup aus den zentralen Metadaten nehmen, falls vorhanden.
   // Bei fehlender oder ungültiger Angabe den nachgewiesenen
   // Open-Source-SVG-Fallback verwenden.
-  const getChannelIcon = (meta) => {
+  const resolveChannelIconMarkup = (meta) => {
     if (meta && typeof meta.icon === "string" && meta.icon.trim()) {
       return meta.icon;
     }
     return FALLBACK_ICONS[meta?.id] || FALLBACK_ICONS.stable;
   };
+
+  // Rendert das Kanal-Icon als echtes Inline-SVG (<InlineSvg/>).
+  // Der SVG-String darf nie direkt als JSX-Kind stehen – React würde ihn als
+  // escapten Text ausgeben, sichtbar als Markup-Schnipsel in der Oberfläche.
+  const renderChannelIcon = (meta, className) => (
+    <InlineSvg className={className} markup={resolveChannelIconMarkup(meta)} />
+  );
 
   // Lade aktuelle Version und Channel
   const loadCurrentVersion = useCallback(async () => {
@@ -682,11 +690,15 @@ const UpdatesSettings = () => {
       {/* Channel-Auswahl */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Update-Kanal</span>              <span id="channelBadge" className="channel-badge" data-channel={channel}
+          <span className="settings-card-title">Update-Kanal</span>
+          <span
+            id="channelBadge"
+            className="channel-badge"
+            data-channel={channel}
             style={{ '--update-channel-color': channelMeta?.color }}
           >
             {channelMeta?.label ?? 'Stable'}
-            {getChannelIcon(channelMeta)}
+            {renderChannelIcon(channelMeta)}
           </span>
         </div>
         <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 14px'}}>
@@ -710,19 +722,23 @@ const UpdatesSettings = () => {
                 <div className="channel-option-title">{meta.label}</div>
                 <div className="channel-option-desc">{meta.description}</div>
               </div>
-              {getChannelIcon(meta)}
+              {/* Das Icon liegt als SVG-String vor und muss als echtes Inline-SVG
+                  gerendert werden – `<InlineSvg/>` kapselt Größe und Farbe. */}
+              <span className="channel-option-icon" style={{ '--channel-icon-color': meta.color }}>
+                {renderChannelIcon(meta)}
+              </span>
             </label>
           ))}
         </div>
         {channelMeta?.id === 'beta' && (
           <div className="beta-hint" data-channel="beta" style={{ '--update-channel-color': channelMeta?.color }}>
-            {getChannelIcon(channelMeta)}
+            {renderChannelIcon(channelMeta, 'channel-hint-icon')}
             <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
           </div>
         )}
         {channelMeta?.id === 'alpha' && (
           <div className="alpha-hint" data-channel="alpha" style={{ '--update-channel-color': channelMeta?.color }}>
-            {getChannelIcon(channelMeta)}
+            {renderChannelIcon(channelMeta, 'channel-hint-icon')}
             <span>Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.</span>
           </div>
         )}
@@ -736,7 +752,7 @@ const UpdatesSettings = () => {
       </div>
 
       <div className="version-info">
-        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" data-current-channel={currentChannel} style={{ display: currentChannel !== 'stable' ? 'inline-block' : 'none', '--update-channel-color': currentChannelMeta?.color }}>{currentChannelMeta?.shortLabel ?? ''} {getChannelIcon(currentChannelMeta)}</span></span>
+        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" data-current-channel={currentChannel} style={{ display: currentChannel !== 'stable' ? 'inline-flex' : 'none', '--update-channel-color': currentChannelMeta?.color }}>{currentChannelMeta?.shortLabel ?? ''}{renderChannelIcon(currentChannelMeta)}</span></span>
         <span>WebRadio by Your Elite Systems</span>
       </div>
 

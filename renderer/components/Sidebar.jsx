@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import NavIcon from './NavIcon.jsx';
 import { subscribe as subscribeViews, views } from '../ui/componentRegistry';
 import {
   subscribe as subscribeNav,
@@ -74,11 +75,9 @@ export default function Sidebar({
             onClick={() => handleItemClick(item)}
             disabled={item.disabled}
           >
-            {item.icon ? (
-              <span className="nav-icon">{item.icon}</span>
-            ) : (
-              <span className="section-dot"></span>
-            )}
+            {/* `icon` ist ein Icon-Name (z. B. "radio", "media") oder SVG-Markup –
+                beides löst <NavIcon/> auf, ohne dass der Rohwert als Text erscheint. */}
+            <NavIcon icon={item.icon} className="nav-icon" fallback={<span className="section-dot"></span>} />
             <span className="nav-label">{item.label}</span>
           </button>
         ))}
@@ -98,11 +97,7 @@ export default function Sidebar({
                 title={section.label}
               >
                 <div className="nav-section-title">
-                  {section.icon ? (
-                    <span className="nav-icon">{section.icon}</span>
-                  ) : (
-                    <span className="section-dot"></span>
-                  )}
+                  <NavIcon icon={section.icon} className="nav-icon" fallback={<span className="section-dot"></span>} />
                   <span className="section-label">{section.label}</span>
                 </div>
                 {isCollapsible && (
@@ -124,11 +119,7 @@ export default function Sidebar({
                       onClick={() => handleItemClick(item)}
                       disabled={item.disabled}
                     >
-                      {item.icon ? (
-                        <span className="subitem-icon">{item.icon}</span>
-                      ) : (
-                        <span className="subitem-indicator"></span>
-                      )}
+                      <NavIcon icon={item.icon} className="subitem-icon" fallback={<span className="subitem-indicator"></span>} />
                       <span className="nav-label">{item.label}</span>
                     </button>
                   ))}

@@ -10,6 +10,13 @@ import { usePlayer } from './hooks/usePlayer';
 import { useFavorites } from './hooks/useFavorites';
 import { useUpdateInfo } from './hooks/useUpdateInfo';
 import { subscribe as subscribeNav, getNavigationTree } from './ui/navigationRegistry';
+import InlineSvg from './components/InlineSvg.jsx';
+
+// Fallback-Icon für das Update-Badge, solange die Channel-Metadaten über IPC
+// noch nicht verfügbar sind. Entspricht dem Beta-Icon aus ChannelMetadata,
+// damit Badge und Einstellungs-Ansicht nie unterschiedliche Symbole zeigen.
+const FALLBACK_CHANNEL_ICON =
+  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z"/></svg>';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -183,11 +190,13 @@ export default function App() {
               style={{ '--update-channel-color': channelMeta?.color }}
               title={`Update verfügbar: v${updateInfo.version} (${channelMeta?.label ?? 'Stable'})`}
             >
-              {channelMeta?.icon ?? (
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z" />
-                </svg>
-              )}
+              {/* Kanal-Icon: SVG-String aus den Core-Metadaten, muss als
+                  Inline-SVG gerendert werden (React würde den String sonst als
+                  Text ausgeben). */}
+              <InlineSvg
+                className="update-badge-icon"
+                markup={channelMeta?.icon || FALLBACK_CHANNEL_ICON}
+              />
               Update v{updateInfo.version}
             </button>
           )}
