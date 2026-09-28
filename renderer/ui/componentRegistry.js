@@ -40,6 +40,23 @@ export function registerSlot(slotId, pluginId, renderFn) {
   notifyListeners();
 }
 
+/**
+ * Entfernt eine einzelne registrierte Ansicht.
+ *
+ * Wird u. a. genutzt, wenn ein Navigationseintrag entfernt wird: dessen
+ * Ansicht gehört zum selben Eintrag und darf nicht zurückbleiben.
+ *
+ * @param {string} id - View-ID
+ * @returns {boolean} true, wenn eine Ansicht entfernt wurde
+ */
+export function unregisterView(id) {
+  const removed = views.delete(id);
+  if (removed) {
+    notifyListeners();
+  }
+  return removed;
+}
+
 // Remove plugin UI when plugin is deactivated
 export function unregisterPluginUI(pluginId) {
   views.delete(pluginId);

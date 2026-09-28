@@ -209,6 +209,18 @@ class PluginManager {
     return this.initialized;
   }
 
+  /**
+   * Liefert die Renderer-Skript-URLs aller aktiven Plugins.
+   *
+   * Plugins, die die lokale Plugin-HTTP-Umgebung nutzen (Capability
+   * `http-origin`, deklariert als Capability oder Permission), werden
+   * ausschließlich über den lokalen HTTP-Server ausgeliefert. Ein
+   * `file://`-Fallback ist für diese Plugins bewusst NICHT vorgesehen:
+   * er würde am CORS-/Origin-Modell des Renderers scheitern und den
+   * tatsächlichen Fehler (nicht registrierter Plugin-Server) verdecken.
+   *
+   * Plugins ohne `http-origin` werden weiterhin direkt als Datei geladen.
+   */
   getRendererScripts() {
     const config = this.readConfig();
     const scripts = [];
@@ -216,20 +228,24 @@ class PluginManager {
       const manifest = plugin.manifest || plugin;
       const pluginId = manifest.id;
       if (config.plugins?.[pluginId]?.enabled === false) continue;
+      if (!manifest.renderer) continue;
 
-      if (manifest['http-origin']) {
+      if (PluginPermissions.usesPluginHttpEnvironment(manifest)) {
         const origin = PluginHttpServer.getUrl();
-        if (origin && manifest.renderer) {
+        if (origin) {
           scripts.push(`${origin}/plugins/${pluginId}/${manifest.renderer}`);
+        } else {
+          logger.error(
+            `Renderer-Skript für Plugin "${pluginId}" kann nicht geladen werden: ` +
+            `Plugin-HTTP-Server ist nicht gestartet (Capability "http-origin" aktiv).`
+          );
         }
         continue;
       }
 
-      if (manifest.renderer) {
-        const rendererAbsPath = path.join(plugin.path, manifest.renderer);
-        if (fs.existsSync(rendererAbsPath)) {
-          scripts.push('file:///' + rendererAbsPath.replace(/\\/g, '/'));
-        }
+      const rendererAbsPath = path.join(plugin.path, manifest.renderer);
+      if (fs.existsSync(rendererAbsPath)) {
+        scripts.push('file:///' + rendererAbsPath.replace(/\\/g, '/'));
       }
     }
     return scripts;

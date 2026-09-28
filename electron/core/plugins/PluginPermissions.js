@@ -63,206 +63,164 @@ function hasPermission(permissions = [], permission) {
 }
 
 /**
- * Resolve-Capabilities.
+ * Löst die vollständige Capability-Suite einer Anforderung auf.
  *
- * Entscheidet, welche Capabilities tatsächlich für ein Plugin "?ffndeähbar sind.
- * `external-origin` und seine Abhängigkeiten (youtube-iframe -> youtube-api)
- * gehören zu den RESOLVEM & nicht zu den normalen Plugin-Permissions.
+ * Die Capabilities bilden die dokumentierte, aufeinander aufbauende Kette:
+ *
+ *   http-origin -> external-origin -> youtube-iframe -> youtube-api
+ *
+ * Eine Capability ist keine gewöhnliche, unabhängige Permission. Sie wird nur
+ * dann gewährt, wenn ALLE Voraussetzungen erfüllt sind:
+ *   - `requiresPermission`  (Capability -> echte Plugin-Permission)
+ *   - `requiresCapability`  (Capability -> vorausgehende Capability)
+ *
+ * Voraussetzungs-Capabilities werden implizit mitsamt der angeforderten
+ * Capability aufgelöst und nachvollziehbar in `granted` gemeldet. Fehlende
+ * Voraussetzungen werden nicht stillschweigend übersprungen, sondern führen
+ * zu einer Ablehnung (`denied` + `reasons`). Unbekannte Capabilities werden
+ * weiterhin sicher abgelehnt.
  *
  * @param {string[]} requestedCapabilities  Angeforderte Capabilities
  * @param {string[]} grantedPermissions     Gewährte Plugin-Permissions
- * @returns {{ granted: string[], denied: string[], valid: boolean }}
+ * @returns {{ granted: string[], denied: string[], valid: boolean, reasons: Object }}
  */
 function resolveCapabilities(requestedCapabilities = [], grantedPermissions = []) {
-    if (!Array.isArray(requestedCapabilities)) {
-        return { granted: [], denied: [], valid: true };
-    }
-    if (!Array.isArray(grantedPermissions)) {
-        grantedPermissions = [];
-    }
+    const requested = Array.isArray(requestedCapabilities)
+        ? requestedCapabilities.filter((cap) => typeof cap === "string" && cap.trim() !== "")
+        : [];
+    const permissions = Array.isArray(grantedPermissions)
+        ? grantedPermissions.filter((perm) => typeof perm === "string" && perm.trim() !== "")
+        : [];
 
-    // `external-origin` und seine Abhängigkeiten (youtube-iframe -> youtube-api)
-    // sind abgeleitete Capabilities. Sie werden über die dependency-Behandlung
-    // aufgelöst, nicht als normale Plugin-Permissions geprüft.
-    return resolveDerivedCapabilities(requestedCapabilities, grantedPermissions);
-    return resolveDerivedCapabilities(requestedCapabilities, grantedPermissions);
-}
-
-/**
- * Validates requested capabilities against granted plugin permissions.
- *
- * `external-origin` and its dependencies (youtube-iframe -> youtube-api) are
- * derived capabilities resolved through the capability dependency chain;
- * they are NOT treated as plain plugin permissions. Genuinely missing
- * capabilities are still denied.
- *
- * @param {string[]} requestedCapabilities  Angeforderte Capabilities
- * @param {string[]} grantedPermissions     Gewahrte Plugin-Permissions
- * @returns {{ granted: string[], denied: string[], valid: boolean }}
- */
-function validateCapabilities(requestedCapabilities = [], grantedPermissions = []) {
-    if (!Array.isArray(requestedCapabilities)) {
-        return { granted: [], denied: [], valid: true };
-    }
-    if (!Array.isArray(grantedPermissions)) {
-        grantedPermissions = [];
-    }
-
-    // `external-origin` and its dependencies (youtube-iframe -> youtube-api)
-    // are derived capabilities resolved through the capability dependency chain.
-    // `external-origin` needs the permission `http-origin`;
-    // `youtube-iframe` needs `external-origin` (Capability);
-    // `youtube-api` needs `youtube-iframe` (Capability).
-    // The simple canGrant check (which only checks `requiresPermission`) rejects
-    // these, because `external-origin` is not an ordinary plugin permission.
-    // Therefore the dependent suite is resolved first for the whole request,
-    // before individual capabilities are classified as granted/denied.
-    const derived = resolveDerivedCapabilities(requestedCapabilities, grantedPermissions);
-    if (!derived.valid) {
-        return derived;
-    }
+    const permissionSet = new Set(permissions);
+    const grantAllPermissions = permissionSet.has("*");
 
     const granted = [];
     const denied = [];
-    for (const capId of requestedCapabilities) {
-        if (derived.granted.includes(capId)) {
-            granted.push(capId);
-        } else {
+    const reasons = {};
+    const grantedSet = new Set();
+
+    // 1) Angeforderte Capabilities klassifizieren: unbekannt -> sofort ablehnen.
+    const knownRequested = [];
+    for (const capId of requested) {
+        if (grantedSet.has(capId) || denied.includes(capId) || knownRequested.includes(capId)) continue;
+        if (!CapabilityRegistry.isKnown(capId)) {
             denied.push(capId);
+            reasons[capId] = `Unknown capability: ${capId}`;
+            continue;
         }
+        knownRequested.push(capId);
+    }
+
+    // 2) Benötigte Menge bilden: angeforderte Capabilities plus ihre
+    //    vollständige Abhängigkeitskette (Basis-Capabilities zuerst).
+    const required = [];
+    const requiredSet = new Set();
+    for (const capId of knownRequested) {
+        for (const chainId of CapabilityRegistry.getDependencyChain(capId)) {
+            if (requiredSet.has(chainId)) continue;
+            requiredSet.add(chainId);
+            required.push(chainId);
+        }
+    }
+
+    // 3) Kette in Abhängigkeitsreihenfolge auflösen.
+    for (const capId of required) {
+        const prereq = CapabilityRegistry.getPrerequisites(capId) || {};
+        const permission = prereq.permission;
+        const capability = prereq.capability;
+
+        if (permission && !grantAllPermissions && !permissionSet.has(permission)) {
+            denied.push(capId);
+            reasons[capId] = `Missing permission: ${permission}`;
+            continue;
+        }
+
+        if (capability && !grantedSet.has(capability)) {
+            denied.push(capId);
+            reasons[capId] = `Missing prerequisite capability: ${capability}`;
+            continue;
+        }
+
+        grantedSet.add(capId);
+        granted.push(capId);
     }
 
     return {
         granted,
         denied,
-        valid: denied.length === 0
+        valid: denied.length === 0,
+        reasons
     };
 }
 
+/**
+ * Ermittelt, ob ein Plugin die lokale Plugin-HTTP-Umgebung benötigt.
+ *
+ * `http-origin` ist laut Dokumentation eine Capability (Basis der Kette).
+ * Vorbereitete Manifeste deklarieren sie zusätzlich als Permission
+ * (`permissions: ["player", "http-origin"]`). Beide Deklarationsarten
+ * werden berücksichtigt, damit die Core-Implementierung ohne
+ * Manifest-Umschreibung zum Plugin passt.
+ *
+ * Es gibt keine Sonderbehandlung für einzelne Plugins: die Entscheidung
+ * basiert ausschließlich auf den deklarierten Permissions/Capabilities.
+ *
+ * @param {Object} manifest  Plugin-Manifest
+ * @returns {boolean}
+ */
+function usesPluginHttpEnvironment(manifest = {}) {
+    if (!manifest || typeof manifest !== "object") {
+        return false;
+    }
 
+    // Legacy-/Kurzform: "http-origin": true als Manifest-Flag
+    if (manifest["http-origin"]) {
+        return true;
+    }
+
+    const permissions = Array.isArray(manifest.permissions) ? manifest.permissions : [];
+    if (permissions.includes("*") || permissions.includes("http-origin")) {
+        return true;
+    }
+
+    const requested = Array.isArray(manifest.capabilities) ? manifest.capabilities : [];
+    if (requested.length === 0) {
+        return false;
+    }
+
+    const resolved = resolveCapabilities(requested, permissions);
+    return resolved.granted.includes("http-origin");
+}
 
 /**
- * Löst die vollständigen, abhängigen Capability-Suite für eine Anforderung auf.
+ * Validiert angeforderte Capabilities gegen gewährte Plugin-Permissions.
  *
- * Die abhängige Suite wird nach unten durchlaufen, bis alle nicht-Schranken erfüllt sind:
- *   - `external-origin`      benötigt `http-origin` (Permission)
- *   - `youtube-iframe`       benötigt `external-origin` (Capability)
- *   - `youtube-api`          benötigt `youtube-iframe` (Capability)
- *
- * `external-origin` wird hier als abgeleitete Capability behandelt, KEINE normalen Plugin-Permission.
- * Das verhindert, dass die Prüfung `external-origin` als "fehlende Plugin-Permission" ablehnt
- * und youtube-iframe/youtube-api dadurch irrtümlich als normale Permissions verworfen werden.
+ * Delegiert an die zentrale, kettenbasierte Auflösung
+ * (`resolveCapabilities`), damit Capabilities nie als normale,
+ * voneinander unabhängige Permissions geprüft werden.
  *
  * @param {string[]} requestedCapabilities  Angeforderte Capabilities
  * @param {string[]} grantedPermissions     Gewährte Plugin-Permissions
- * @returns {{ granted: string[], denied: string[], valid: boolean }}
+ * @returns {{ granted: string[], denied: string[], valid: boolean, reasons: Object }}
+ */
+function validateCapabilities(requestedCapabilities = [], grantedPermissions = []) {
+    return resolveCapabilities(requestedCapabilities, grantedPermissions);
+}
+
+/**
+ * Löst die abhängige Capability-Suite für eine Anforderung auf.
+ *
+ * Historischer Name der zentralen Auflösung. Bleibt erhalten, damit
+ * bestehende Aufrufer unverändert funktionieren; intern wird dieselbe,
+ * kettenbasierte Implementierung genutzt.
+ *
+ * @param {string[]} requestedCapabilities  Angeforderte Capabilities
+ * @param {string[]} grantedPermissions     Gewährte Plugin-Permissions
+ * @returns {{ granted: string[], denied: string[], valid: boolean, reasons: Object }}
  */
 function resolveDerivedCapabilities(requestedCapabilities = [], grantedPermissions = []) {
-    if (!Array.isArray(requestedCapabilities)) {
-        return { granted: [], denied: [], valid: true };
-    }
-
-    const granted = [];
-    const denied = [];
-
-    // Die abgeleiteten Capabilities bilden eine Kette:
-    //   youtube-api  ->  youtube-iframe  ->  external-origin  ->  http-origin (Permission)
-    // `external-origin` hat `requiresPermission: "http-origin"`; darin ist `http-origin`
-    // tatsächlich eine Plugin-Permission.
-    // `youtube-iframe` hat `requiresPermission: "external-origin"`; darin ist `external-origin`
-    // eine Capability (nicht eine Plugin-Permission).
-    // `youtube-api` hat `requiresPermission: "youtube-iframe"`; darin ist `youtube-iframe`
-    // eine Capability (nicht eine Plugin-Permission).
-    //
-    // Die iterative Lösung zählt die Kette abwägend auf. Eine Capability wird
-    // nur dann als gewonnen gezählt, wenn alle ihre Abhängigkeiten (Permission
-    // oder Capability) bereits erfüllt sind. Dadurch wird verhindert, dass
-    // youtube-iframe/youtube-api als fehlende Plugin-Permission abgelehnt werden.
-    // Karnbinieren: wenn ein abhängiges Capability (z. B. `external-origin`)
-    // verweigert wird, werden auch alle davon abhängigen Capabilities
-    // (z. B. `youtube-iframe`, `youtube-api`) verweigert.
-    const required = new Set(requestedCapabilities.filter((c) => CapabilityRegistry.isKnown(c)));
-    const grantedPermissionsSet = new Set(grantedPermissions);
-    const grantedCapabilitiesSet = new Set();
-    const deniedCapabilitiesSet = new Set();
-
-    // Die abgeleiteten Capability-IDs (nicht die normalen Plugin-Permissions).
-    const DERIVED_CAPABILITIES = new Set(["external-origin", "youtube-iframe", "youtube-api"]);
-
-    let progressed = true;
-    while (progressed) {
-        progressed = false;
-
-        for (const capId of required) {
-            if (grantedCapabilitiesSet.has(capId)) {
-                continue;
-            }
-            if (deniedCapabilitiesSet.has(capId)) {
-                continue;
-            }
-
-            const def = CapabilityRegistry.getDefinition(capId);
-            if (!def) {
-                continue;
-            }
-
-            // Prüfe, ob alle Voraussetzungen erfüllt sind.
-            let allSatisfied = true;
-
-            // 1) requiresPermission-Prüfung.
-            //    `external-origin` hat `requiresPermission: "http-origin"` (eine tatsächliche
-            //    Plugin-Permission). `youtube-iframe` und `youtube-api` haben
-            //    `requiresPermission: "external-origin"` bzw. `"youtube-iframe"`, die aber
-            //    keine Plugin-Permissions sind, sondern Capabilities der abgeleiteten Kette.
-            //    Wenn die referenzierte Capability eine DERIVED-Capability ist und nicht als
-            //    Plugin-Permission gewährt wurde, behandeln wir sie als Capability-Abhängigkeit
-            //    (s.o. Punkt 2). Top-Level-Capabilities wie `http-origin` oder `player` werden
-            //    aber als echte Plugin-Permissions geprüft.
-            const requiresPermission = def.requiresPermission;
-            if (requiresPermission) {
-                if (DERIVED_CAPABILITIES.has(requiresPermission)) {
-                    // Die referenzierte Capability ist eine abgeleitete Capability (z. B.
-                    // youtube-iframe fordert `external-origin` als Capability). Diese wird
-                    // in Punkt 2 als Capability-Abhängigkeit behandelt.
-                } else if (!grantedPermissionsSet.has(requiresPermission)) {
-                    allSatisfied = false;
-                }
-            }
-
-            // 2) requiresCapability-Prüfung (Capability-Abhängigkeit).
-            //    z. B. youtube-api und youtube-iframe erfordern als Capability.
-            if (def.requiresCapability) {
-                if (!grantedCapabilitiesSet.has(def.requiresCapability)) {
-                    allSatisfied = false;
-                }
-            }
-
-            if (allSatisfied) {
-                grantedCapabilitiesSet.add(capId);
-                granted.push(capId);
-                required.delete(capId);
-                progressed = true;
-            } else {
-                // Diese Capability ist nicht erreichbar (fehlende Voraussetzung).
-                // Markiere sie als verweigert und entferne sie aus der Folge.
-                deniedCapabilitiesSet.add(capId);
-                required.delete(capId);
-                denied.push(capId);
-                progressed = true;
-            }
-        }
-    }
-
-    // Im Rest sind Capabilities, die nicht aufgelöst werden konnten
-    for (const capId of required) {
-        denied.push(capId);
-    }
-
-    return {
-        granted,
-        denied,
-        valid: denied.length === 0
-    };
+    return resolveCapabilities(requestedCapabilities, grantedPermissions);
 }
 
 function isOriginAllowed(grantedCapabilities = [], origin) {
@@ -303,6 +261,7 @@ module.exports = {
     validateCapabilities,
     resolveCapabilities,
     resolveDerivedCapabilities,
+    usesPluginHttpEnvironment,
     hasCapability,
     isOriginAllowed
 };

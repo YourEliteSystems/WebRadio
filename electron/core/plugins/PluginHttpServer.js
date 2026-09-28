@@ -20,8 +20,10 @@ const logger = LogManager.getLogger("PluginHttpServer");
 const MIME_TYPES = Object.freeze({
   ".html": "text/html; charset=utf-8",
   ".js":   "application/javascript; charset=utf-8",
+  ".mjs":  "application/javascript; charset=utf-8",
   ".css":  "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".map":  "application/json; charset=utf-8",
   ".png":  "image/png",
   ".jpg":  "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -30,6 +32,38 @@ const MIME_TYPES = Object.freeze({
   ".woff": "font/woff",
   ".woff2":"font/woff2"
 });
+
+// Ausschließlich Loopback-Bindung. Der Plugin-Server darf niemals auf
+// 0.0.0.0 oder einer extern erreichbaren Netzwerkschnittstelle lauschen.
+const LOOPBACK_HOST = "127.0.0.1";
+
+// Erlaubte Methoden für tatsächliche Plugin-Ressourcen.
+const ALLOWED_RESOURCE_METHODS = ["GET", "HEAD"];
+
+// Origin-Werte, die keinen echten, serialisierbaren Origin darstellen.
+// Der Renderer läuft in einem file://-/opaken Kontext. Solche Requests
+// dürfen niemals per Echo beantwortet werden, weil die Echokopie kein
+// gültiger CORS-Origin ist und den Modul-Import blockieren würde.
+const OPAQUE_ORIGIN_VALUES = Object.freeze(["null", "file://", "file:"]);
+
+/**
+ * Normalisiert den Origin-Header. Liefert null, wenn kein (verwertbarer)
+ * Origin-Header vorhanden ist.
+ */
+function normalizeOriginHeader(originHeader) {
+  if (typeof originHeader !== "string") return null;
+  const value = originHeader.trim();
+  return value === "" ? null : value;
+}
+
+/**
+ * Prüft, ob der Request aus einem lokalen/opaken Kontext kommt
+ * (kein Origin-Header, Origin: null oder file://-Origin).
+ */
+function isOpaqueOrLocalOrigin(origin) {
+  if (origin === null) return true;
+  return OPAQUE_ORIGIN_VALUES.includes(origin.toLowerCase());
+}
 
 class PluginHttpServer {
   constructor() {
@@ -49,9 +83,10 @@ class PluginHttpServer {
     });
 
     await new Promise((resolve, reject) => {
-      this._server.listen(0, "127.0.0.1", () => {
+      // Dynamische Portvergabe (0) + ausschließlich Loopback-Bindung.
+      this._server.listen(0, LOOPBACK_HOST, () => {
         this._port = this._server.address().port;
-        logger.info(`PluginHttpServer gestartet auf http://127.0.0.1:${this._port}`);
+        logger.info(`PluginHttpServer gestartet auf http://${LOOPBACK_HOST}:${this._port}`);
         resolve();
       });
       this._server.once("error", reject);
@@ -74,11 +109,21 @@ class PluginHttpServer {
 
   getUrl() {
     if (!this._server || !this._port) return null;
-    return `http://127.0.0.1:${this._port}`;
+    return `http://${LOOPBACK_HOST}:${this._port}`;
   }
 
   getPort() {
     return this._port;
+  }
+
+  /**
+   * Liefert die aktuell gebundene Adresse (nur Loopback erlaubt).
+   * Wird u. a. von Tests genutzt, um die Bindung zu verifizieren.
+   */
+  getAddress() {
+    if (!this._server) return null;
+    const address = this._server.address();
+    return address ? address.address : null;
   }
 
   servePlugin(pluginId, pluginPath, capabilities = []) {
@@ -102,7 +147,7 @@ class PluginHttpServer {
   getPluginUrl(pluginId, relativePath) {
     if (!this._port) return null;
     const normalised = relativePath.replace(/\\/g, "/").replace(/^\//, "");
-    return `http://127.0.0.1:${this._port}/plugins/${pluginId}/${normalised}`;
+    return `http://${LOOPBACK_HOST}:${this._port}/plugins/${pluginId}/${normalised}`;
   }
 
   canAccessOrigin(pluginId, origin) {
@@ -119,45 +164,97 @@ class PluginHttpServer {
     return plugin.capabilities || [];
   }
 
+  /**
+   * Ermittelt die CORS-Header für eine Antwort.
+   *
+   * - Kein/opaker Origin (file://-Renderer, `Origin: null`, kein Header):
+   *   `Access-Control-Allow-Origin: *`. Das ist der vorgesehene, lokale
+   *   Plugin-Modul-Kontext. Ein Echo des Rohwerts (`file://`, `null`) wäre
+   *   kein gültiger CORS-Origin und würde den Modul-Import blockieren.
+   * - Gültiger externer Origin: Der zuvor capability-geprüfte Origin wird
+   *   zurückgegeben (plus `Vary: Origin`, damit Antworten korrekt gecacht
+   *   werden).
+   *
+   * `Cross-Origin-Resource-Policy: cross-origin` macht explizit, dass die
+   * Antwort von anderen Origins (u. a. dem opaken file://-Kontext des
+   * Renderers) konsumiert werden darf. Die eigentliche Zugangskontrolle
+   * bleibt die Origin-/Capability-Prüfung vor dem Ausliefern.
+   */
+  _buildCorsHeaders(corsOrigin, { preflight = false } = {}) {
+    const headers = {
+      "Access-Control-Allow-Origin": corsOrigin,
+      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      "Access-Control-Allow-Headers": "Origin, Accept, Content-Type",
+      "Cross-Origin-Resource-Policy": "cross-origin"
+    };
+
+    if (corsOrigin !== "*") {
+      headers["Vary"] = "Origin";
+    }
+
+    if (preflight) {
+      headers["Access-Control-Max-Age"] = "600";
+    }
+
+    return headers;
+  }
+
+  /**
+   * Prüft die Origin-Policy für einen Request.
+   *
+   * Nur echte, externe Origins werden capability-basiert validiert.
+   * Fehlende/opake Origins stammen aus dem lokalen Renderer-Kontext
+   * (file://) und werden ausschließlich lokal ausgeliefert.
+   *
+   * @returns {{ allowed: boolean, corsOrigin: string }}
+   */
+  _checkOriginPolicy(req) {
+    const origin = normalizeOriginHeader(req.headers.origin);
+
+    if (isOpaqueOrLocalOrigin(origin)) {
+      return { allowed: true, corsOrigin: "*" };
+    }
+
+    const urlPath = req.url.split("?")[0];
+    const match = urlPath.match(/^\/plugins\/([^/]+)\//);
+    const pluginId = match ? match[1] : null;
+
+    if (!pluginId) {
+      return { allowed: false, corsOrigin: null };
+    }
+
+    const originCheck = this.canAccessOrigin(pluginId, origin);
+    if (!originCheck.allowed) {
+      logger.warn(`Origin nicht erlaubt: ${origin} für Plugin ${pluginId}`);
+      return { allowed: false, corsOrigin: null };
+    }
+
+    return { allowed: true, corsOrigin: origin };
+  }
+
   _handleRequest(req, res) {
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      res.writeHead(405, { "Content-Type": "text/plain" });
-      res.end("Method Not Allowed");
+    // 1) Origin-Policy vor jeder Auslieferung (GET, HEAD und OPTIONS).
+    const { allowed, corsOrigin } = this._checkOriginPolicy(req);
+
+    if (!allowed) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("Forbidden: Invalid Origin");
       return;
     }
 
-    const originHeader = req.headers.origin;
-    const clientOrigin = originHeader || null;
+    // 2) Preflight: OPTIONS beantwortet ausschließlich die CORS-Frage.
+    //    Es werden keine Dateiinhalte ausgeliefert.
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, this._buildCorsHeaders(corsOrigin, { preflight: true }));
+      res.end();
+      return;
+    }
 
-    // -- Origin-Policy (spezifisch für den lokalen Plugin-HTTP-Server) --
-    // Der Renderer läuft meist aus einem file://-Kontext. Dessen "Origin"
-    // ist dann "null" bzw. ein fehlender Origin-Header. Wir identifizieren
-    // die lokale file://-Renderer-Sitzung über die Loopback-Quelle.
-    //  - Origin / file://-Origin vorhanden:
-    //      Nur im lokalen Plugin-Ressourcen-Kontext zulassen (s.u. capability-basierter
-    //      Origin-Check über canAccessOrigin). Fehler → 403.
-    //  - Kein Origin / file:// / null:
-    //      Lokale Plugin-Ressourcen erlauben (CORS-Origin „*“). Das ist der
-    //      Loopback-getriebene Browser-Renderer-Kontext und wird niemals von
-    //      einem fremden Web oder Drittsystem aus genutzt.
-    if (clientOrigin !== null && clientOrigin !== "null" && clientOrigin !== "file://") {
-      const urlPath = req.url.split("?")[0];
-      const match = urlPath.match(/^\/plugins\/([^/]+)\//);
-      const pluginId = match ? match[1] : null;
-
-      if (pluginId) {
-        const originCheck = this.canAccessOrigin(pluginId, clientOrigin);
-        if (!originCheck.allowed) {
-          logger.warn(`Origin nicht erlaubt: ${clientOrigin} für Plugin ${pluginId}`);
-          res.writeHead(403, { "Content-Type": "text/plain" });
-          res.end("Forbidden: Invalid Origin");
-          return;
-        }
-      } else {
-        res.writeHead(403, { "Content-Type": "text/plain" });
-        res.end("Forbidden: Invalid Origin");
-        return;
-      }
+    // 3) Tatsächliche Ressourcen-Requests: nur GET und HEAD.
+    if (!ALLOWED_RESOURCE_METHODS.includes(req.method)) {
+      res.writeHead(405, { "Content-Type": "text/plain", "Allow": "GET, HEAD, OPTIONS" });
+      res.end("Method Not Allowed");
+      return;
     }
 
     const urlPath = req.url.split("?")[0];
@@ -199,20 +296,10 @@ class PluginHttpServer {
 
     const content = fs.readFileSync(absolute);
 
-    // CORS-Origin-Regel für den lokalen Plugin-HTTP-Server:
-    //  - Origin vorhanden: validierten Origin zurückgeben (capability-basierten
-    //    Origin-Check wurde oben (canAccessOrigin) schon durchlaufen).
-    //  - Origin fehlt (file://-Renderer / local loopback): lokale Plugin-Ressourcen
-    //    mit Access-Control-Allow-Origin: * ausliefern. Das verhindert,
-    //    dass der file://-Kontext vom CORS-Filter blockiert wird.
-    let corsOrigin = originHeader || "*";
-
     res.writeHead(200, {
       "Content-Type":  mimeType,
       "Cache-Control": "no-cache",
-      "Access-Control-Allow-Origin": corsOrigin,
-      "Access-Control-Allow-Methods": "GET, HEAD",
-      "Access-Control-Allow-Headers": "Origin"
+      ...this._buildCorsHeaders(corsOrigin)
     });
 
     if (req.method === "HEAD") {

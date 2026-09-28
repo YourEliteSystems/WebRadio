@@ -1,4 +1,4 @@
-import { registerView } from './componentRegistry';
+import { registerView, unregisterView } from './componentRegistry';
 
 const listeners = new Set();
 
@@ -148,6 +148,9 @@ export function removeItem(id, pluginId = null) {
   }
 
   items.delete(id);
+  // Die zum Eintrag gehörende Ansicht wird mitentfernt: View-ID und
+  // Navigationseintrag sind identisch (route || id).
+  unregisterView(item.route || item.id);
   notifyListeners();
   return true;
 }
@@ -167,6 +170,7 @@ export function removeSection(id, pluginId = null) {
   for (const [itemId, item] of items) {
     if (item.parent === id) {
       items.delete(itemId);
+      unregisterView(item.route || item.id);
     }
   }
 
@@ -205,6 +209,8 @@ export function unregisterPluginNavigation(pluginId) {
   for (const [id, item] of items) {
     if (item.ownerPluginId === pluginId) {
       items.delete(id);
+      // Ansicht gehört zum Eintrag (identische ID) und wird mitentfernt.
+      unregisterView(item.route || item.id);
       changed = true;
     }
   }
@@ -215,6 +221,7 @@ export function unregisterPluginNavigation(pluginId) {
       for (const [itemId, item] of items) {
         if (item.parent === id) {
           items.delete(itemId);
+          unregisterView(item.route || item.id);
         }
       }
       sections.delete(id);

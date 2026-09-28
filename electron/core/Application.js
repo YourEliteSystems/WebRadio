@@ -275,34 +275,43 @@ class Application {
         // 1) PluginManager initialisieren (entdeckt und lädt Plugins)
         await PluginManager.initialize();
 
-        // 2) PluginHttpServer starten (für Plugins mit "http-origin": true)
+        // 2) PluginHttpServer starten (Loopback + dynamischer Port).
+        //    Er dient allen Plugins, die die Plugin-HTTP-Umgebung benötigen
+        //    (`http-origin` als Capability oder als deklarierte Permission).
         await PluginHttpServer.start();
 
-        // 3) Für jedes Plugin mit http-origin: Plugin-Ordner beim HTTP-Server registrieren
-        //    Capabilities werden aus dem Manifest extrahiert und validiert
+        // 3) Plugins, die die Plugin-HTTP-Umgebung nutzen, beim HTTP-Server
+        //    registrieren. Die Entscheidung basiert ausschließlich auf dem
+        //    Manifest (Capabilities/Permissions) – keine Plugin-Sonderfälle.
+        //    Die Capability-Kette wird dabei als aufeinander aufbauende
+        //    Abhängigkeitskette aufgelöst.
         for (const [id, plugin] of PluginManager.plugins) {
             const manifest = plugin.manifest || plugin;
-            if (manifest["http-origin"]) {
-                // Capabilities aus Manifest extrahieren
-                const requestedCapabilities = manifest.capabilities || [];
-                
-                // Capabilities validieren
-                const permissions = manifest.permissions || [];
-                const capabilityValidation = PluginPermissions.validateCapabilities(
-                    requestedCapabilities,
-                    permissions
-                );
 
-                // Nur gewährte Capabilities registrieren
-                const grantedCapabilities = capabilityValidation.granted;
-                
-                logger.info(`Plugin ${id}: Capabilities gewährt: ${grantedCapabilities.join(", ")}`);
-                if (capabilityValidation.denied.length > 0) {
-                    logger.warn(`Plugin ${id}: Capabilities abgelehnt: ${capabilityValidation.denied.join(", ")}`);
-                }
-
-                PluginHttpServer.servePlugin(id, plugin.path, grantedCapabilities);
+            if (!PluginPermissions.usesPluginHttpEnvironment(manifest)) {
+                continue;
             }
+
+            // Capabilities aus Manifest extrahieren und validieren
+            const requestedCapabilities = manifest.capabilities || [];
+            const permissions = manifest.permissions || [];
+            const capabilityValidation = PluginPermissions.validateCapabilities(
+                requestedCapabilities,
+                permissions
+            );
+
+            // Nur gewährte Capabilities registrieren
+            const grantedCapabilities = capabilityValidation.granted;
+
+            logger.info(`Plugin ${id}: Capabilities gewährt: ${grantedCapabilities.join(", ")}`);
+            if (capabilityValidation.denied.length > 0) {
+                const details = capabilityValidation.denied
+                    .map((capId) => `${capId} (${capabilityValidation.reasons?.[capId] || "denied"})`)
+                    .join(", ");
+                logger.warn(`Plugin ${id}: Capabilities abgelehnt: ${details}`);
+            }
+
+            PluginHttpServer.servePlugin(id, plugin.path, grantedCapabilities);
         }
 
         BootupDiagnostics.markComplete("plugins-init");

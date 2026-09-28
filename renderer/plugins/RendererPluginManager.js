@@ -1,4 +1,4 @@
-import { unregisterPluginUI, registerView, registerSlot } from '../ui/componentRegistry';
+import { unregisterPluginUI, registerView, registerSlot, views } from '../ui/componentRegistry';
 import {
   registerSection,
   registerItem,
@@ -14,6 +14,142 @@ import {
 
 const activePlugins = new Map();
 const injectedScripts = new Map();
+// Renderer-ID → Plugin-ID (Manifest). Wird beim Laden des Renderer-Skripts
+// automatisch aus der Skript-URL abgeleitet; `hooks.pluginId` hat Vorrang.
+const rendererOwners = new Map();
+
+// Plugin-ID des Renderer-Skripts, das gerade ausgewertet wird. Modul-Skripte
+// werden vor ihrem `load`-Event ausgewertet, deshalb lässt sich jede
+// Registrierung eindeutig dem ladenden Plugin zuordnen.
+let loadingPluginId = null;
+
+function logError(context, message) {
+  window.pluginAPI?.log("error", context, message);
+}
+
+function logInfo(context, message) {
+  window.pluginAPI?.log("info", context, message);
+}
+
+/**
+ * Erzeugt den Kontext, den ein Renderer-Plugin in `init()` erhält.
+ * Navigationseinträge (und über `renderFn` automatisch deren Ansicht)
+ * gehören dem Plugin, das das Renderer-Skript registriert hat.
+ */
+function createRendererContext(rendererId, ownerId) {
+  return {
+    id: rendererId,
+    pluginId: ownerId,
+    navigation: {
+      registerSection: (sec) => registerSection(sec, ownerId),
+      registerItem: (it) => registerItem(it, ownerId),
+      updateItem: (itemId, updates) => updateItem(itemId, updates, ownerId),
+      removeItem: (itemId) => removeItem(itemId, ownerId),
+      removeSection: (secId) => removeSection(secId, ownerId)
+    }
+  };
+}
+
+/**
+ * Ermittelt die Besitzer-ID (Plugin-ID) für ein Renderer-Skript.
+ */
+function resolveOwnerId(rendererId, hooks = {}) {
+  if (hooks && typeof hooks.pluginId === "string" && hooks.pluginId) {
+    return hooks.pluginId;
+  }
+  return rendererOwners.get(rendererId) || rendererId;
+}
+
+/**
+ * Liefert alle Renderer-IDs, die zu einem Plugin (Manifest-ID) gehören.
+ */
+function rendererIdsForPlugin(pluginId) {
+  const result = new Set();
+  if (activePlugins.has(pluginId)) {
+    result.add(pluginId);
+  }
+  for (const [rendererId, owner] of rendererOwners) {
+    if (owner === pluginId) result.add(rendererId);
+  }
+  for (const [rendererId, hooks] of activePlugins) {
+    if (hooks && hooks.pluginId === pluginId) result.add(rendererId);
+  }
+  return result;
+}
+
+/**
+ * Prüft nach dem Laden eines Renderer-Skripts, ob alle vom Plugin
+ * registrierten Navigationseinträge eine Ansicht besitzen.
+ *
+ * Damit wird der Fehler "Keine Ansicht für <id> registriert" sofort und
+ * verständlich protokolliert statt erst beim Öffnen des Menüpunkts.
+ */
+function verifyPluginViews(pluginId) {
+  if (!pluginId) return;
+
+  const tree = getNavigationTree();
+  const items = [
+    ...(tree.topLevelItems || []),
+    ...(tree.sections || []).flatMap((section) => section.items || [])
+  ];
+
+  const owned = new Set(rendererIdsForPlugin(pluginId));
+  const missing = items
+    .filter((item) => owned.has(item.ownerPluginId))
+    .map((item) => ({ item, viewId: item.route || item.id }))
+    .filter(({ viewId }) => !views.has(viewId));
+
+  if (missing.length === 0) return;
+
+  logError(
+    "RendererPluginManager",
+    `Plugin ${pluginId}: Navigationseintrag ohne registrierte Ansicht: ` +
+    `${missing.map(({ item, viewId }) => `"${item.label}" (${viewId})`).join(", ")}. ` +
+    `Das Renderer-Skript muss die Ansicht unter derselben ID registrieren ` +
+    `(z.B. window.uiRegistry.registerView("${missing[0].viewId}", …) oder ` +
+    `context.navigation.registerItem({ id: "${missing[0].viewId}", renderFn })).`
+  );
+}
+
+/**
+ * Räumt ein Plugin vollständig auf (Deaktivierung/Entfernung).
+ */
+function teardownPlugin(pluginId) {
+  const rendererIds = rendererIdsForPlugin(pluginId);
+
+  for (const rendererId of rendererIds) {
+    const hooks = activePlugins.get(rendererId);
+    if (hooks && typeof hooks.destroy === "function") {
+      try {
+        hooks.destroy();
+      } catch (err) {
+        logError("RendererPluginManager", `Plugin ${rendererId} destroy error: ${err.message}`);
+      }
+    }
+    if (hooks && typeof hooks.deactivate === "function") {
+      try {
+        hooks.deactivate({ pluginId: rendererId });
+      } catch (err) {
+        logError("RendererPluginManager", `Plugin ${rendererId} deactivation error: ${err.message}`);
+      }
+    }
+    activePlugins.delete(rendererId);
+    rendererOwners.delete(rendererId);
+  }
+
+  // Views/Navigation sowohl für die Plugin-ID als auch für die
+  // Renderer-IDs freigeben (IDs können je nach Plugin abweichen).
+  for (const idToClear of new Set([pluginId, ...rendererIds])) {
+    unregisterPluginUI(idToClear);
+    unregisterPluginNavigation(idToClear);
+  }
+
+  const scriptTag = injectedScripts.get(pluginId);
+  if (scriptTag) {
+    scriptTag.remove();
+    injectedScripts.delete(pluginId);
+  }
+}
 
 window.uiRegistry = {
   registerView,
@@ -30,51 +166,51 @@ window.uiRegistry = {
   }
 };
 
-window.registerPluginRenderer = (id, hooks) => {
+window.registerPluginRenderer = (id, hooks = {}) => {
+  if (!id) {
+    logError("RendererPluginManager", "Plugin registration failed: Missing 'id'");
+    return;
+  }
+
+  // Automatische Zuordnung Renderer-ID → Plugin-ID (aus der Skript-URL).
+  if (loadingPluginId && !rendererOwners.has(id)) {
+    rendererOwners.set(id, loadingPluginId);
+  }
+
   activePlugins.set(id, hooks);
 
   if (hooks.init) {
     try {
-       hooks.init({
-         id,
-         navigation: {
-           registerSection: (sec) => registerSection(sec, id),
-           registerItem: (it) => registerItem(it, id),
-           updateItem: (itemId, updates) => updateItem(itemId, updates, id),
-            removeItem: (itemId) => removeItem(itemId, id),
-            removeSection: (secId) => removeSection(secId, id)
-          }
-       });
+       hooks.init(createRendererContext(id, resolveOwnerId(id, hooks)));
     } catch (err) {
-       window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${id} init error: ${err.message}`);
+       logError("RendererPluginManager", `Plugin ${id} init error: ${err.message}`);
     }
   }
 };
 
 window.registerPlugin = (plugin) => {
   if(!plugin?.id){
-    window.pluginAPI?.log("error", "RendererPluginManager", "Plugin registration failed: Missing 'id'");
+    logError("RendererPluginManager", "Plugin registration failed: Missing 'id'");
     return;
   }
   activePlugins.set(plugin.id, plugin);
 
   if(typeof plugin.activate === "function"){
     try {
-      plugin.activate({
-        pluginId: plugin.id,
-        navigation: {
-          registerSection: (sec) => registerSection(sec, plugin.id),
-          registerItem: (it) => registerItem(it, plugin.id),
-          updateItem: (itemId, updates) => updateItem(itemId, updates, plugin.id),
-          removeItem: (itemId) => removeItem(itemId, plugin.id),
-          removeSection: (secId) => removeSection(secId, plugin.id)
-        }
-      });
+      plugin.activate(createRendererContext(plugin.id, resolveOwnerId(plugin.id, plugin)));
     } catch (err) {
-      window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${plugin.id} activation error: ${err.message}`);
+      logError("RendererPluginManager", `Plugin ${plugin.id} activation error: ${err.message}`);
     }
   }
 };
+
+async function loadRendererScripts(scripts, explicitId = null) {
+  // Sequentiell laden: so ist die Zuordnung Renderer-ID → Plugin-ID
+  // eindeutig und die Registrierungsreihenfolge deterministisch.
+  for (const scriptUrl of scripts) {
+    await injectScript(scriptUrl, explicitId);
+  }
+}
 
 async function loadRendererPlugins() {
   // Navigation mit Main-Prozess synchronisieren
@@ -83,9 +219,9 @@ async function loadRendererPlugins() {
   if (window.api && window.api.getRendererScripts) {
     try {
       const scripts = await window.api.getRendererScripts();
-      scripts.forEach(scriptUrl => injectScript(scriptUrl));
+      await loadRendererScripts(scripts);
     } catch (err) {
-      window.pluginAPI?.log("error", "RendererPluginManager", `Error fetching renderer scripts: ${err.message}`);
+      logError("RendererPluginManager", `Error fetching renderer scripts: ${err.message}`);
     }
   }
 
@@ -95,37 +231,18 @@ async function loadRendererPlugins() {
       const { id, enabled } = data;
       if (!enabled) {
         // Destroy and remove
-        const hooks = activePlugins.get(id);
-        if (hooks && hooks.destroy) {
-          try { hooks.destroy(); } catch (err) { window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${id} destroy error: ${err.message}`); }
-        }
-        const plugin = activePlugins.get(id);
-        if (plugin && typeof plugin.deactivate === "function") {
-          try { plugin.deactivate({pluginId: id}); } catch (err) { window.pluginAPI?.log("error", `RendererPluginManager`, `Plugin ${id} deactivation error: ${err.message}`); }
-        }
-        activePlugins.delete(id);
-
-        // Unregister plugin UI & Navigation
-        unregisterPluginUI(id);
-        unregisterPluginNavigation(id);
-
-        // Remove script tag
-        const scriptTag = injectedScripts.get(id);
-        if (scriptTag) {
-          scriptTag.remove();
-          injectedScripts.delete(id);
-        }
+        teardownPlugin(id);
       } else {
         // Fetch new scripts and inject if not already present
         if (window.api && window.api.getRendererScripts) {
           const scripts = await window.api.getRendererScripts();
-          scripts.forEach(scriptUrl => {
+          for (const scriptUrl of scripts) {
             const match = scriptUrl.match(/\/plugins\/([^/]+)\//);
             const scriptId = match ? match[1] : null;
             if (scriptId === id && !injectedScripts.has(id)) {
-              injectScript(scriptUrl, id);
+              await injectScript(scriptUrl, id);
             }
-          });
+          }
         }
       }
     });
@@ -136,39 +253,15 @@ async function loadRendererPlugins() {
   if (window.api && window.api.onPluginsChanged) {
     window.api.onPluginsChanged(async (result) => {
       const removed = (result?.removed || []).concat(result?.disabled || []);
-      removed.forEach(id => {
-        const hooks = activePlugins.get(id);
-        if (hooks && hooks.destroy) {
-          try { hooks.destroy(); } catch (err) {
-            window.pluginAPI?.log("error", "RendererPluginManager",
-              `Plugin ${id} destroy error: ${err.message}`);
-          }
-        }
-        const plugin = activePlugins.get(id);
-        if (plugin && typeof plugin.deactivate === "function") {
-          try { plugin.deactivate({ pluginId: id }); } catch (err) {
-            window.pluginAPI?.log("error", "RendererPluginManager",
-              `Plugin ${id} deactivation error: ${err.message}`);
-          }
-        }
-        activePlugins.delete(id);
-        unregisterPluginUI(id);
-        unregisterPluginNavigation(id);
-
-        const scriptTag = injectedScripts.get(id);
-        if (scriptTag) {
-          scriptTag.remove();
-          injectedScripts.delete(id);
-        }
-      });
+      removed.forEach(id => teardownPlugin(id));
 
       const toReload = (result?.added || []).concat(result?.changed || []);
       if (toReload.length > 0 && window.api.getRendererScripts) {
         try {
           const scripts = await window.api.getRendererScripts();
-          scripts.forEach(scriptUrl => injectScript(scriptUrl));
+          await loadRendererScripts(scripts);
         } catch (err) {
-          window.pluginAPI?.log("error", "RendererPluginManager",
+          logError("RendererPluginManager",
             `Error reloading renderer scripts: ${err.message}`);
         }
       }
@@ -177,18 +270,46 @@ async function loadRendererPlugins() {
 }
 
 function injectScript(scriptUrl, explicitId = null) {
-  const script = document.createElement("script");
-  script.type = "module";
-  script.src = `${scriptUrl}?t=${Date.now()}`;
-  script.onload = () => window.pluginAPI?.log("info", "RendererPluginManager", `Loaded renderer script: ${scriptUrl}`);
-  script.onerror = (e) => window.pluginAPI?.log("error", "RendererPluginManager", `Failed to load renderer script: ${scriptUrl}`);
-  document.body.appendChild(script);
-  
   const match = scriptUrl.match(/\/plugins\/([^/]+)\//);
-  const id = explicitId || (match ? match[1] : null);
-  if (id) {
-    injectedScripts.set(id, script);
-  }
+  const pluginId = explicitId || (match ? match[1] : null);
+
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.type = "module";
+    // Modul-Skripte werden immer im CORS-Modus geladen; explizit gesetzt,
+    // damit der lokale Plugin-HTTP-Server die Anfrage korrekt beantwortet.
+    script.crossOrigin = "anonymous";
+    script.src = `${scriptUrl}?t=${Date.now()}`;
+
+    const finish = (ok) => {
+      if (loadingPluginId === pluginId) loadingPluginId = null;
+      resolve(ok);
+    };
+
+    script.onload = () => {
+      logInfo("RendererPluginManager", `Loaded renderer script: ${scriptUrl}`);
+      verifyPluginViews(pluginId);
+      finish(true);
+    };
+
+    script.onerror = (event) => {
+      const details = (event && (event.message || event.type)) || "unbekannter Fehler";
+      logError(
+        "RendererPluginManager",
+        `Failed to load renderer script: ${scriptUrl} (${details}). ` +
+        `Plugin ${pluginId || "unbekannt"} wurde nicht registriert; ` +
+        `Details siehe Log-Ausgabe des PluginHttpServer.`
+      );
+      finish(false);
+    };
+
+    if (pluginId) {
+      injectedScripts.set(pluginId, script);
+    }
+
+    loadingPluginId = pluginId;
+    document.body.appendChild(script);
+  });
 }
 
 export { loadRendererPlugins };
