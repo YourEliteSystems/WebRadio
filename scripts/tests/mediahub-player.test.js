@@ -33,12 +33,23 @@ const { COMMAND_EVENTS, COMMAND_CHANNEL, MediaHubProvider } = mediaHubProvider;
 
 const PRELOAD_PATH = path.join(__dirname, "../../electron/preload.js");
 const PROVIDER_PATH = path.join(__dirname, "../../electron/core/player/MediaHubProvider.js");
-const RENDERER_PATH = path.join(__dirname, "../../plugins/youtube/renderer.js");
+// Das gebündelte Plugin-Renderer-Skript ist optional: Es gehört nicht mehr zum
+// Core-Repository. Ist es nicht vorhanden, werden die renderer-basierten Tests
+// ausdrücklich übersprungen statt die gesamte Suite abzubrechen.
+const RENDERER_CANDIDATES = ["mediahub", "youtube"].map((id) =>
+    path.join(__dirname, "..", "..", "plugins", id, "renderer.js")
+);
+const RENDERER_PATH = RENDERER_CANDIDATES.find((candidate) => fs.existsSync(candidate)) || null;
+const RENDERER_SKIP = RENDERER_PATH
+    ? null
+    : `kein gebündeltes Plugin-Renderer-Skript gefunden (${RENDERER_CANDIDATES
+          .map((candidate) => path.relative(path.join(__dirname, "..", ".."), candidate))
+          .join(", ")})`;
 const APP_PATH = path.join(__dirname, "../../renderer/App.jsx");
 const PLAYERBAR_PATH = path.join(__dirname, "../../renderer/components/PlayerBar.jsx");
 const USE_PLAYER_PATH = path.join(__dirname, "../../renderer/hooks/usePlayer.js");
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, skipped = 0;
 let chain = Promise.resolve();
 
 function test(name, fn) {
@@ -51,8 +62,26 @@ function test(name, fn) {
         });
 }
 
+/**
+ * Test, der ein gebündeltes Plugin-Renderer-Skript benötigt. Fehlt dieses
+ * optionale Skript, wird der Test sichtbar übersprungen (kein stiller Pass).
+ */
+function testWithRenderer(name, fn) {
+    if (!RENDERER_PATH) {
+        chain = chain.then(() => {
+            console.log(`  [SKIP] ${name} – ${RENDERER_SKIP}`);
+            skipped++;
+        });
+        return;
+    }
+    test(name, fn);
+}
+
 function report() {
     console.log("\n==========================================");
+    if (skipped > 0) {
+        console.log(`Übersprungen: ${skipped} (Renderer-Skript nicht im Repository vorhanden)`);
+    }
     console.log(`Ergebnis: ${pass} bestanden, ${fail} fehlgeschlagen.`);
     console.log("==========================================");
     if (fail > 0) process.exit(1);
@@ -360,7 +389,7 @@ test("[4b] stop() eröffnet eine neue Session und Folgekommandos folgen ihr", as
 });
 
 // [5] setVolume wird als 0..1-Wert übergeben (Konvertierung genau einmal)
-test("[5] setVolume wird als 0..1-Wert übergeben (Konvertierung genau einmal)", () => {
+testWithRenderer("[5] setVolume wird als 0..1-Wert übergeben (Konvertierung genau einmal)", () => {
     const mock = createWindowMock();
     const provider = createFreshProvider(mock.windowManager);
 
@@ -438,7 +467,7 @@ test("[8] Unsubscribe entfernt nur den eigenen Listener", () => {
 });
 
 // [9] Ungültige, veraltete und unbekannte Kommandos werden ignoriert
-test("[9] Ungültige, veraltete und unbekannte Kommandos werden ignoriert", () => {
+testWithRenderer("[9] Ungültige, veraltete und unbekannte Kommandos werden ignoriert", () => {
     const ctx = loadYouTubeRenderer();
     ctx.windowMock.onYouTubeIframeAPIReady();
 
@@ -455,7 +484,7 @@ test("[9] Ungültige, veraltete und unbekannte Kommandos werden ignoriert", () =
 });
 
 // [10] MediaHub-Renderer führt die passenden Player-Befehle aus
-test("[10] MediaHub-Renderer führt die passenden Player-Befehle aus", async () => {
+testWithRenderer("[10] MediaHub-Renderer führt die passenden Player-Befehle aus", async () => {
     const ctx = loadYouTubeRenderer();
 
     // Kommando vor IFrame-Bereitschaft → Queue, dann Flush
@@ -561,7 +590,7 @@ test("[12] Provider-Wechsel leitet Kommandos nicht mehr an den vorherigen Provid
 });
 
 // [13] Plugin-Teardown entfernt den Kommando-Listener
-test("[13] Plugin-Teardown entfernt den Kommando-Listener", () => {
+testWithRenderer("[13] Plugin-Teardown entfernt den Kommando-Listener", () => {
     // Preload-Seite: Unsubscribe hinterlässt keinen Listener
     const pre = loadPreload();
     const unsub = pre.exposed.playerAPI.onCommand(() => {});

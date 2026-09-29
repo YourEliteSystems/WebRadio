@@ -237,6 +237,11 @@ class PluginHttpServer {
     const { allowed, corsOrigin } = this._checkOriginPolicy(req);
 
     if (!allowed) {
+      // Diagnose-Kategorie: CORS-/Origin-Ablehnung (noch vor jeder Auslieferung).
+      logger.warn(
+        `[cors-rejected] ${req.method} ${req.url || "/"} → 403 ` +
+        `(Origin: ${normalizeOriginHeader(req.headers.origin) || "<kein>"})`
+      );
       res.writeHead(403, { "Content-Type": "text/plain" });
       res.end("Forbidden: Invalid Origin");
       return;
@@ -245,13 +250,24 @@ class PluginHttpServer {
     // 2) Preflight: OPTIONS beantwortet ausschließlich die CORS-Frage.
     //    Es werden keine Dateiinhalte ausgeliefert.
     if (req.method === "OPTIONS") {
-      res.writeHead(204, this._buildCorsHeaders(corsOrigin, { preflight: true }));
+      const preflightHeaders = this._buildCorsHeaders(corsOrigin, { preflight: true });
+      logger.info(
+        `[preflight] OPTIONS ${req.url || "/"} → 204 ` +
+        `(Origin: ${normalizeOriginHeader(req.headers.origin) || "<kein>"}; ` +
+        `ACAO: ${preflightHeaders["Access-Control-Allow-Origin"]})`
+      );
+      res.writeHead(204, preflightHeaders);
       res.end();
       return;
     }
 
     // 3) Tatsächliche Ressourcen-Requests: nur GET und HEAD.
     if (!ALLOWED_RESOURCE_METHODS.includes(req.method)) {
+      // Diagnose-Kategorie: nicht erlaubte HTTP-Methode.
+      logger.warn(
+        `[http-error] ${req.method} ${req.url || "/"} → 405 ` +
+        `(erlaubt sind: ${ALLOWED_RESOURCE_METHODS.join(", ")}, OPTIONS)`
+      );
       res.writeHead(405, { "Content-Type": "text/plain", "Allow": "GET, HEAD, OPTIONS" });
       res.end("Method Not Allowed");
       return;
@@ -261,6 +277,11 @@ class PluginHttpServer {
     const match   = urlPath.match(/^\/plugins\/([^/]+)\/(.+)$/);
 
     if (!match) {
+      // Diagnose-Kategorie: Route nicht registriert.
+      logger.warn(
+        `[route-unregistered] ${req.method} ${urlPath} → 404 ` +
+        `(kein /plugins/<id>/<pfad>-Muster)`
+      );
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not Found");
       return;
@@ -270,6 +291,12 @@ class PluginHttpServer {
     const pluginEntry = this._plugins.get(pluginId);
 
     if (!pluginEntry) {
+      // Diagnose-Kategorie: Plugin dem Server nicht bekannt.
+      logger.warn(
+        `[unknown-plugin] ${req.method} ${urlPath} → 404 ` +
+        `(Plugin "${pluginId}" ist dem PluginHttpServer nicht registriert; ` +
+        `registriert sind: ${this._registeredPluginIds()})`
+      );
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end(`Plugin "${pluginId}" nicht registriert`);
       return;
@@ -279,13 +306,31 @@ class PluginHttpServer {
 
     const absolute = path.resolve(pluginRoot, relativePath);
     if (!absolute.startsWith(pluginRoot + path.sep) && absolute !== pluginRoot) {
-      logger.warn(`Path-Traversal-Versuch: ${absolute}`);
+      // Diagnose-Kategorie: Zugriff außerhalb des Plugin-Roots (Traversal).
+      logger.warn(
+        `[file-unreadable] ${req.method} ${urlPath} → 403 ` +
+        `(Path-Traversal-Versuch: ${absolute}; Plugin-Root: ${pluginRoot})`
+      );
       res.writeHead(403, { "Content-Type": "text/plain" });
       res.end("Forbidden");
       return;
     }
 
-    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+    let stat = null;
+    try {
+      stat = fs.statSync(absolute);
+    } catch {
+      // Datei existiert nicht oder ist nicht lesbar → unten als 404 gemeldet.
+      stat = null;
+    }
+
+    if (!stat || !stat.isFile()) {
+      // Diagnose-Kategorie: Datei nicht vorhanden (oder kein reguläre Datei).
+      logger.warn(
+        `[file-missing] ${req.method} ${urlPath} → 404 ` +
+        `(aufgelöst: ${absolute}; Plugin-Root: ${pluginRoot}; ` +
+        `${stat ? "kein reguläre Datei" : "existiert nicht"})`
+      );
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not Found");
       return;
@@ -294,19 +339,50 @@ class PluginHttpServer {
     const ext      = path.extname(absolute).toLowerCase();
     const mimeType = MIME_TYPES[ext] || "application/octet-stream";
 
-    const content = fs.readFileSync(absolute);
+    let content = null;
+    try {
+      content = fs.readFileSync(absolute);
+    } catch (err) {
+      // Diagnose-Kategorie: Datei kann nicht gelesen werden.
+      logger.error(
+        `[file-unreadable] ${req.method} ${urlPath} → 500 ` +
+        `(aufgelöst: ${absolute}): ${err.message}\n${err.stack || ""}`
+      );
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end("Internal Server Error");
+      return;
+    }
 
-    res.writeHead(200, {
+    const responseHeaders = {
       "Content-Type":  mimeType,
       "Cache-Control": "no-cache",
       ...this._buildCorsHeaders(corsOrigin)
-    });
+    };
+
+    // Diagnose-Kategorie: erfolgreich ausgeliefert (Status, MIME, Größe, CORS).
+    logger.info(
+      `[served] ${req.method} ${urlPath} → 200 ` +
+      `(Plugin: ${pluginId}; aufgelöst: ${absolute}; Content-Type: ${mimeType}; ` +
+      `${content.length} Bytes; Origin: ${normalizeOriginHeader(req.headers.origin) || "<kein>"}; ` +
+      `ACAO: ${responseHeaders["Access-Control-Allow-Origin"]})`
+    );
+
+    res.writeHead(200, responseHeaders);
 
     if (req.method === "HEAD") {
       res.end();
     } else {
       res.end(content);
     }
+  }
+
+  /**
+   * Liefert die aktuell registrierten Plugin-IDs als kommagetrennte Liste.
+   * Nur für Diagnose-Ausgaben gedacht.
+   */
+  _registeredPluginIds() {
+    const ids = Array.from(this._plugins.keys());
+    return ids.length > 0 ? ids.join(", ") : "<keine>";
   }
 }
 

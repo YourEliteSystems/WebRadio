@@ -23,6 +23,37 @@ const rendererOwners = new Map();
 // Registrierung eindeutig dem ladenden Plugin zuordnen.
 let loadingPluginId = null;
 
+// Wurde während der Auswertung des gerade ladenden Skripts tatsächlich ein
+// Plugin registriert? Ein Skript kann syntaktisch fehlerfrei geladen werden und
+// trotzdem vor/ohne Registrierung abbrechen – das wird damit unterscheidbar.
+let registeredDuringLoad = false;
+
+// Letzter CSP-Verstoß, der zum gerade ladenden Skript gehört. Chromium
+// blockiert CSP-verweigerte Skripte bereits vor dem Netzwerkzugriff; der
+// `error`-Event des Skript-Tags enthält dann keinerlei Grund. Dieser Merker
+// macht den tatsächlichen Grund im Log sichtbar.
+let lastCspViolation = null;
+
+function handleSecurityPolicyViolation(event) {
+  if (!loadingPluginId) return;
+  const blocked = event.blockedURI || "";
+  // Nur Verstöße erfassen, die zum aktuell ladenden Plugin gehören.
+  if (blocked && !blocked.includes(`/plugins/${loadingPluginId}/`)) return;
+  lastCspViolation = {
+    directive: event.violatedDirective || event.effectiveDirective || "unbekannt",
+    effectiveDirective: event.effectiveDirective || event.violatedDirective || "unbekannt",
+    blockedURI: blocked || "unbekannt"
+  };
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("securitypolicyviolation", handleSecurityPolicyViolation);
+}
+
+function markRegistered() {
+  if (loadingPluginId) registeredDuringLoad = true;
+}
+
 function logError(context, message) {
   window.pluginAPI?.log("error", context, message);
 }
@@ -172,6 +203,8 @@ window.registerPluginRenderer = (id, hooks = {}) => {
     return;
   }
 
+  markRegistered();
+
   // Automatische Zuordnung Renderer-ID → Plugin-ID (aus der Skript-URL).
   if (loadingPluginId && !rendererOwners.has(id)) {
     rendererOwners.set(id, loadingPluginId);
@@ -193,6 +226,8 @@ window.registerPlugin = (plugin) => {
     logError("RendererPluginManager", "Plugin registration failed: Missing 'id'");
     return;
   }
+
+  markRegistered();
 
   // Automatische Zuordnung Renderer-ID → Plugin-ID (aus der Skript-URL).
   if (loadingPluginId && !rendererOwners.has(plugin.id)) {
@@ -287,25 +322,63 @@ function injectScript(scriptUrl, explicitId = null) {
     script.crossOrigin = "anonymous";
     script.src = `${scriptUrl}?t=${Date.now()}`;
 
+    lastCspViolation = null;
+    registeredDuringLoad = false;
+
     const finish = (ok) => {
       if (loadingPluginId === pluginId) loadingPluginId = null;
       resolve(ok);
     };
 
+    // Fehlgeschlagene Skripte werden vollständig entfernt. Sonst würde der
+    // Eintrag in `injectedScripts` einen späteren erneuten Startversuch
+    // dauerhaft verhindern (z. B. nach Aktivierung über die Einstellungen).
+    const discardFailedScript = () => {
+      if (pluginId && injectedScripts.get(pluginId) === script) {
+        injectedScripts.delete(pluginId);
+      }
+      script.remove();
+    };
+
     script.onload = () => {
       logInfo("RendererPluginManager", `Loaded renderer script: ${scriptUrl}`);
+
+      // Unterscheidet "HTTP/Modul erfolgreich geladen" von
+      // "Plugin tatsächlich registriert" – ein Skript kann vor der
+      // Registrierung mit einer Exception abbrechen.
+      if (loadingPluginId === pluginId && !registeredDuringLoad) {
+        logError(
+          "RendererPluginManager",
+          `Renderer-Skript geladen, hat aber kein Plugin registriert: ${scriptUrl}. ` +
+          `Erwartet wird window.registerPlugin({ id: "${pluginId}", … }) oder ` +
+          `window.registerPluginRenderer("${pluginId}", …) während der Auswertung ` +
+          `des Skripts (nicht erst später).`
+        );
+      }
+
       verifyPluginViews(pluginId);
       finish(true);
     };
 
     script.onerror = (event) => {
       const details = (event && (event.message || event.type)) || "unbekannter Fehler";
+
+      const cspHint = lastCspViolation
+        ? ` CSP hat das Laden blockiert (Richtlinie "${lastCspViolation.effectiveDirective}", ` +
+          `blockiert: ${lastCspViolation.blockedURI}). Der PluginHttpServer wurde dabei nicht ` +
+          `kontaktiert; die Content-Security-Policy in renderer/index.html muss die ` +
+          `Loopback-Adresse des Plugin-HTTP-Servers erlauben (script-src http://127.0.0.1:*).`
+        : ` Kein CSP-Verstoß registriert – der Fehler liegt damit bei Netzwerk/Origin ` +
+          `(CORS) oder bei der Auswertung des Moduls selbst; Details siehe Log-Ausgabe ` +
+          `des PluginHttpServer.`;
+
       logError(
         "RendererPluginManager",
         `Failed to load renderer script: ${scriptUrl} (${details}). ` +
-        `Plugin ${pluginId || "unbekannt"} wurde nicht registriert; ` +
-        `Details siehe Log-Ausgabe des PluginHttpServer.`
+        `Plugin ${pluginId || "unbekannt"} wurde nicht registriert.${cspHint}`
       );
+
+      discardFailedScript();
       finish(false);
     };
 

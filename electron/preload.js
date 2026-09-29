@@ -398,6 +398,10 @@ contextBridge.exposeInMainWorld("pluginHttpAPI", {
 });
 
 // UPDATES API (Zentral und abwärtskompatibel auf window.updatesAPI und window.updateAPI)
-contextBridge.exposeInMainWorld("updatesAPI", updatesApi);
+// `updatesAPI` wird bereits oben exponiert (Zeile 134). Ein zweiter
+// `exposeInMainWorld("updatesAPI", …)`-Aufruf wirft in Electron
+// ("Cannot bind an API on top of an existing property on the window object")
+// und bricht damit das gesamte Preload ab – dadurch fehlten alle danach
+// exponierten APIs. Hier bleibt ausschließlich der Alias `updateAPI`.
 contextBridge.exposeInMainWorld("updateAPI", updatesApi);
 
