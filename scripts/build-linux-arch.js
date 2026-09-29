@@ -11,8 +11,8 @@
  *   5) Optional: makepkg in einem Arch-Container aufrufen.
  *
  * Versionsbegriffe (strikt getrennt):
- *   SemVer  1.0.7-alpha.4   → Version aus package.json (Artefaktname)
- *   pkgver  1.0.7.alpha.4   → Arch-Paketversion (keine Bindestriche)
+ *   SemVer  1.0.7-alpha.5   → Version aus package.json (Artefaktname)
+ *   pkgver  1.0.7.alpha.5   → Arch-Paketversion (keine Bindestriche)
  *   AppImage-Namen werden NIEMALS aus einer Version rekonstruiert, sondern
  *   immer aus dem tatsächlich vorhandenen Artefakt übernommen.
  *
@@ -49,7 +49,7 @@ function loadPkgVersion() {
  * Arch-Paketversion (pkgver).
  *
  * Arch erlaubt keine Bindestriche in pkgver:
- *   1.0.7-alpha.4 (SemVer) → 1.0.7.alpha.4 (pkgver)
+ *   1.0.7-alpha.5 (SemVer) → 1.0.7.alpha.5 (pkgver)
  *
  * Das Ergebnis ist AUSSCHLIESSLICH die Paketversion und niemals ein Dateiname.
  *
@@ -79,7 +79,7 @@ function appImageFileName(appImagePath) {
  * Reine Funktion ohne Dateisystemzugriff (dadurch testbar).
  *
  * @param {string[]} candidates  Dateinamen (ohne Pfad)
- * @param {string}   semver      Version aus package.json (z.B. "1.0.7-alpha.4")
+ * @param {string}   semver      Version aus package.json (z.B. "1.0.7-alpha.5")
  * @returns {string} Dateiname des Artefakts
  * @throws {Error}   wenn das Artefakt nicht eindeutig bestimmbar ist
  */
@@ -256,8 +256,8 @@ function main() {
     const args = parseArgs(process.argv.slice(2));
 
     // ── Versionen strikt trennen ────────────────────────────────
-    const semver = loadPkgVersion();          // 1.0.7-alpha.4 (package.json)
-    const pkgver = toArchPkgver(semver);      // 1.0.7.alpha.4 (Arch pkgver)
+    const semver = loadPkgVersion();          // 1.0.7-alpha.5 (package.json)
+    const pkgver = toArchPkgver(semver);      // 1.0.7.alpha.5 (Arch pkgver)
 
     let appimage;
     try {
@@ -318,8 +318,8 @@ function main() {
     console.log(`   Quelle:   ${staged.appimageName} (${staged.appimageSha.slice(0, 12)}…)`);
 
     const ctx = {
-        pkgver,                      // Arch-Paketversion      (1.0.7.alpha.4)
-        semver,                      // Original-SemVer        (1.0.7-alpha.4)
+        pkgver,                      // Arch-Paketversion      (1.0.7.alpha.5)
+        semver,                      // Original-SemVer        (1.0.7-alpha.5)
         appimageFile: staged.appimageName,   // tatsächlicher Artefaktname
         appimageSha: staged.appimageSha,
         desktopSha: staged.desktopSha,

@@ -36,7 +36,7 @@ Plugins should never create their own Settings instance.
 
 ---
 
-# Methods (1.0.7-alpha.4)
+# Methods (1.0.7-alpha.5)
 
 The current plugin-facing Settings API provides synchronous access to selected global settings.
 
@@ -117,12 +117,12 @@ settings.delete("language");
 
 ---
 
-> **Note:** In WebRadio 1.0.7-alpha.4, the plugin-facing Settings API does not expose `reset()`, `resetAll()` or `getDefaults()`.
+> **Note:** In WebRadio 1.0.7-alpha.5, the plugin-facing Settings API does not expose `reset()`, `resetAll()` or `getDefaults()`.
 
 
 ---
 
-# Settings Scope (1.0.7-alpha.4)
+# Settings Scope (1.0.7-alpha.5)
 
 The plugin-facing Settings API gives plugins access to selected global settings, not to a separate per-plugin settings namespace.
 
@@ -134,7 +134,7 @@ That means:
 
 ---
 
-# Data Types (1.0.7-alpha.4)
+# Data Types (1.0.7-alpha.5)
 
 Settings commonly store:
 
@@ -222,7 +222,7 @@ The Settings service commonly works together with:
 
 ---
 
-# Example (1.0.7-alpha.4)
+# Example (1.0.7-alpha.5)
 
 ```javascript id="v9nq2e"
 const autoplay = context.settings.get("autoplay");

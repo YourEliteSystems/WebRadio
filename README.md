@@ -4,7 +4,7 @@
 >
 > Ein moderner, plattformübergreifender Open-Source-Radioplayer für Windows und Linux – mit tausenden Sendern, leistungsstarker Audiowiedergabe, Themes und einem echten Plugin-System.
 
-[![Version](https://img.shields.io/badge/version-1.0.7--alpha.4-6366f1?style=for-the-badge)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.7--alpha.5-6366f1?style=for-the-badge)](./CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=for-the-badge)](./LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)

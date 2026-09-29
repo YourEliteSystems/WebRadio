@@ -1,7 +1,7 @@
 # 📖 WebRadio Architecture Guide
 
 **Version:** 3.0
-**Applies to:** WebRadio v1.0.7-alpha.4+
+**Applies to:** WebRadio v1.0.7-alpha.5+
 
 ---
 

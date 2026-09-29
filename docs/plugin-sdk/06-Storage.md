@@ -44,7 +44,7 @@ The storage instance is unique for every plugin.
 
 # Writing Data (current API)
 
-In WebRadio 1.0.7-alpha.4 the plugin-facing Storage API is synchronous.
+In WebRadio 1.0.7-alpha.5 the plugin-facing Storage API is synchronous.
 
 Use `set()` to store a value.
 

@@ -14,7 +14,7 @@
 # Hinweis zur Versionierung – strikte Trennung:
 #
 #   pkgver      Arch-Paketversion. Darf laut Arch-Policy KEINE Bindestriche
-#               enthalten: 1.0.7-alpha.4 (SemVer) → 1.0.7.alpha.4
+#               enthalten: 1.0.7-alpha.5 (SemVer) → 1.0.7.alpha.5
 #   _semver     Original-SemVer aus package.json. Ausschließlich für die
 #               Anzeige (pkgdesc) – niemals für Dateinamen.
 #   _appimage   Dateiname des von electron-builder erzeugten AppImage-Artefakts.

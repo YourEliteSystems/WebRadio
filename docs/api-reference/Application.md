@@ -221,7 +221,7 @@ These services together form the WebRadio Core.
 
 ---
 
-# Current Application Role (1.0.7-alpha.4)
+# Current Application Role (1.0.7-alpha.5)
 
 The current application is the central coordinator for startup, shutdown and subsystem lifecycle.
 

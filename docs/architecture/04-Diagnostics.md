@@ -104,7 +104,7 @@ Health checks can help identify configuration problems before they cause failure
 
 ---
 
-# Current Diagnostics Components (1.0.7-alpha.4)
+# Current Diagnostics Components (1.0.7-alpha.5)
 
 The Diagnostics subsystem provides:
 
@@ -142,6 +142,44 @@ This is intentional and implemented, not aspirational.
 
 ---
 
+# Renderer And Plugin HTTP Diagnostics
+
+Two diagnostic surfaces exist for plugin loading problems.
+
+## Optional renderer diagnostics
+
+Setting the environment variable `WEBRADIO_RENDERER_DIAGNOSTICS=1` before starting the application enables additional main-process logging for the main window:
+
+* `did-finish-load` and `did-fail-load`
+* `preload-error`
+* `render-process-gone`
+* `console-message`, including content security policy violations
+
+The output goes to the regular WebRadio log. Without the variable this code path is completely inactive, so it never adds noise to a normal start.
+
+## Plugin HTTP request log
+
+Every request against the plugin HTTP environment is logged with a distinct category, so a failing plugin script can be attributed to a concrete stage:
+
+| Category | Meaning |
+| --- | --- |
+| `[served]` | File was found and returned |
+| `[route-unregistered]` | No plugin HTTP route is registered for this path |
+| `[unknown-plugin]` | Plugin is not registered for HTTP serving |
+| `[file-missing]` | Requested file does not exist inside the plugin root, or is not a regular file (`404`) |
+| `[file-unreadable]` | Path resolves outside the plugin root — traversal attempt (`403`), or the file exists but cannot be read (`500`, stack trace in log) |
+| `[http-error]` | Request method is not supported (`405`, only `GET` and `HEAD`) |
+| `[cors-rejected]` | Origin is not allowed for the requested resource |
+| `[preflight]` | Answered `OPTIONS` request |
+
+Each entry includes method, path, resolved absolute path, status, MIME type, size, origin and the emitted `Access-Control-Allow-Origin` value.
+
+## Typical failure pattern
+
+A renderer script that is reported as `Failed to load renderer script` while the plugin HTTP log shows **no** corresponding request indicates a content security policy rejection, not a server error: the script was discarded before the request. If a request is present, its category identifies the actual stage.
+
+---
+
 # Future Improvements
 
 Potential future enhancements include:
@@ -152,7 +190,7 @@ Potential future enhancements include:
 * theme diagnostics
 * additional profiling surfaces
 
-These are future or planned uses. They are not fully implemented in 1.0.7-alpha.4.
+These are future or planned uses. They are not fully implemented in 1.0.7-alpha.5.
 
 ---
 

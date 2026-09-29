@@ -133,7 +133,7 @@ Each category is documented separately.
 * [Navigation](../plugin-sdk/08-Navigation.md)
 * [UI](../plugin-sdk/09-UI.md)
 
-> In WebRadio 1.0.7-alpha.4, some API reference pages describe future-facing plugin services that are not yet implemented. Those pages now document their current "not yet implemented" status.
+> In WebRadio 1.0.7-alpha.5, some API reference pages describe future-facing plugin services that are not yet implemented. Those pages now document their current "not yet implemented" status.
 
 ---
 

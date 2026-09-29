@@ -33,7 +33,7 @@ module.exports = {
 
 ---
 
-# API-Struktur (1.0.7-alpha.4)
+# API-Struktur (1.0.7-alpha.5)
 
 ```javascript
 context = {
@@ -290,7 +290,7 @@ Löscht eine globale Einstellung.
 context.settings.delete("customKey");
 ```
 
-> **Hinweis:** In WebRadio 1.0.7-alpha.4 gibt es **keine** `settings.reset()`, `settings.resetAll()` und `settings.getDefaults()` als öffentliche Plugin-API.
+> **Hinweis:** In WebRadio 1.0.7-alpha.5 gibt es **keine** `settings.reset()`, `settings.resetAll()` und `settings.getDefaults()` als öffentliche Plugin-API.
 
 ### Best Practices
 
@@ -381,7 +381,7 @@ Versionsinformationen für Kompatibilitätsprüfungen.
 ```javascript
 {
   pluginAPI: "1.1.0",
-  application: "1.0.7-alpha.4"
+  application: "1.0.7-alpha.5"
 }
 ```
 
@@ -534,7 +534,7 @@ Der PluginManager gibt Warnungen aus, wenn deprecated Importe erkannt werden.
 
 ---
 
-# Migration Guide (1.0.7-alpha.4)
+# Migration Guide (1.0.7-alpha.5)
 
 Die Migration Guide-Beispiele zeigen die aktuelle Plugin-API-Oberfläche.
 

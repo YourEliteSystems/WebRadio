@@ -150,7 +150,7 @@ Examples include:
 * Language
 * Privacy options
 
-In WebRadio 1.0.7-alpha.4 gibt es **keine** öffentliche `context.notifications`-API. Plugins sollten daher nicht auf plugin-gesendete Benachrichtigungen als Hauptfunktion aufbauen.
+In WebRadio 1.0.7-alpha.5 gibt es **keine** öffentliche `context.notifications`-API. Plugins sollten daher nicht auf plugin-gesendete Benachrichtigungen als Hauptfunktion aufbauen.
 
 ---
 

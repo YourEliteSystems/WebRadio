@@ -4,6 +4,64 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7-alpha.5] – 2026-09-29
+
+> Vorabversion 1.0.7-alpha.5: Behebt, dass Renderer-Plugin-Skripte nicht geladen wurden – die Content-Security-Policy des Hauptfensters blockierte die über den lokalen Plugin-HTTP-Server ausgelieferten Skripte, bevor überhaupt ein HTTP-Request entstand – und einen Preload-Abbruch durch doppelte `updatesAPI`-Exposition. Ergänzt eine zentrale SVG-Icon-Bibliothek für Navigation und Einstellungen, trennt Arch-`pkgver` und AppImage-Artefaktnamen strikt, entfernt das gebündelte YouTube-Plugin (MediaHub bleibt ein reguläres Plugin außerhalb des Cores) und erweitert die Testabdeckung um Plugin-HTTP- und Renderer-Lade-Tests. Alle Versionsangaben in Dokumentation, README und Roadmap sind auf `1.0.7-alpha.5` synchronisiert.
+
+### 🐛 Renderer-Plugin-Skripte wurden nicht geladen (behoben)
+
+- **Ursache:** Die CSP in `renderer/index.html` erlaubte nur `script-src 'self'`. Der Renderer läuft unter `file://`, Plugins mit der Capability `http-origin` werden aber über `http://127.0.0.1:<port>/plugins/<id>/<renderer>` ausgeliefert. Chromium verwarf das Modul-Skript **vor** dem Netzwerkzugriff; der `PluginHttpServer` wurde dabei nie kontaktiert. Sichtbares Symptom: `Failed to load renderer script: http://127.0.0.1:<port>/plugins/mediahub/renderer.js … Plugin mediahub wurde nicht registriert`.
+- **CSP korrigiert:** `script-src` und `frame-src` erlauben zusätzlich `http://127.0.0.1:*` – ausschließlich Loopback, kein Wildcard. `webSecurity` bleibt aktiv, `contextIsolation: true` und `nodeIntegration: false` bleiben unverändert. Die `frame-src`-Erweiterung ist erforderlich, damit ein Plugin seine eigenen HTML-Assets (z. B. `player.html`) einbetten darf.
+- **Preload repariert:** `window.updatesAPI` wurde zweimal exponiert. Der daraus resultierende `contextBridge`-Fehler („Cannot bind an API on top of an existing property on the window object“) brach das gesamte Preload ab, wodurch alle danach definierten APIs fehlten. Der `updateAPI`-Alias bleibt erhalten.
+- **Diagnose im `PluginHttpServer`:** Jede Anfrage wird mit eindeutiger Kategorie protokolliert – `[route-unregistered]`, `[unknown-plugin]`, `[file-missing]`, `[file-unreadable]`, `[http-error]`, `[cors-rejected]`, `[preflight]`, `[served]` – inklusive Methode, Pfad, aufgelöstem Absolutpfad, Status, MIME-Typ, Größe, Origin und `Access-Control-Allow-Origin`. Nicht lesbare Dateien liefern `500` mit Stacktrace im Log statt eines Absturzes.
+- **Diagnose im `RendererPluginManager`:** `securitypolicyviolation` wird ausgewertet, sodass der tatsächliche CSP-Grund im Log steht; „Skript geladen“ und „Plugin registriert“ werden unterschieden; fehlgeschlagene Skripte werden entfernt, damit ein späterer Startversuch nicht dauerhaft blockiert wird.
+- **Optionale Renderer-Diagnose:** `WEBRADIO_RENDERER_DIAGNOSTICS=1` protokolliert `did-finish-load`, `did-fail-load`, `preload-error`, `render-process-gone` sowie `console-message` (inklusive CSP-Verstößen) im regulären WebRadio-Log. Ohne die Variable ist die Diagnose vollständig inaktiv.
+- **Verifiziert im echten Lauf:** `[served] GET /plugins/mediahub/renderer.js → 200 (Content-Type: application/javascript; charset=utf-8; 10588 Bytes; Origin: file://; ACAO: *)` und `Loaded renderer script: http://127.0.0.1:<port>/plugins/mediahub/renderer.js`, danach keine CSP-Verletzung, kein Preload-Fehler und kein „Navigationseintrag ohne registrierte Ansicht“ mehr.
+
+### 🔌 Plugin-HTTP-Umgebung, Capabilities & CORS
+
+- **`PluginHttpServer`:** ausschließliche Bindung an `127.0.0.1` mit dynamischem Port; kontrollierte CORS-Header für den lokalen Renderer-Kontext (fehlender Origin, `Origin: null` und `file://` erhalten `Access-Control-Allow-Origin: *`, ohne `Access-Control-Allow-Credentials`), beantworteter OPTIONS-Preflight (`204`), `Cross-Origin-Resource-Policy: cross-origin` sowie zusätzliche MIME-Typen (`.mjs`, `.map`). Zugriffe außerhalb des Plugin-Roots und auf nicht registrierte Plugins bleiben blockiert.
+- **`PluginManager.getRendererScripts()`:** Renderer-Skripte von `http-origin`-Plugins werden ausschließlich über den lokalen HTTP-Server geliefert. Ein `file://`-Fallback ist für diese Plugins bewusst nicht vorgesehen, weil er am Origin-Modell des Renderers scheitern und den tatsächlichen Fehler verdecken würde.
+- **`PluginPermissions`/`CapabilityRegistry`:** kettenbasierte Capability-Auflösung (`http-origin → external-origin → youtube-iframe → youtube-api`) mit Voraussetzungsprüfung, `resolveCapabilities()`, `usesPluginHttpEnvironment()` und Origin-Prüfung je Capability; Voraussetzungen werden nicht mehr stillschweigend übersprungen.
+- **`RendererPluginManager`:** Renderer-ID → Plugin-ID-Zuordnung, Navigations-/View-Lifecycle inklusive `verifyPluginViews()` und vollständigem Teardown; `componentRegistry`/`navigationRegistry` erhalten Unregister-Funktionen.
+
+### 🎨 SVG-Icon-Bibliothek
+
+- **Neu `renderer/ui/iconLibrary.js`:** zentrale Icon-Auflösung inklusive Normalisierung und Sanitisierung beliebiger SVG-Markup-Eingaben.
+- **Neu `renderer/components/InlineSvg.jsx` und `renderer/components/NavIcon.jsx`:** rendern SVG-Icons einheitlich in Navigation und Einstellungen; `Sidebar.jsx` und `UpdatesSettings.jsx` nutzen sie, `renderer/App.jsx` und `renderer/styles/core.css` wurden angepasst.
+- **Update-Kanäle:** `ChannelMetadata` liefert gültige Icon-SVGs, die direkt dargestellt werden.
+
+### 🐧 Arch-/Linux-Packaging
+
+- **`pkgver` und Artefaktname strikt getrennt:** Der AppImage-Dateiname wird nicht mehr aus einer Version rekonstruiert, sondern über `__APPIMAGE_FILE__` mit dem tatsächlichen electron-builder-Artefaktnamen gefüllt. `scripts/build-linux-arch.js` bringt dafür die einzeln testbaren Funktionen `toArchPkgver()`, `appImageFileName()`, `selectAppImage()` und `stageSources()`; `pkgver` ist die Arch-Paketversion (`1.0.7.alpha.5`), `_semver` dient ausschließlich der Anzeige.
+- **Workflows:** `build-linux.yml` und `release.yml` ermitteln genau ein `*.AppImage`, berechnen die Checksumme daraus und brechen bei Mehrdeutigkeit ab; ein Guard verhindert unersetzte Platzhalter im `makepkg`-Build. Das AppImage-Dateinamenformat im Release-Workflow wurde korrigiert.
+
+### 🗂️ Gebündeltes YouTube-Plugin entfernt
+
+- **Gelöscht (873 Zeilen):** `plugins/plugins.json` sowie `plugins/youtube/README.md`, `plugins/youtube/main.js`, `plugins/youtube/plugin.json` und `plugins/youtube/renderer.js`. MediaHub bleibt damit ein **reguläres Plugin** und wird aus dem Nutzer-Plugin-Verzeichnis geladen – ohne YouTube-Sonderlogik im Core.
+- **Hinweis:** Das Verzeichnis `plugins/` wird von `electron-builder` weiterhin als `resources/plugins` gepackt und beim ersten Start nach `userData/plugins` kopiert (`depackUserdata.copyDefaults`). Liegt dort kein Plugin, startet die App ohne Plugins – das ist kein Fehlerfall.
+
+### 📚 Dokumentation
+
+- **README neu gestaltet:** klarerer erster Eindruck, verbesserte Navigation und ein eigener Download-Bereich.
+- **Wiederhergestellt:** `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
+- **Plugin-SDK:** `docs/plugin-sdk/13-Capabilities.md` beschreibt die CSP-Anforderung für `http-origin`-Renderer-Skripte: warum `file://` und `http://127.0.0.1:<port>` für Chromium verschiedene Origins sind, die tatsächliche Direktivenliste aus `renderer/index.html` und die Konsequenz, dass es bewusst kein `file://`-Fallback gibt.
+- **Architektur:** `docs/architecture/04-Diagnostics.md` dokumentiert im neuen Abschnitt „Renderer And Plugin HTTP Diagnostics“ `WEBRADIO_RENDERER_DIAGNOSTICS=1`, die Log-Kategorien des `PluginHttpServer` mit Statuscodes und das typische Fehlerbild „Load-Fehler ohne zugehörige HTTP-Anfrage ⇒ CSP-Verletzung“.
+
+### 🧪 Tests
+
+- **Neu `scripts/tests/pluginHttpServer.test.js` (20 Tests):** startet den Server tatsächlich und prüft über echtes HTTP Statuscodes, MIME-Typen, CORS (`Origin: null`, `file://`, kein Origin), fehlendes `Access-Control-Allow-Credentials`, OPTIONS-Preflight, `405`, Loopback-Bindung, Traversal-Schutz (raw und URL-encodiert) sowie die Wiederaufnahme nach einem fehlgeschlagenen Zugriff.
+- **Neu `scripts/tests/renderer-plugin-loading.test.js` (9 Tests):** Sicherheitsgurte (CSP erlaubt die Loopback-Adresse, `webSecurity` bleibt aktiv, `updatesAPI` genau einmal exponiert) und Verhaltenstests des `RendererPluginManager` mit DOM-Stubs (CSP-Grund im Log, Retry nach Fehlschlag, „geladen, aber nicht registriert“).
+- **Neu `scripts/tests/icon-rendering.test.js`:** prüft SVG-Normalisierung, Sanitisierung und Icon-Auflösung.
+- **`scripts/tests/mediahub-player.test.js`:** Renderer-abhängige Tests werden als `[SKIP]` übersprungen, wenn das gebündelte Plugin-Renderer-Skript nicht im Repository liegt, statt die gesamte Suite abzubrechen.
+- **Testkette:** `pluginHttpServer.test.js` und `renderer-plugin-loading.test.js` sind in `npm test` integriert (27 Suiten, alle grün).
+
+### 📦 Version
+
+- **`package.json` und `package-lock.json`** auf `1.0.7-alpha.5` angehoben.
+- **Versionsangaben synchronisiert:** `README.md` (Versions-Badge), `ROADMAP.md` (aktueller Milestone und „Explicitly Not Implemented“), die betroffenen Seiten unter `docs/` (`api-reference/`, `plugin-sdk/`, `theme-sdk/`, `architecture/`, `architecture.md`, `IntegrationSDK.md`, `Readme.md`) einschließlich der Manifest-Beispiele (`engines.webradio`), der Kommentar in `packaging/arch/PKGBUILD`, die JSDoc-Beispiele in `scripts/build-linux-arch.js` sowie die Formatkommentare in `.github/workflows/build-linux.yml` und `.github/workflows/release.yml`.
+- **Release-Validierung:** Der Eintrag erfüllt `npm run release:validate` (Version aus `package.json` muss im Changelog enthalten sein).
+
 ## [v1.0.7-alpha.4] – 2026-09-27
 
 > Vorabversion 1.0.7-alpha.4: Führt die Unified Player API auf den vollständigen v1-Vertrag (Provider-Metadaten, Capabilities, Mute, strukturierte Fehlerantworten, IPC-Registrierung von Providern, Preload-Vertrag `playerAPI.subscribe()`/`onCommand()`), vereinheitlicht den Main→Renderer-Kommando-Kanal auf den generischen Kanal `player:command`, ergänzt Provider-Capabilities in Radio- und MediaHub-Provider samt Session-Konsistenz (UUID, neue Session bei `stop`), entfernt die letzten nicht referenzierten Legacy-Dateien (2.197 Zeilen), unterstützt `__SEMVER__` im Arch-PKGBUILD und ergänzt die Testabdeckung um IPC- und End-to-End-Tests. Alle Versionsangaben in Dokumentation, README und Roadmap sind auf `1.0.7-alpha.4` synchronisiert.

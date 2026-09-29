@@ -29,7 +29,7 @@ The project's primary goals are:
 Current Version
 
 ```text
-v1.0.7-alpha.4
+v1.0.7-alpha.5
 ```
 
 Current Release Stage
@@ -74,7 +74,7 @@ Status:
 
 ---
 
-# Explicitly Not Implemented (v1.0.7-alpha.4)
+# Explicitly Not Implemented (v1.0.7-alpha.5)
 
 The following features are **not** part of the current release. The Capability System is
 designed as the foundation for them, but the features themselves do not exist yet:

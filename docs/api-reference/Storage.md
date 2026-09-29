@@ -39,7 +39,7 @@ Plugins should never instantiate the Storage service themselves.
 
 ---
 
-# Methods (1.0.7-alpha.4)
+# Methods (1.0.7-alpha.5)
 
 The current plugin-facing Storage API provides synchronous access to a plugin's isolated storage file.
 
@@ -200,7 +200,7 @@ storage.clear();
 
 Use with care.
 
-> **Note:** In WebRadio 1.0.7-alpha.4, Storage is not async and does not expose `keys()`, `values()` or `entries()`.
+> **Note:** In WebRadio 1.0.7-alpha.5, Storage is not async and does not expose `keys()`, `values()` or `entries()`.
 
 
 ---
@@ -295,7 +295,7 @@ The Storage service commonly works together with:
 
 ---
 
-# Example (1.0.7-alpha.4)
+# Example (1.0.7-alpha.5)
 
 ```javascript id="u9fphx"
 if (!context.storage.exists()) {
@@ -321,4 +321,4 @@ if (context.storage.has("volume")) {
 * Logger
 * Application
 
-> In WebRadio 1.0.7-alpha.4, `context.storage` does not expose async methods and does not include `keys()`, `values()` or `entries()`.
+> In WebRadio 1.0.7-alpha.5, `context.storage` does not expose async methods and does not include `keys()`, `values()` or `entries()`.

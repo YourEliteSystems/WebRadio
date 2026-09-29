@@ -1,6 +1,6 @@
 # Notifications Status
 
-In WebRadio 1.0.7-alpha.4, the plugin-facing Notifications service is **not** part of the current public Plugin API surface.
+In WebRadio 1.0.7-alpha.5, the plugin-facing Notifications service is **not** part of the current public Plugin API surface.
 
 Although `notifications` is listed as a valid plugin permission in the current permission set, there is no public `context.notifications` API exposed to plugins in this release.
 

@@ -361,8 +361,8 @@ jobs:
           mkdir -p dist/arch-build
 
           # ── Versionen strikt getrennt ──────────────────────────────────────
-          #   SEMVER      = SemVer aus package.json  (1.0.7-alpha.4)  → Artefakt
-          #   PKGVER_ARCH = Arch-Paketversion        (1.0.7.alpha.4)  → pkgver
+          #   SEMVER      = SemVer aus package.json  (1.0.7-alpha.5)  → Artefakt
+          #   PKGVER_ARCH = Arch-Paketversion        (1.0.7.alpha.5)  → pkgver
           # Der AppImage-Dateiname wird NICHT aus einer Version rekonstruiert.
           SEMVER="$(node -p "require('./package.json').version")"
           PKGVER_ARCH="${SEMVER//-/.}"

@@ -2,7 +2,7 @@
 
 This chapter describes the current capability model, how plugin permissions relate to capabilities, and how the plugin HTTP environment is controlled by the core.
 
-It is written for WebRadio **1.0.7-alpha.4**.
+It is written for WebRadio **1.0.7-alpha.5**.
 
 ---
 
@@ -58,7 +58,7 @@ For the current permission list, see the plugin manifest and Plugin API document
 
 ---
 
-## Known Capabilities (1.0.7-alpha.4)
+## Known Capabilities (1.0.7-alpha.5)
 
 The following capabilities are currently defined by the core:
 
@@ -174,6 +174,33 @@ Current properties:
 
 ---
 
+### Renderer Script Loading and the Window CSP
+
+A plugin with `http-origin` has its renderer script loaded by the main window from:
+
+```text
+http://127.0.0.1:<port>/plugins/<pluginId>/<renderer file>
+```
+
+The main window itself runs on `file://`. For Chromium that loopback URL is **not** `'self'`, so a policy of `script-src 'self'` discards the module script **before** any network request is made. The plugin HTTP server is then never contacted, and the visible symptom is only a load failure.
+
+The window policy therefore lists the loopback origin explicitly (current `renderer/index.html`):
+
+```text
+script-src 'self' http://127.0.0.1:*
+frame-src  https://www.youtube-nocookie.com https://www.youtube.com http://127.0.0.1:*
+```
+
+What this means for plugin authors:
+
+- The renderer script is reachable only while the plugin HTTP environment runs and the plugin path is registered by the core.
+- Without the `http-origin` capability no route is registered, and the request is rejected before any file access.
+- There is deliberately **no** `file://` fallback for `http-origin` renderer scripts. A `file://` URL would fail on the renderer's origin model and hide the real cause.
+- Only the loopback address is listed. No wildcard host and no external origin is added, and `webSecurity` stays enabled.
+- `frame-src` is required for plugins that embed their own HTML assets, for example a player page.
+
+---
+
 ### What the Plugin HTTP Environment Is Not
 
 It is **not** a general-purpose proxy.
@@ -246,7 +273,7 @@ This documentation does not claim more than the implementation provides.
 
 ## What Is Not Implemented Yet
 
-The following are **not** part of 1.0.7-alpha.4:
+The following are **not** part of 1.0.7-alpha.5:
 
 - Plugin Store
 - Theme Store

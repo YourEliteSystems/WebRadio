@@ -48,9 +48,9 @@ Plugins may inspect, modify or extend the operation before it continues.
 
 ---
 
-# Hooks Status (1.0.7-alpha.4)
+# Hooks Status (1.0.7-alpha.5)
 
-In WebRadio 1.0.7-alpha.4, the Hook API is **not** part of the current public plugin context.
+In WebRadio 1.0.7-alpha.5, the Hook API is **not** part of the current public plugin context.
 
 Plugins should not use `context.hooks` in this release.
 
