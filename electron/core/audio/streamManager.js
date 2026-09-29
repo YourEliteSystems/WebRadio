@@ -1,4 +1,5 @@
 const ffmpeg = require("fluent-ffmpeg");
+const { randomUUID } = require("crypto");
 
 const eventBus = require("../eventBus");
 const { getFFmpegPath } = require("../ffmpeg-resolver");
@@ -13,6 +14,8 @@ class StreamManager {
     this.ffmpegStream = null;
     this.mainWindow = null;
     this.lastTitle = null;
+    this.ffmpegPid = null;
+    this._killTimer = null;
 
     // Leichtgewichtige Diagnose-Zähler – kein Logging und kein Polling im
     // PCM-Pfad, Abruf nur bei Bedarf über getDiagnostics().
@@ -35,6 +38,8 @@ class StreamManager {
     this.stop();
 
     this.lastTitle = null;
+    this.ffmpegPid = null;
+    this._killTimer = null;
     this.currentStation = station;
     this.diag.chunksReceived = 0;
     this.diag.chunksSent = 0;
@@ -103,45 +108,92 @@ class StreamManager {
   }
 
   stop() {
-    if (this.ffmpegCommand) {
-      try {
-        // Reihenfolge ist entscheidend:
-        // 1. Alle eigenen Listener entfernen
-        // 2. No-op Error-Handler einhängen – verhindert uncaughtException,
-        //    weil fluent-ffmpeg's endCB async nach dem Kill noch
-        //    self.emit('error') aufruft (Zeile 543 in processor.js)
-        // 3. Erst dann killen
-        this.ffmpegCommand.removeAllListeners();
-        this.ffmpegCommand.on('error', () => {});
-        this.ffmpegCommand.kill('SIGTERM');
-        
-        // Timeout-Sicherung für hängende FFmpeg-Prozesse
-        const killTimeout = setTimeout(() => {
-          if (this.ffmpegCommand) {
+    // Jeder Stop löscht oder überschreibt die Zeitpläne des vorherigen Laufs.
+    // Sonst würde eine vorige 5s-SIGTERM-Sicherung noch in der Framezeit
+    // laufen und einen nachfolgend neugestarteten Stream mit SIGKILL töten.
+    if (this._killTimer != null) {
+      clearTimeout(this._killTimer);
+      this._killTimer = null;
+    }
+
+    const command = this.ffmpegCommand;
+    let killed = false;
+    let killTimer = null;
+
+    if (command) {
+      const terminate = (signal) => {
+        if (killed) {
+          return;
+        }
+        killed = true;
+
+        // Linux/macOS: kill(pid, 0) prüft, ob der PID noch lebt, ohne ein Signal
+        // zu versenden. Ein ESRCH-Fehler heißt: Prozess nicht gefunden/bereit.
+        // Ein EPERM-Fehler heißt: Prozess ist vorhanden, aber nicht berechtigt.
+        if (this.ffmpegPid != null && typeof process.kill === "function") {
+          let alive = true;
+          try {
+            process.kill(this.ffmpegPid, 0);
+          } catch (err) {
+            alive = err.code !== "ESRCH";
+          }
+
+          if (!alive) {
+            logger.info(`FFmpeg-Prozess (PID ${this.ffmpegPid}) ist bereits beendet`);
+            this.ffmpegPid = null;
+            return;
+          }
+        }
+
+        try {
+          command.kill(signal);
+        } catch (err) {
+          logger.warn(`Signal ${signal} an FFmpeg-Signal nicht gesendet: ${err.message}`);
+        }
+      };
+
+      terminate('SIGTERM');
+
+      killTimer = setTimeout(() => {
+        if (!killed) {
+          const stillRunning = this.ffmpegPid != null
+            ? (() => {
+                try {
+                  process.kill(this.ffmpegPid, 0);
+                  return true;
+                } catch (err) {
+                  return err.code !== "ESRCH";
+                }
+              })()
+            : true;
+
+          if (stillRunning) {
             logger.warn("FFmpeg hat nicht auf SIGTERM reagiert, SIGKILL wird ausgeführt");
             try {
-              this.ffmpegCommand.kill('SIGKILL');
+              command.kill('SIGKILL');
             } catch (killErr) {
               logger.warn(`SIGKILL fehlgeschlagen: ${killErr.message}`);
             }
           }
-        }, 5000); // 5 Sekunden Timeout
-        
-        // Timeout aufräumen
-        const clearKillTimeout = () => {
-          clearTimeout(killTimeout);
-        };
-        
-        // Timeout aufräumen wenn FFmpeg sauber beendet wird
-        this.ffmpegCommand.once('end', clearKillTimeout);
-        
-      } catch (err) {
-        logger.warn(`Fehler beim Beenden von FFmpeg: ${err.message}`);
-      }
+        }
+        this._killTimer = null;
+      }, 5000); // 5 Sekunden Timeout
 
-      this.ffmpegCommand = null;
+      this._killTimer = killTimer;
+
+      const clearKillTimer = () => {
+        if (this._killTimer === killTimer) {
+          clearTimeout(killTimer);
+        }
+      };
+
+      // Timeout aufräumen, wenn FFmpeg sauber beendet wird.
+      command.once('end', clearKillTimer);
     }
 
+    // Kommando und Stream-Handle einmalig und sicher aufräumen.
+    this.ffmpegCommand = null;
+    this.ffmpegPid = null;
     if (this.ffmpegStream) {
       try {
         this.ffmpegStream.removeAllListeners();
@@ -223,6 +275,9 @@ class StreamManager {
 
 // Singleton-Instanz (wird von radioHandlers/Application genutzt) –
 // plus named Export der Klasse für Tests und Dependency Injection.
+// Singleton-Instanz (wird von radioHandlers/Application genutzt) –
+// plus named Export der Klasse für Tests und Dependency Injection.
 const streamManagerInstance = new StreamManager();
+streamManagerInstance._sessionId = randomUUID();
 module.exports = streamManagerInstance;
 module.exports.StreamManager = StreamManager;

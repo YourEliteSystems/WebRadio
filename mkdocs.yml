@@ -126,6 +126,10 @@ nav:
       - Update Architecture: UPDATE_ARCHITECTURE.md
   - Cross Platform:
       - Cross-Platform Setup: CROSS_PLATFORM_SETUP.md
+  - Project Governance:
+      - Code of Conduct: CODE_OF_CONDUCT.md
+      - Contributing: CONTRIBUTING.md
+      - Security Policy: SECURITY.md
 
 # Warn (and fail under `mkdocs build --strict`) about broken links or
 # navigation entries that do not point to a real file. Nothing is silenced.

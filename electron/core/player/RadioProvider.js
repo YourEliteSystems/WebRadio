@@ -16,6 +16,8 @@
  * den PlayerManager via updateProviderState().
  */
 
+const { randomUUID } = require("crypto");
+
 const eventBus   = require("../eventBus");
 const streamManager = require("../audio/streamManager");
 const playerManager = require("./PlayerManager");
@@ -59,6 +61,10 @@ class RadioProvider {
     this._station   = null;
     this._streamUrl = null;
 
+    // Eindeutige Diagnose-IDs für play()-Fehler.
+    this._commandId = 0;
+    this._sessionId = randomUUID();
+
     // Bound handlers für sauberes Off()
     this._onPlay     = this._handlePlay.bind(this);
     this._onStop     = this._handleStop.bind(this);
@@ -83,8 +89,9 @@ class RadioProvider {
    */
   async play(url, station) {
     if (!url) {
-      logger.warn("play() ohne URL aufgerufen");
-      return;
+      const diagnostics = this._buildDiagnostics("play");
+      logger.warn(`play() ohne URL aufgerufen. ${diagnostics}`);
+      return { success: false, error: { code: "MISSING_URL", message: "play() ohne URL aufgerufen" } };
     }
 
     this._station   = station || null;
@@ -175,7 +182,19 @@ class RadioProvider {
     this._station = data?.station || null;
     this._title   = null;
     this._artist  = null;
-    this._reportState(PLAYER_STATES.PLAYING, this._station);
+
+    // Der eventBus reist mit dem Stream-URL und der Station. Der URL darf
+    // nicht im Provider-Transfer verloren gehen – sonst wird der Stream ohne
+    // Quelle gestartet. Die URL wird an play() weitergegeben; ein fehlender
+    // URL-Wert wird in play() mit Diagnose-Daten abgelehnt.
+    const url = data?.url;
+    if (url) {
+      this.play(url, this._station).catch((err) => {
+        logger.error(`RadioProvider: play nach Stationwechsel fehlgeschlagen: ${err.message}`);
+      });
+    } else {
+      this._reportState(PLAYER_STATES.PLAYING, this._station);
+    }
   }
 
   _handleStop() {
@@ -196,6 +215,16 @@ class RadioProvider {
   // ─────────────────────────────────────────────
   // Internal
   // ─────────────────────────────────────────────
+
+  /**
+   * Baut eine nachvollziehbare Diagnose für einen play()-Fehler.
+   * Enthält Command-ID, Provider-ID und Session-ID, soweit verfügbar.
+   * @param {string} method
+   * @returns {string}
+   */
+  _buildDiagnostics(method) {
+    return `Diagnose: play(${method}) fehlgeschlagen, commandId=${this._commandId}, providerId=${PROVIDER_ID}, sessionId=${this._sessionId}`;
+  }
 
   _reportState(state, station) {
     this._state = state;
