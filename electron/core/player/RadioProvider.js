@@ -84,24 +84,42 @@ class RadioProvider {
 
   /**
    * Startet die Radio-Wiedergabe.
-   * @param {string} url  Stream-URL
+   *
+   * Wird auch ohne Argumente aufgerufen (player:play / player:toggle über
+   * PlayerManager.play()). In dem Fall wird die zuletzt verwendete
+   * Stream-URL wieder aufgenommen – das ist echte Wiederherstellung, keine
+   * erfundene Default-URL. Existiert noch keine, folgt die Diagnose.
+   *
+   * @param {string} [url]  Stream-URL
    * @param {object} [station]  Station-Objekt (name, favicon, …)
+   * @returns {{ success: boolean, error?: object }}
    */
   async play(url, station) {
-    if (!url) {
+    this._commandId += 1;
+
+    const requested = typeof url === "string" ? url.trim() : "";
+    const remembered = typeof this._streamUrl === "string" ? this._streamUrl.trim() : "";
+    const effective = requested || remembered;
+
+    if (!effective) {
       const diagnostics = this._buildDiagnostics("play");
       logger.warn(`play() ohne URL aufgerufen. ${diagnostics}`);
-      return { success: false, error: { code: "MISSING_URL", message: "play() ohne URL aufgerufen" } };
+      return {
+        success: false,
+        error: { code: "MISSING_URL", message: "play() ohne URL aufgerufen" }
+      };
     }
 
-    this._station   = station || null;
-    this._streamUrl = url;
+    this._station   = station || this._station || null;
+    this._streamUrl = effective;
     this._title     = null;
     this._artist    = null;
 
-    this._reportState(PLAYER_STATES.LOADING, station);
+    this._reportState(PLAYER_STATES.LOADING, this._station);
 
-    await streamManager.start(url, station);
+    await streamManager.start(effective, this._station);
+
+    return { success: true };
   }
 
   /**
@@ -178,30 +196,37 @@ class RadioProvider {
   // EventBus Handlers
   // ─────────────────────────────────────────────
 
+  /**
+   * Reaktion auf einen tatsächlich gestarteten Stream (eventBus "play").
+   *
+   * WICHTIG: Dieser Handler darf play() NICHT aufrufen. Der eventBus ist
+   * synchron, und streamManager.start() emittiert "play" direkt. Ein
+   * play()-Aufruf hier würde streamManager.start() erneut anstoßen →
+   * Endlosschleife. Der Handler dokumentiert lediglich, welche Quelle
+   * läuft, und meldet den State.
+   */
   _handlePlay(data) {
+    const url = typeof data?.url === "string" ? data.url.trim() : "";
+    if (url) {
+      this._streamUrl = url;
+    }
     this._station = data?.station || null;
     this._title   = null;
     this._artist  = null;
 
-    // Der eventBus reist mit dem Stream-URL und der Station. Der URL darf
-    // nicht im Provider-Transfer verloren gehen – sonst wird der Stream ohne
-    // Quelle gestartet. Die URL wird an play() weitergegeben; ein fehlender
-    // URL-Wert wird in play() mit Diagnose-Daten abgelehnt.
-    const url = data?.url;
-    if (url) {
-      this.play(url, this._station).catch((err) => {
-        logger.error(`RadioProvider: play nach Stationwechsel fehlgeschlagen: ${err.message}`);
-      });
-    } else {
-      this._reportState(PLAYER_STATES.PLAYING, this._station);
-    }
+    this._reportState(PLAYER_STATES.PLAYING, this._station);
   }
 
+  /**
+   * Stream wurde gestoppt.
+   *
+   * _streamUrl und _station bleiben erhalten: Ein anschließendes play()
+   * ohne Argumente nimmt genau diese Quelle wieder auf. Metadaten dagegen
+   * veralten und werden zurückgesetzt.
+   */
   _handleStop() {
-    this._state   = PLAYER_STATES.STOPPED;
     this._title   = null;
     this._artist  = null;
-    this._station = null;
     this._reportState(PLAYER_STATES.STOPPED, null);
   }
 

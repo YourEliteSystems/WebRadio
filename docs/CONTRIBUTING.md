@@ -8,8 +8,8 @@ Bitte lies zuerst:
 
 - [Code of Conduct](./CODE_OF_CONDUCT.md)
 - [Security Policy](./SECURITY.md)
-- [README](../README.md)
-- [Roadmap](../ROADMAP.md)
+- [README](https://github.com/YourEliteSystems/WebRadio/blob/main/README.md)
+- [Roadmap](https://github.com/YourEliteSystems/WebRadio/blob/main/ROADMAP.md)
 
 Für größere Änderungen ist es sinnvoll, vor der Implementierung ein Issue oder eine Discussion zu eröffnen. So können Architektur, Umfang und Kompatibilität früh abgestimmt werden.
 

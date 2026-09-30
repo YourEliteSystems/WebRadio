@@ -89,6 +89,7 @@ nav:
       - Permissions: api-reference/Permissions.md
       - Windows: api-reference/Windows.md
       - StreamManager: api-reference/StreamManager.md
+      - Unified Player: api-reference/UnifiedPlayer.md
       - RadioBrowserService: api-reference/RadioBrowserService.md
       - Logger: api-reference/Logger.md
   - Plugin SDK:

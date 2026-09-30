@@ -192,6 +192,4 @@ test("UpdatesSettings rendert Kanal-Icons über <InlineSvg/>", () => {
         "SVG-String darf nicht direkt als JSX-Kind stehen");
 });
 
-report_chain();
-
 

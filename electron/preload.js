@@ -176,7 +176,7 @@ contextBridge.exposeInMainWorld("pluginAPI", {
 
 // PLAYER
 contextBridge.exposeInMainWorld("radioAPI", {
-  startStream: (url) => ipcRenderer.invoke("radio:start", url),
+  startStream: (url, station) => ipcRenderer.invoke("radio:start", url, station),
   stopStream: () => ipcRenderer.invoke("radio:stop"),
   onMetadata: (callback) => ipcRenderer.on("radio:metadata", (_, data) => callback(data)),
   onPCM: (callback) => {

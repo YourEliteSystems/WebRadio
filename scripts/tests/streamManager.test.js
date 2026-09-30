@@ -26,7 +26,8 @@ function chainable() {
                 removeAllListeners() { kSRALL++; return this; },
                 destroy() { kDestroy++; }
             };
-        }
+        },
+        once() { return this; }
     };
 }
 const fakeFfmpeg = (u) => { void u; return chainable(); }; fakeFfmpeg.setFfmpegPath = () => {};
@@ -49,11 +50,14 @@ test("start erzeugt ffmpegCommand+pipe", () => { reset(); const s = new SM.Strea
 test("stop killt ffmpeg+stream", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); assert.ok(s.ffmpegCommand && s.ffmpegStream, "vor stop: Refs gesetzt"); const stopsBefore = emits.filter(e=>e.e==="stop").length; s.stop(); assert.strictEqual(s.ffmpegCommand, null); assert.strictEqual(s.ffmpegStream, null); assert.ok(kKill >= 1, "kill aufgerufen"); assert.ok(kDestroy >= 1, "stream destroy aufgerufen"); assert.ok(emits.filter(e=>e.e==="stop").length >= stopsBefore + 1, "stop-Event emittiert"); });
 
 console.log("[2] Restart/Station");
-test("neuer Start stoppt vorherigen", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s1",{name:"S1"}); const f = s.ffmpegStream; s.start("http://x/s2",{name:"S2"}); assert.notStrictEqual(s.ffmpegStream, f); assert.strictEqual(s.currentStation.name, "S2"); assert.ok(kKill >= 1); });
+test("neuer Start stoppt vorherigen und nutzt eine neue Stream-Referenz", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s1",{name:"S1"}); const f = s.ffmpegStream; s.start("http://x/s2",{name:"S2"}); assert.notStrictEqual(s.ffmpegStream, f); assert.strictEqual(s.currentStation.name, "S2"); assert.ok(kKill >= 1); });
+test("Kill-Timer eines gestoppten Streams wird aufgeräumt (kein SIGKILL auf den nächsten Stream)", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s1"); s.stop(); assert.strictEqual(s._killTimer, null, "Kill-Timer muss nach einem sauberen Stop auf null gesetzt sein"); s.start("http://x/s2"); assert.strictEqual(s.ffmpegCommand === null, false, "Nach dem zweiten Start ist ein neues Kommando referenziert"); s.stop(); assert.strictEqual(s.ffmpegCommand, null); });
 test("Stationwechsel resettet lastTitle", () => { reset(); const s = new SM.StreamManager(); s.handleMetadata("StreamTitle='A - B'"); assert.strictEqual(s.lastTitle, "A - B"); s.start("http://x/s2"); assert.strictEqual(s.lastTitle, null); });
 
 console.log("[3] Fehler");
 test("doppeltes Stoppen sicher", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); s.stop(); s.stop(); assert.strictEqual(s.ffmpegCommand, null); assert.strictEqual(s.ffmpegStream, null); });
+test("Bereits beendeter Prozess wird nicht erneut beendet", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); s.stop(); s.stop(); assert.strictEqual(kKill, 1, "doppeltes Stoppen darf nur EINEN Kill senden (Idempotenz)"); });
+test("SIGTERM-Timeout und SIGKILL-Fallback (Mock-Timeout-Flow)", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); s._killTimer = setTimeout(() => { s._killTimer = null; }, 5000); assert.ok(s._killTimer != null, "Kill-Timer wird gesetzt"); clearTimeout(s._killTimer); s.stop(); assert.strictEqual(s._killTimer, null, "Kill-Timer wird bei einem weiteren Stop aufgeräumt"); });
 
 console.log("[4] Metadata");
 test("parst StreamTitle", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.handleMetadata("foo"); s.handleMetadata("StreamTitle='Artist - Song';"); assert.strictEqual(s.lastTitle, "Artist - Song"); const m = emits.filter(e=>e.e==="metadata"); assert.strictEqual(m.length,1); assert.strictEqual(m[0].d.Artist,"Artist"); assert.strictEqual(m[0].d.Song,"Song"); });
@@ -61,7 +65,7 @@ test("doppelte Titel nur einmal", () => { reset(); const s = new SM.StreamManage
 test("sendet an webContents", () => { reset(); let sent=null; const w={isDestroyed:()=>false,webContents:{send:(c,d)=>{sent={c,d};}}}; const s=new SM.StreamManager(); s.setMainWindow(w); s.handleMetadata("StreamTitle='A - B';"); assert.ok(sent); assert.strictEqual(sent.c, "radio:metadata"); });
 
 console.log("[5] Cleanup");
-test("stop ruft removeAllListeners auf", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); s.stop(); assert.ok(kRALL >= 1); assert.ok(kSRALL >= 1); });
+test("stop ruft removeAllListeners auf", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); s.stop(); assert.ok(kSRALL >= 1, "Stream-Listener werden entfernt"); assert.strictEqual(kRALL, 0, "Kommando-Listener bleiben erhalten – removeAllListeners() auf dem Kommando würde den spaeteren 'error'-Event unbehandelt lassen (Crash)"); });
 
 console.log("[6] Shutdown-Regression");
 test("Application.shutdown() ruft streamManager.stop()", () => { const src = fs.readFileSync(path.join(__dirname,"..","..","electron","core","Application.js"),"utf8"); assert.ok(/streamManager\s*\.\s*stop\s*\(/.test(src)); });

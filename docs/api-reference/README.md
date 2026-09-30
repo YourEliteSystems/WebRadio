@@ -115,7 +115,7 @@ Each category is documented separately.
 
 # Player API
 
-* UnifiedPlayer
+* [Unified Player](./UnifiedPlayer.md) – PlayerManager, providers, states, IPC and the renderer/plugin surface
 
 ---
 

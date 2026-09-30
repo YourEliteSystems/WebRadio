@@ -109,6 +109,7 @@ WebRadio distinguishes between high-level managers and supporting core modules.
 ## Supporting core modules (newer additions)
 
 * **StreamManager** – starts and controls FFmpeg-based audio streams.
+* **PlayerManager / RadioProvider / MediaHubProvider** – the Unified Player: one state machine and provider registry over every playback source.
 * **RadioBrowserService** – fetches station lists and metadata from the Radio Browser API.
 * **RuntimeDetector** – detects platform, architecture and packaging type at runtime.
 * **ProviderFactory** – selects the correct update provider for the detected runtime.
@@ -233,6 +234,7 @@ This philosophy keeps updates stable while allowing the community to extend the 
 In addition to managers, WebRadio uses several core runtime services:
 
 * **StreamManager** – manages FFmpeg-based playback.
+* **PlayerManager** – Unified Player state, provider registry and controls.
 * **RadioBrowserService** – searches and caches station metadata.
 * **RuntimeDetector** – detects platform, architecture and packaging type.
 * **ProviderFactory** – selects the correct update provider.
@@ -253,6 +255,7 @@ The following documents describe each subsystem in detail:
 * IPC
 * API Reference
 * StreamManager
+* Unified Player
 * RadioBrowserService
 
 Each guide builds upon the concepts introduced in this document.

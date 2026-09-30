@@ -20,6 +20,7 @@ The Application is responsible for:
 * Loading plugins
 * Initializing the update manager
 * Initializing radio and stream services
+* Initializing the Unified Player (PlayerManager and its providers)
 * Initializing diagnostics
 * Registering media keys
 * Creating the system tray
@@ -82,6 +83,7 @@ The Application initializes both high-level managers and supporting core service
 | Core service | Responsibility |
 | --- | --- |
 | **StreamManager** | Manages FFmpeg-based audio streams. |
+| **PlayerManager** | Unified Player state, provider registry and controls. |
 | **RadioBrowserService** | Discovers stations and metadata. |
 | **RuntimeDetector** | Detects platform and packaging type. |
 | **NavigationManager** | Manages sidebar navigation. |

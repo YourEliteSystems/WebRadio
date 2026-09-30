@@ -169,7 +169,8 @@ The current IPC surface includes handlers for:
 * Theme selection and theme events
 * Navigation tree and navigation registration
 * Update checks, download, install and channel management
-* Radio playback and stream status
+* Radio playback (`radio:start`, `radio:stop`, `radio:getAudioDiagnostics`, station search) and the PCM/metadata push channels
+* Unified Player controls, provider registry and state push (`player:*`)
 * System tray actions
 * Media keys
 * Diagnostics and logging
@@ -253,3 +254,5 @@ Possible future enhancements include:
 * PluginManager
 * ThemeManager
 * Diagnostics
+* [StreamManager](../api-reference/StreamManager.md)
+* [Unified Player](../api-reference/UnifiedPlayer.md)
