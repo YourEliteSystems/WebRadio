@@ -76,8 +76,7 @@ Status:
 
 # Explicitly Not Implemented (v1.0.7-alpha.5)
 
-The following features are **not** part of the current release. The Capability System is
-designed as the foundation for them, but the features themselves do not exist yet:
+The following features are **not** part of the current release. The Capability System is designed as the foundation for them, but the features themselves do not exist yet:
 
 * Plugin Store / Marketplace
 * Theme Store
@@ -86,31 +85,58 @@ designed as the foundation for them, but the features themselves do not exist ye
 * Automatic plugin or theme updates
 * Cloud synchronization
 
-> The Capability System allows a future installer to show a permission and security overview
-> based on a plugin manifest. The installer and store themselves are **not implemented**.
+> The Capability System allows a future installer to show a permission and security overview based on a plugin manifest. The installer and store themselves are **not implemented**.
+
+---
 
 # Upcoming Milestones
 
-## v1.1
+## v1.1 — Extension & Package Architecture
 
-### Core
+The focus of v1.1 is to establish a clean, generic foundation for managing plugins and themes without requiring Core changes for individual extensions.
 
-* Plugin Manager
-* Theme Manager
-* Command System
-* Permission System
-* Window Manager
+### Plugin & Package Management
 
-### SDK
+* Generic Package Loader
+* Package Validator
+* Package Registry
+* Package Installer
+* Local package source
+* App-bundled and user-installed packages
+* User package directories under the WebRadio user data directory
+* Legacy `plugin.json` and `theme.json` compatibility
+* Generic install / update / remove lifecycle
+* Plugin activation and deactivation
+* Plugin version and runtime status
+* Package lifecycle events
+* Permission enforcement before exposing plugin capabilities
 
-* Stable Plugin SDK
-* Stable Theme SDK
+### Plugin Updates
 
-### Documentation
+* Installed plugin version information
+* Available-version information
+* Plugin update handling
+* Dedicated plugin update management
+* Foundation for future "Update all" functionality
+* Preparation for rollback-safe updates where practical
 
-* Complete API Reference
-* Examples
-* Tutorials
+### Future Package Sources
+
+The architecture should allow additional package sources without changing the Core package system:
+
+* Local source
+* GitHub source
+* HTTP source
+* Future WebRadio package/store source
+
+Remote stores and automatic online updates remain future functionality and are **not** part of the initial v1.1 implementation.
+
+### SDK & Documentation
+
+* Continue stabilizing the public Plugin SDK
+* Document package and lifecycle APIs
+* Keep Core generic and independent of individual community plugins
+* Preserve backward compatibility wherever practical
 
 ---
 
@@ -208,9 +234,17 @@ Before contributing, please read:
 
 ---
 
-# Future Ideas
+# Future Ideas & Waiting List
 
-Potential future ideas include:
+The following ideas are intentionally kept on the roadmap and are **not immediate development tasks**.
+
+### Community Extensions
+
+* Further integration of complex third-party/community plugins with the stable Plugin SDK
+* Community plugin compatibility testing against the finalized package architecture
+* Community theme compatibility testing against the finalized package architecture
+
+### Platform & Product Ideas
 
 * Mobile Companion App
 * Cloud Profiles
@@ -221,7 +255,7 @@ Potential future ideas include:
 * Community Plugin Marketplace
 * Community Theme Marketplace
 
-These ideas are exploratory and have no planned release target.
+These ideas are exploratory or waiting-list items and have no immediate release target unless explicitly moved into an upcoming milestone.
 
 ---
 
