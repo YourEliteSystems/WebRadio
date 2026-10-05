@@ -10,7 +10,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
 [![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
-**[⬇️ Downloads](../../releases) · [📚 Documentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions)**
+**[⬇️ Downloads](../../releases) · [📚 Documentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
 
 ---
 
