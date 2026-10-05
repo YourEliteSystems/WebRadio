@@ -46,11 +46,6 @@ function isAbsolutePathSuspicious(filePath) {
 function validateSecurityConstraints(data, type) {
   const errors = [];
 
-  const manifestPath = data.manifestSource ? String(data.manifestSource) : "";
-  if (containsPathTraversal(manifestPath)) {
-    errors.push("manifest source contains path traversal artefacts");
-  }
-
   if (data.main) {
     if (containsPathTraversal(data.main)) {
       errors.push("plugin main path contains traversal artefacts");
@@ -121,10 +116,6 @@ function validateGeneral(data) {
     errors.push("invalid or missing type");
   }
 
-  if (!PACKAGE_TYPES.plugin && !PACKAGE_TYPES.theme) {
-    errors.push("unknown package type");
-  }
-
   const securityErrors = validateSecurityConstraints(data, data.type);
   if (securityErrors.length > 0) {
     errors.push(...securityErrors);
@@ -158,7 +149,7 @@ function validatePlugin(data) {
     errors.push("plugin main file must be a .js file");
   }
 
-  if (data.renderer !== null && typeof data.renderer !== "string") {
+  if (data.renderer !== undefined && data.renderer !== null && typeof data.renderer !== "string") {
     errors.push("plugin renderer must be a string if present");
   }
 
@@ -214,11 +205,42 @@ function validate(data, type) {
   return validateGeneral(data);
 }
 
+function validateSource(sourcePath) {
+  const errors = [];
+
+  if (typeof sourcePath !== "string" || sourcePath.trim().length === 0) {
+    errors.push("source path must be a non-empty string");
+    return { valid: false, errors };
+  }
+
+  const resolved = path.resolve(sourcePath);
+  if (!fs.existsSync(resolved)) {
+    errors.push("source path does not exist");
+    return { valid: false, errors };
+  }
+
+  if (!fs.statSync(resolved).isDirectory()) {
+    errors.push("source path must be a directory");
+    return { valid: false, errors };
+  }
+
+  const normalized = sourcePath.replace(/\\/g, "/");
+  if (normalized.includes("/../") || normalized.startsWith("../") || normalized.endsWith("/..")) {
+    errors.push("source path contains traversal artefacts");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 module.exports = {
   validate,
   validateGeneral,
   validatePlugin,
   validateTheme,
+  validateSource,
   containsPathTraversal,
   isAbsolutePathSuspicious
 };

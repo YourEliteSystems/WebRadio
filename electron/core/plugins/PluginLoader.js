@@ -10,7 +10,34 @@ const logger = LogManager.getLogger("PluginLoader");
 class PluginLoader {
 
     loadManifest(pluginPath) {
-        // Versuche zuerst plugin.json (altes Format)
+        // Optional: install.json prüfen, aber nur um das eigentliche Manifest zu finden
+        const installJsonPath = path.join(pluginPath, "install.json");
+        let manifestFilename = null;
+
+        if (fs.existsSync(installJsonPath)) {
+            try {
+                const installJson = JSON.parse(fs.readFileSync(installJsonPath, "utf8"));
+                if (installJson.manifest && typeof installJson.manifest === "string") {
+                    manifestFilename = installJson.manifest;
+                }
+            } catch (err) {
+                logger.warn(`[PluginLoader] Konnte install.json nicht lesen: ${err.message}`);
+            }
+        }
+
+        // Wenn install.json ein Manifest angibt, dieses bevorzugen
+        if (manifestFilename) {
+            const customManifestPath = path.join(pluginPath, manifestFilename);
+            if (fs.existsSync(customManifestPath)) {
+                try {
+                    return JSON.parse(fs.readFileSync(customManifestPath, "utf8"));
+                } catch (err) {
+                    logger.warn(`[PluginLoader] Konnte ${manifestFilename} nicht lesen: ${err.message}`);
+                }
+            }
+        }
+
+        // Fallback: plugin.json (altes Format)
         const pluginJsonPath = path.join(pluginPath, "plugin.json");
         if (fs.existsSync(pluginJsonPath)) {
             return JSON.parse(fs.readFileSync(pluginJsonPath, "utf8"));

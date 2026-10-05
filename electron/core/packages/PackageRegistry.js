@@ -19,15 +19,15 @@ class PackageRegistry {
       ? app.getPath("userData")
       : path.join(process.cwd(), "data");
 
-    this.packageDataPath = path.join(this.userData, PACKAGE_DATA_SUBDIR);
-    this.registryFile = path.join(this.packageDataPath, REGISTRY_FILENAME);
+    this._packageDataPath = path.join(this.userData, PACKAGE_DATA_SUBDIR);
+    this._registryFile = path.join(this._packageDataPath, REGISTRY_FILENAME);
     this._data = null;
   }
 
   ensureInitialized() {
-    fs.mkdirSync(this.packageDataPath, { recursive: true });
-    if (!fs.existsSync(this.registryFile)) {
-      fs.writeFileSync(this.registryFile, JSON.stringify(this._defaultData(), null, 2), "utf8");
+    fs.mkdirSync(this._packageDataPath, { recursive: true });
+    if (!fs.existsSync(this._registryFile)) {
+      fs.writeFileSync(this._registryFile, JSON.stringify(this._defaultData(), null, 2), "utf8");
     }
     this._load();
   }
@@ -41,7 +41,7 @@ class PackageRegistry {
 
   _load() {
     try {
-      this._data = JSON.parse(fs.readFileSync(this.registryFile, "utf8"));
+      this._data = JSON.parse(fs.readFileSync(this._registryFile, "utf8"));
     } catch {
       this._data = this._defaultData();
     }
@@ -117,7 +117,7 @@ class PackageRegistry {
   }
 
   _write() {
-    fs.writeFileSync(this.registryFile, JSON.stringify(this._data, null, 2), "utf8");
+    fs.writeFileSync(this._registryFile, JSON.stringify(this._data, null, 2), "utf8");
   }
 
   list() {
@@ -205,9 +205,19 @@ class PackageRegistry {
     if (merged.deleteFiles && entry.path && typeof entry.path === "string" && entry.path.trim().length > 0) {
       try {
         const targetPath = path.resolve(this.userData, entry.path.trim());
-        if (FilesPolicy.isWithinUserPackageDataDir(targetPath, this.packageDataPath)) {
+        const { PACKAGE_TARGETS } = require("./PackageModel");
+        const allowedTargets = Object.values(PACKAGE_TARGETS).map(t => path.join(this.userData, t));
+
+        const isAllowed = allowedTargets.some(allowed => {
+          const resolvedAllowed = path.resolve(allowed);
+          return targetPath.startsWith(resolvedAllowed + path.sep) || targetPath === resolvedAllowed;
+        });
+
+        if (isAllowed) {
           fs.rmSync(targetPath, { recursive: true, force: true });
           logger.info(`Package-Dateien entfernt: ${id}`);
+        } else {
+          logger.warn(`Package-Dateien konnten nicht entfernt werden (${id}): Pfad außerhalb erlaubter Ziele`);
         }
       } catch (err) {
         logger.warn(`Package-Dateien konnten nicht entfernt werden (${id}): ${err.message}`);
@@ -257,18 +267,29 @@ class PackageRegistry {
   }
 
   packageDataPath() {
-    return this.packageDataPath;
+    return this._packageDataPath;
   }
 
   registryFile() {
-    return this.registryFile;
+    return this._registryFile;
+  }
+
+  userDataPath() {
+    return this.userData;
+  }
+
+  packageInstallPath(type, id) {
+    const { PACKAGE_TARGETS } = require("./PackageModel");
+    const targetDir = PACKAGE_TARGETS[type];
+    if (!targetDir) return null;
+    return path.join(this.userData, targetDir, id);
   }
 }
 
 class FilesPolicy {
   static userPackageBaseDir() {
     const registry = new PackageRegistry();
-    return registry.packageDataPath();
+    return registry.userDataPath();
   }
 
   static isWithinUserPackageDataDir(targetPath, baseDir) {
@@ -287,6 +308,29 @@ class FilesPolicy {
     }
 
     return true;
+  }
+
+  static isWithinAllowedInstallTarget(targetPath, userDataPath) {
+    if (typeof targetPath !== "string" || typeof userDataPath !== "string") {
+      return false;
+    }
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedUserData = path.resolve(userDataPath);
+
+    const { PACKAGE_TARGETS } = require("./PackageModel");
+    const allowedTargets = Object.values(PACKAGE_TARGETS).map(t => path.join(resolvedUserData, t));
+
+    for (const allowed of allowedTargets) {
+      const resolvedAllowed = path.resolve(allowed);
+      if (resolvedTarget.startsWith(resolvedAllowed + path.sep) || resolvedTarget === resolvedAllowed) {
+        if (resolvedTarget.includes(path.sep + ".." + path.sep) || resolvedTarget.endsWith(path.sep + "..")) {
+          return false;
+        }
+        return true;
+      }
+    }
+
+    return false;
   }
 
   static isAppPackagePath(targetPath) {

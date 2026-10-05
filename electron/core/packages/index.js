@@ -4,6 +4,7 @@ const PackageManager = require("./PackageManager");
 const PackageInstaller = require("./PackageInstaller");
 const PackageRegistry = require("./PackageRegistry");
 const PackageValidator = require("./PackageValidator");
+const PackageDiscovery = require("./PackageDiscovery");
 const PackageModel = require("./PackageModel");
 const LocalSource = require("./LocalSource");
 const { PackageSource, GitHubSource, HTTPSource, StoreSource } = require("./LocalSource");
@@ -14,6 +15,7 @@ module.exports = {
   PackageInstaller,
   PackageRegistry,
   PackageValidator,
+  PackageDiscovery,
   PackageModel,
   LocalSource,
   PackageSource,

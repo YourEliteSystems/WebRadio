@@ -24,6 +24,13 @@ class PackageManager {
     this.localSource = new LocalSource({
       allowedBaseDirs: [this._resolveUserPackageDataDir()]
     });
+    this.runtimeCallbacks = {
+      onPackageInstalled: null,
+      onPackageUpdated: null,
+      onPackageRemoved: null,
+      onPackageEnabled: null,
+      onPackageDisabled: null
+    };
   }
 
   _resolveUserPackageDataDir() {
@@ -33,6 +40,26 @@ class PackageManager {
       : process.cwd();
     this._userPackageDataDir = path.join(base, PACKAGE_DATA_SUBDIR);
     return this._userPackageDataDir;
+  }
+
+  setRuntimeCallbacks(callbacks) {
+    if (callbacks && typeof callbacks === "object") {
+      if (typeof callbacks.onPackageInstalled === "function") {
+        this.runtimeCallbacks.onPackageInstalled = callbacks.onPackageInstalled;
+      }
+      if (typeof callbacks.onPackageUpdated === "function") {
+        this.runtimeCallbacks.onPackageUpdated = callbacks.onPackageUpdated;
+      }
+      if (typeof callbacks.onPackageRemoved === "function") {
+        this.runtimeCallbacks.onPackageRemoved = callbacks.onPackageRemoved;
+      }
+      if (typeof callbacks.onPackageEnabled === "function") {
+        this.runtimeCallbacks.onPackageEnabled = callbacks.onPackageEnabled;
+      }
+      if (typeof callbacks.onPackageDisabled === "function") {
+        this.runtimeCallbacks.onPackageDisabled = callbacks.onPackageDisabled;
+      }
+    }
   }
 
   initialize() {
@@ -52,9 +79,8 @@ class PackageManager {
   }
 
   getInstallBaseDir() {
-    return this.installer.getRegistry().packageDataPath || path.join(
-      (app && typeof app.getPath === "function" ? app.getPath("userData") : process.cwd()),
-      PACKAGE_DATA_SUBDIR
+    return this.installer.getRegistry().userDataPath() || path.join(
+      (app && typeof app.getPath === "function") ? app.getPath("userData") : process.cwd()
     );
   }
 
@@ -76,27 +102,77 @@ class PackageManager {
 
   installFromDirectory(dirPath, type, options = {}) {
     this.initialize();
-    return this.installer.install(dirPath, type, options);
+    const result = this.installer.install(dirPath, type, options);
+    
+    if (result.success && this.runtimeCallbacks.onPackageInstalled) {
+      try {
+        this.runtimeCallbacks.onPackageInstalled(result.package);
+      } catch (err) {
+        logger.error(`Runtime callback after installation failed: ${err.message}`);
+      }
+    }
+    
+    return result;
   }
 
   updateFromDirectory(packageId, dirPath, type, options = {}) {
     this.initialize();
-    return this.installer.update(packageId, dirPath, type, options);
+    const result = this.installer.update(packageId, dirPath, type, options);
+    
+    if (result.success && this.runtimeCallbacks.onPackageUpdated) {
+      try {
+        this.runtimeCallbacks.onPackageUpdated(result.package);
+      } catch (err) {
+        logger.error(`Runtime callback after update failed: ${err.message}`);
+      }
+    }
+    
+    return result;
   }
 
   enable(packageId) {
     this.initialize();
-    return this.installer.enable(packageId);
+    const result = this.installer.enable(packageId);
+    
+    if (this.runtimeCallbacks.onPackageEnabled) {
+      try {
+        this.runtimeCallbacks.onPackageEnabled(result);
+      } catch (err) {
+        logger.error(`Runtime callback after enable failed: ${err.message}`);
+      }
+    }
+    
+    return result;
   }
 
   disable(packageId) {
     this.initialize();
-    return this.installer.disable(packageId);
+    const result = this.installer.disable(packageId);
+    
+    if (this.runtimeCallbacks.onPackageDisabled) {
+      try {
+        this.runtimeCallbacks.onPackageDisabled(result);
+      } catch (err) {
+        logger.error(`Runtime callback after disable failed: ${err.message}`);
+      }
+    }
+    
+    return result;
   }
 
   remove(packageId, options = {}) {
     this.initialize();
-    return this.installer.remove(packageId, options);
+    const result = this.installer.remove(packageId, options);
+    
+    if (result && this.runtimeCallbacks.onPackageRemoved) {
+      try {
+        this.runtimeCallbacks.onPackageRemoved(result);
+      } catch (err) {
+        logger.error(`Runtime callback after removal failed: ${err.message}`);
+      }
+    }
+    
+    return result;
   }
 
   validateOnly(dirPath, type) {

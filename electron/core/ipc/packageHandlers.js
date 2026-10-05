@@ -236,7 +236,8 @@ function registerPackageHandlers() {
   ipcMain.handle("package:openUserFolder", () => {
     try {
       const { shell } = require("electron");
-      const userDir = PackageManager.getInstallBaseDir();
+      const registry = PackageManager.registry();
+      const userDir = registry.userDataPath();
       if (!userDir || !require("fs").existsSync(userDir)) {
         return { ok: true, opened: false };
       }

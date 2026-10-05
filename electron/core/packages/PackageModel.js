@@ -17,6 +17,15 @@ const KNOWN_PACKAGE_TYPES = Object.values(PACKAGE_TYPES);
 
 const LEGACY_PLUGIN_MANIFEST_NAMES = ["plugin.json", "manifest.json"];
 const LEGACY_THEME_MANIFEST_NAME = "theme.json";
+const INSTALL_MANIFEST_NAME = "install.json";
+const WEBRADIO_MANIFEST_NAME = "webradio.json";
+
+const INSTALL_SCHEMA_VERSION = 1;
+
+const PACKAGE_TARGETS = Object.freeze({
+  plugin: "plugins",
+  theme: "themes"
+});
 
 const ID_REGEX = /^[a-z0-9-_]+$/i;
 
@@ -86,6 +95,71 @@ function readThemeManifest(themeDir) {
     return { manifest, source: LEGACY_THEME_MANIFEST_NAME };
   }
   return null;
+}
+
+function readInstallManifest(packageDir) {
+  const filePath = path.join(packageDir, INSTALL_MANIFEST_NAME);
+  const manifest = readLocalJsonFile(filePath);
+  if (manifest && typeof manifest === "object" && manifest !== null) {
+    return { manifest, source: INSTALL_MANIFEST_NAME };
+  }
+  return null;
+}
+
+function readWebradioManifest(packageDir) {
+  const filePath = path.join(packageDir, WEBRADIO_MANIFEST_NAME);
+  const manifest = readLocalJsonFile(filePath);
+  if (manifest && typeof manifest === "object" && manifest !== null) {
+    return { manifest, source: WEBRADIO_MANIFEST_NAME };
+  }
+  return null;
+}
+
+function validateInstallManifest(installManifest) {
+  if (!installManifest || typeof installManifest !== "object" || installManifest === null) {
+    return { valid: false, errors: ["install.json must be a valid object"] };
+  }
+
+  const errors = [];
+
+  if (typeof installManifest.schemaVersion !== "number" || installManifest.schemaVersion !== INSTALL_SCHEMA_VERSION) {
+    errors.push(`install.json schemaVersion must be ${INSTALL_SCHEMA_VERSION}`);
+  }
+
+  if (!installManifest.package || typeof installManifest.package !== "object") {
+    errors.push("install.json must contain a 'package' object");
+  } else {
+    const pkg = installManifest.package;
+    if (!pkg.id || typeof pkg.id !== "string" || !isValidId(pkg.id)) {
+      errors.push("install.json package.id must be a valid package ID");
+    }
+    if (!pkg.type || typeof pkg.type !== "string" || !normalizeType(pkg.type)) {
+      errors.push("install.json package.type must be 'plugin' or 'theme'");
+    }
+  }
+
+  if (!installManifest.manifest || typeof installManifest.manifest !== "string") {
+    errors.push("install.json must specify a 'manifest' file");
+  }
+
+  if (installManifest.installation && typeof installManifest.installation === "object") {
+    const installation = installManifest.installation;
+    if (installation.mode && installation.mode !== "managed") {
+      errors.push("install.json installation.mode must be 'managed'");
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+function getTargetDirectoryForType(type) {
+  if (!type || !PACKAGE_TARGETS[type]) {
+    return null;
+  }
+  return PACKAGE_TARGETS[type];
 }
 
 function normalizePluginManifest(manifest, dirName) {
@@ -202,6 +276,80 @@ function normalizeManifestFromDirectory(dirPath, type) {
   return null;
 }
 
+function detectPackageType(dirPath) {
+  const installRead = readInstallManifest(dirPath);
+  if (installRead) {
+    const validation = validateInstallManifest(installRead.manifest);
+    if (validation.valid && installRead.manifest.package && installRead.manifest.package.type) {
+      const declaredType = normalizeType(installRead.manifest.package.type);
+      if (declaredType) {
+        return { type: declaredType, source: INSTALL_MANIFEST_NAME, installManifest: installRead.manifest };
+      }
+    }
+  }
+
+  const pluginRead = readPluginManifest(dirPath);
+  const themeRead = readThemeManifest(dirPath);
+
+  if (pluginRead && !themeRead) {
+    return { type: PACKAGE_TYPES.plugin, source: pluginRead.source };
+  }
+
+  if (themeRead && !pluginRead) {
+    return { type: PACKAGE_TYPES.theme, source: themeRead.source };
+  }
+
+  const webradioRead = readWebradioManifest(dirPath);
+  if (webradioRead) {
+    const manifest = webradioRead.manifest;
+    if (manifest.type && normalizeType(manifest.type)) {
+      return { type: normalizeType(manifest.type), source: WEBRADIO_MANIFEST_NAME };
+    }
+    if (manifest.main) {
+      return { type: PACKAGE_TYPES.plugin, source: WEBRADIO_MANIFEST_NAME };
+    }
+    if (manifest.css) {
+      return { type: PACKAGE_TYPES.theme, source: WEBRADIO_MANIFEST_NAME };
+    }
+  }
+
+  return null;
+}
+
+function readManifestWithInstall(dirPath) {
+  const installRead = readInstallManifest(dirPath);
+  let installManifest = null;
+  let manifestFilename = null;
+
+  if (installRead) {
+    const validation = validateInstallManifest(installRead.manifest);
+    if (!validation.valid) {
+      logger.warn(`Invalid install.json in ${dirPath}: ${validation.errors.join(", ")}`);
+      return null;
+    }
+    installManifest = installRead.manifest;
+    manifestFilename = installManifest.manifest || null;
+  }
+
+  const possibleManifests = [];
+  if (manifestFilename) {
+    possibleManifests.push(manifestFilename);
+  }
+  possibleManifests.push(...LEGACY_PLUGIN_MANIFEST_NAMES);
+  possibleManifests.push(LEGACY_THEME_MANIFEST_NAME);
+  possibleManifests.push(WEBRADIO_MANIFEST_NAME);
+
+  for (const filename of possibleManifests) {
+    const filePath = path.join(dirPath, filename);
+    const manifest = readLocalJsonFile(filePath);
+    if (manifest && typeof manifest === "object" && manifest !== null) {
+      return { manifest, source: filename, installManifest };
+    }
+  }
+
+  return null;
+}
+
 function validateCapabilityRequest(requestedCapabilities, grantedPermissions) {
   const granted = [];
   const denied = [];
@@ -234,15 +382,32 @@ function createPackageFromDirectory(dirPath, type, options = {}) {
   };
 
   let resolvedType = type;
+  let installManifest = null;
+
   if (!resolvedType && opt.inferType) {
-    const pluginRead = readPluginManifest(dirPath);
-    const themeRead = readThemeManifest(dirPath);
-    if (pluginRead && !themeRead) resolvedType = PACKAGE_TYPES.plugin;
-    else if (themeRead && !pluginRead) resolvedType = PACKAGE_TYPES.theme;
+    const detected = detectPackageType(dirPath);
+    if (detected) {
+      resolvedType = detected.type;
+      installManifest = detected.installManifest || null;
+    }
   }
 
   if (!resolvedType || !KNOWN_PACKAGE_TYPES.includes(resolvedType)) {
     return null;
+  }
+
+  const readWithInstall = readManifestWithInstall(dirPath);
+  if (!readWithInstall) return null;
+
+  if (readWithInstall.installManifest) {
+    installManifest = readWithInstall.installManifest;
+    const declaredType = normalizeType(installManifest.package?.type);
+    if (declaredType && declaredType !== resolvedType) {
+      logger.warn(
+        `Type mismatch in ${dirPath}: install.json declares '${declaredType}' but manifest indicates '${resolvedType}'`
+      );
+      return null;
+    }
   }
 
   const normalized = normalizeManifestFromDirectory(dirPath, resolvedType);
@@ -252,7 +417,8 @@ function createPackageFromDirectory(dirPath, type, options = {}) {
     type: resolvedType,
     dir: dirPath,
     manifest: normalized.manifest,
-    manifestSource: normalized.source
+    manifestSource: normalized.source,
+    installManifest
   };
 }
 
@@ -261,6 +427,10 @@ module.exports = {
   KNOWN_PACKAGE_TYPES,
   LEGACY_PLUGIN_MANIFEST_NAMES,
   LEGACY_THEME_MANIFEST_NAME,
+  INSTALL_MANIFEST_NAME,
+  WEBRADIO_MANIFEST_NAME,
+  INSTALL_SCHEMA_VERSION,
+  PACKAGE_TARGETS,
   isValidId,
   normalizeId,
   normalizeName,
@@ -268,9 +438,15 @@ module.exports = {
   normalizeType,
   readPluginManifest,
   readThemeManifest,
+  readInstallManifest,
+  readWebradioManifest,
+  validateInstallManifest,
+  getTargetDirectoryForType,
   normalizePluginManifest,
   normalizeThemeManifest,
   normalizeManifestFromDirectory,
+  detectPackageType,
+  readManifestWithInstall,
   validateCapabilityRequest,
   createPackageFromDirectory
 };

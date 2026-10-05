@@ -105,11 +105,24 @@ class ThemeLoader {
         continue;
       }
 
-      const manifestPath = path.join(
-        themesPath,
-        folder.name,
-        "theme.json"
-      );
+      const themeDir = path.join(themesPath, folder.name);
+
+      // Optional: install.json prüfen, um das Manifest zu finden
+      const installJsonPath = path.join(themeDir, "install.json");
+      let manifestFilename = "theme.json";
+
+      if (fs.existsSync(installJsonPath)) {
+        try {
+          const installJson = JSON.parse(fs.readFileSync(installJsonPath, "utf8"));
+          if (installJson.manifest && typeof installJson.manifest === "string") {
+            manifestFilename = installJson.manifest;
+          }
+        } catch (err) {
+          logger.warn(`[ThemeLoader] Konnte install.json nicht lesen: ${err.message}`);
+        }
+      }
+
+      const manifestPath = path.join(themeDir, manifestFilename);
 
       if (!fs.existsSync(manifestPath)) {
         continue;

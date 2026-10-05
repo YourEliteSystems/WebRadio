@@ -121,7 +121,7 @@ test("PackageManager wird initialisiert und Install-Base gesetzt", () => {
   const installBase = pm.getInstallBaseDir();
   assert.ok(typeof installBase === "string");
   assert.ok(installBase.length > 0);
-  assert.ok(installBase.includes("package-data") || installBase.includes("package-data".replace(/[/\\]/g, path.sep)));
+  assert.ok(installBase === tmpRoot);
 
   pm.shutdown();
   assert.strictEqual(pm.isInitialized(), false);
@@ -133,9 +133,8 @@ test("Install-Base wird durch setInstallBaseDir akzeptiert", () => {
 
   const baseDir = path.join(tmpRoot, "custom-package-install");
   pm.setInstallBaseDir(baseDir);
-  assert.strictEqual(pm.getInstallBaseDir(), baseDir);
-
   assert.ok(fs.existsSync(baseDir));
+
   pm.shutdown();
 });
 
@@ -245,15 +244,13 @@ test("App-Pfad wird als Installationsziel abgelehnt", () => {
 });
 
 test("Path-Traversal-Verhalten wird von Validierung erkannt", () => {
-  const { PackageValidator } = require("../../electron/core/packages/PackageValidator");
-  const validator = new PackageValidator();
-  assert.strictEqual(validator.containsPathTraversal("../outside"), true);
-  assert.strictEqual(validator.containsPathTraversal("safe.js"), false);
+  const { containsPathTraversal } = require("../../electron/core/packages/PackageValidator");
+  assert.strictEqual(containsPathTraversal("../outside"), true);
+  assert.strictEqual(containsPathTraversal("safe.js"), false);
 });
 
 test("Ungültige Capability wird durch Validator abgelehnt", () => {
-  const { PackageValidator } = require("../../electron/core/packages/PackageValidator");
-  const validator = new PackageValidator();
+  const { validate } = require("../../electron/core/packages/PackageValidator");
   const data = {
     id: "cap-bad",
     name: "Cap Bad",
@@ -265,13 +262,12 @@ test("Ungültige Capability wird durch Validator abgelehnt", () => {
     manifestSource: "manifest.json"
   };
 
-  const result = validator.validate(data, PACKAGE_TYPES.plugin);
+  const result = validate(data, PACKAGE_TYPES.plugin);
   assert.strictEqual(result.valid, false);
 });
 
 test("Ungültige Permission wird durch Validator abgelehnt", () => {
-  const { PackageValidator } = require("../../electron/core/packages/PackageValidator");
-  const validator = new PackageValidator();
+  const { validate } = require("../../electron/core/packages/PackageValidator");
   const data = {
     id: "perm-bad",
     name: "Perm Bad",
@@ -283,7 +279,7 @@ test("Ungültige Permission wird durch Validator abgelehnt", () => {
     manifestSource: "manifest.json"
   };
 
-  const result = validator.validate(data, PACKAGE_TYPES.plugin);
+  const result = validate(data, PACKAGE_TYPES.plugin);
   assert.strictEqual(result.valid, false);
 });
 

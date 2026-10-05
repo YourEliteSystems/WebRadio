@@ -5,12 +5,10 @@ const path = require("path");
 const { app } = require("electron");
 const eventBus = require("../eventBus");
 const LogManager = require("../diagnostics/logging/LogManager");
-const { PACKAGE_TYPES, createPackageFromDirectory } = require("./PackageModel");
+const { PACKAGE_TYPES, createPackageFromDirectory, PACKAGE_TARGETS } = require("./PackageModel");
 const PackageValidator = require("./PackageValidator");
+const PackageDiscovery = require("./PackageDiscovery");
 const { PackageRegistry, FilesPolicy } = require("./PackageRegistry");
-const PluginManager = require("../plugins/PluginManager");
-const ThemeManager = require("../themes/ThemeManager");
-const CapabilityRegistry = require("../plugins/CapabilityRegistry");
 
 const logger = LogManager.getLogger("PackageInstaller");
 
@@ -45,14 +43,12 @@ class PackageInstaller {
 
     this.registry.ensureInitialized();
 
-    const resolvedDir = path.resolve(dirPath);
-    if (!fs.existsSync(resolvedDir) || !fs.statSync(resolvedDir).isDirectory()) {
-      throw new InstallationError("Invalid package directory");
+    const sourceValidation = this.validator.validateSource(dirPath);
+    if (!sourceValidation.valid) {
+      throw new InstallationError("Source validation failed: " + sourceValidation.errors.join("; "));
     }
 
-    if (!this._isWithinAllowedDir(resolvedDir)) {
-      throw new InstallationError("Package directory is not within allowed installation area");
-    }
+    const resolvedDir = path.resolve(dirPath);
 
     if (FilesPolicy.isAppPackagePath(resolvedDir)) {
       throw new InstallationError("App packages cannot be installed via PackageInstaller");
@@ -77,18 +73,6 @@ class PackageInstaller {
       throw new InstallationError("Package validation failed: " + validation.errors.join("; "));
     }
 
-    if (normalized.manifest.capabilities && normalized.manifest.capabilities.length) {
-      const capabilityResult = CapabilityRegistry.validateCapabilities(
-        normalized.manifest.capabilities,
-        normalized.manifest.permissions || []
-      );
-      if (!capabilityResult.valid && capabilityResult.denied.length > 0) {
-        throw new InstallationError(
-          `Unacceptable capabilities: ${capabilityResult.denied.map((d) => `${d.capability}: ${d.reason}`).join(", ")}`
-        );
-      }
-    }
-
     const installPath = this._makeInstallPath(normalized);
     const backupPath = opt.allowReplace && existing ? this._backupExistingInstall(installPath, existing.id) : null;
 
@@ -96,12 +80,16 @@ class PackageInstaller {
       this._prepareInstallDirectory(installPath, normalized);
       this._copyOrSymlinkPackage(installPath, resolvedDir, normalized.type);
 
+      const userData = (app && typeof app.getPath === "function")
+        ? app.getPath("userData")
+        : path.join(process.cwd(), "data");
+
       const registryEntry = this.registry.addOrUpdate(
         normalized.manifest.id,
         normalized.type,
         normalized.manifest.version,
         {
-          path: path.relative(this.registry.packageDataPath(), installPath),
+          path: path.relative(userData, installPath),
           source: normalized.source || "local",
           enabled: opt.enabled
         }
@@ -116,20 +104,6 @@ class PackageInstaller {
       });
 
       logger.info(`Package installiert: ${normalized.manifest.id} (${normalized.type})`);
-
-      if (normalized.type === PACKAGE_TYPES.plugin && opt.enabled) {
-        try {
-          PluginManager.reloadPlugins();
-        } catch (err) {
-          logger.error(`Plugin-Reload nach Installation fehlgeschlagen (${normalized.manifest.id}): ${err.message}`);
-        }
-      } else if (normalized.type === PACKAGE_TYPES.theme) {
-        try {
-          ThemeManager.reloadThemes();
-        } catch (err) {
-          logger.error(`Theme-Reload nach Installation fehlgeschlagen (${normalized.manifest.id}): ${err.message}`);
-        }
-      }
 
       return {
         success: true,
@@ -161,13 +135,15 @@ class PackageInstaller {
       throw new InstallationError("Type mismatch for update");
     }
 
-    const resolvedDir = path.resolve(dirPath);
-    if (!fs.existsSync(resolvedDir) || !fs.statSync(resolvedDir).isDirectory()) {
-      throw new InstallationError("Invalid package directory for update");
+    const sourceValidation = this.validator.validateSource(dirPath);
+    if (!sourceValidation.valid) {
+      throw new InstallationError("Source validation failed: " + sourceValidation.errors.join("; "));
     }
 
-    if (!this._isWithinAllowedDir(resolvedDir)) {
-      throw new InstallationError("Updated package directory is not within allowed installation area");
+    const resolvedDir = path.resolve(dirPath);
+
+    if (FilesPolicy.isAppPackagePath(resolvedDir)) {
+      throw new InstallationError("App packages cannot be updated via PackageInstaller");
     }
 
     const normalized = this._normalizeCandidate(resolvedDir, type);
@@ -187,12 +163,16 @@ class PackageInstaller {
       this._prepareInstallDirectory(installPath, normalized);
       this._copyOrSymlinkPackage(installPath, resolvedDir, normalized.type);
 
+      const userData = (app && typeof app.getPath === "function")
+        ? app.getPath("userData")
+        : path.join(process.cwd(), "data");
+
       const registryEntry = this.registry.addOrUpdate(
         normalized.manifest.id,
         normalized.type,
         normalized.manifest.version,
         {
-          path: path.relative(this.registry.packageDataPath(), installPath),
+          path: path.relative(userData, installPath),
           source: normalized.source || "local",
           enabled: existing.enabled
         }
@@ -208,20 +188,6 @@ class PackageInstaller {
       });
 
       logger.info(`Package aktualisiert: ${normalized.manifest.id} -> ${normalized.manifest.version}`);
-
-      if (normalized.type === PACKAGE_TYPES.plugin) {
-        try {
-          PluginManager.reloadPlugins();
-        } catch (err) {
-          logger.error(`Plugin-Reload nach Aktualisierung fehlgeschlagen (${normalized.manifest.id}): ${err.message}`);
-        }
-      } else if (normalized.type === PACKAGE_TYPES.theme) {
-        try {
-          ThemeManager.reloadThemes();
-        } catch (err) {
-          logger.error(`Theme-Reload nach Aktualisierung fehlgeschlagen (${normalized.manifest.id}): ${err.message}`);
-        }
-      }
 
       return {
         success: true,
@@ -255,20 +221,6 @@ class PackageInstaller {
       version: updated.version
     });
 
-    if (updated.type === PACKAGE_TYPES.plugin) {
-      try {
-        PluginManager.togglePlugin(id, true);
-      } catch (err) {
-        logger.error(`Plugin-Aktivierung fehlgeschlagen (${id}): ${err.message}`);
-      }
-    } else if (updated.type === PACKAGE_TYPES.theme) {
-      try {
-        ThemeManager.reloadThemes();
-      } catch (err) {
-        logger.error(`Theme-Aktivierung fehlgeschlagen (${id}): ${err.message}`);
-      }
-    }
-
     logger.info(`Package aktiviert: ${id}`);
     return updated;
   }
@@ -292,20 +244,6 @@ class PackageInstaller {
       version: updated.version
     });
 
-    if (updated.type === PACKAGE_TYPES.plugin) {
-      try {
-        PluginManager.togglePlugin(id, false);
-      } catch (err) {
-        logger.error(`Plugin-Deaktivierung fehlgeschlagen (${id}): ${err.message}`);
-      }
-    } else if (updated.type === PACKAGE_TYPES.theme) {
-      try {
-        ThemeManager.reloadThemes();
-      } catch (err) {
-        logger.error(`Theme-Deaktivierung fehlgeschlagen (${id}): ${err.message}`);
-      }
-    }
-
     logger.info(`Package deaktiviert: ${id}`);
     return updated;
   }
@@ -323,40 +261,10 @@ class PackageInstaller {
       throw new InstallationError("Package not found in registry");
     }
 
-    if (!FilesPolicy.isWithinUserPackageDataDir(this.registry.packageDataPath(), this.registry.packageDataPath())) {
-      throw new InstallationError("Registry path protection violated");
-    }
-
-    if (entry.type === PACKAGE_TYPES.plugin) {
-      if (!opt.skipLifecycle) {
-        try {
-          PluginManager.togglePlugin(id, false);
-        } catch (err) {
-          logger.error(`Plugin-Deaktivierung vor Entfernung fehlgeschlagen (${id}): ${err.message}`);
-        }
-      }
-      try {
-        PluginManager.reloadPlugins();
-      } catch (err) {
-        logger.error(`Plugin-Reload vor Entfernung fehlgeschlagen (${id}): ${err.message}`);
-      }
-    } else if (entry.type === PACKAGE_TYPES.theme) {
-      if (!opt.skipLifecycle) {
-        try {
-          ThemeManager.reloadThemes();
-        } catch (err) {
-          logger.error(`Theme-Deaktivierung vor Entfernung fehlgeschlagen (${id}): ${err.message}`);
-        }
-      }
-    }
-
     let removedEntry = null;
     try {
       removedEntry = this.registry.remove(id, {
-        deleteFiles: opt.deleteFiles && entry.path && FilesPolicy.isWithinUserPackageDataDir(
-          path.resolve(this.registry.packageDataPath(), entry.path),
-          this.registry.packageDataPath()
-        )
+        deleteFiles: opt.deleteFiles && entry.path
       });
     } catch (err) {
       logger.error(`Registry-Bereinigung fehlgeschlagen (${id}): ${err.message}`);
@@ -393,12 +301,12 @@ class PackageInstaller {
   }
 
   _normalizeCandidate(dirPath, type) {
-    const result = createPackageFromDirectory(dirPath, type, { inferType: false, preferTypeFromDirectory: false });
+    const result = PackageDiscovery.readPackageManifest(dirPath, type);
     if (!result) return null;
     return {
       manifest: result.manifest,
       type: result.type,
-      source: result.manifestSource
+      source: result.source
     };
   }
 
@@ -419,9 +327,16 @@ class PackageInstaller {
   }
 
   _makeInstallPath(normalized) {
-    const base = this.installBaseDir || path.join(this.registry.packageDataPath(), "..");
-    const baseResolved = path.resolve(base);
-    return path.join(baseResolved, normalized.type, normalized.manifest.id);
+    const userData = (app && typeof app.getPath === "function")
+      ? app.getPath("userData")
+      : path.join(process.cwd(), "data");
+
+    const targetDir = PACKAGE_TARGETS[normalized.type];
+    if (!targetDir) {
+      throw new InstallationError(`Unknown package type: ${normalized.type}`);
+    }
+
+    return path.join(userData, targetDir, normalized.manifest.id);
   }
 
   _prepareInstallDirectory(installPath, normalized) {
@@ -436,6 +351,10 @@ class PackageInstaller {
     for (const file of allFiles) {
       const relative = path.relative(sourceDir, file);
       if (relative === "") continue;
+
+      if (relative.includes("..") || path.isAbsolute(relative)) {
+        throw new InstallationError("Invalid relative path during package copy");
+      }
 
       const dest = path.join(installPath, relative);
       const destDir = path.dirname(dest);
@@ -480,16 +399,10 @@ class PackageInstaller {
   }
 
   _isWithinAllowedDir(targetPath) {
-    const base = this.installBaseDir || path.join(this.registry.packageDataPath(), "..");
-    const resolvedBase = path.resolve(base);
-    const resolvedTarget = path.resolve(targetPath);
-    if (!resolvedTarget.startsWith(resolvedBase + path.sep) && resolvedTarget !== resolvedBase) {
-      return false;
-    }
-    if (resolvedTarget.includes(path.sep + ".." + path.sep) || resolvedTarget.endsWith(path.sep + "..")) {
-      return false;
-    }
-    return true;
+    const userData = (app && typeof app.getPath === "function")
+      ? app.getPath("userData")
+      : path.join(process.cwd(), "data");
+    return FilesPolicy.isWithinAllowedInstallTarget(targetPath, userData);
   }
 
   _isProtectedDir(targetPath) {
