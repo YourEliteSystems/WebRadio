@@ -35,7 +35,8 @@
     "release:validate": "node scripts/release/validate.js",
     "release:notes": "node scripts/release/release-notes.js",
     "release:checksums": "node scripts/release/checksums.js",
-    "release:detect": "node scripts/release/detect-release.js"
+    "release:detect": "node scripts/release/detect-release.js",
+    "downloads:stats": "node scripts/release/download-stats.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
