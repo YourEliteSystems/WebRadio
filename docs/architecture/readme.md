@@ -1,7 +1,7 @@
 # WebRadio Architecture Guide
 
-**Version:** 2.0
-**Applies to:** WebRadio v1.0.5+
+**Version:** 2.1
+**Applies to:** WebRadio v1.0.7+
 
 ---
 
@@ -24,7 +24,8 @@ The architecture follows a few simple principles:
 * Features should be replaceable without affecting unrelated systems.
 * Plugins and themes should extend the application instead of modifying it.
 * The application startup should be predictable and centralized.
+* **Installation is not Runtime** – Package management is optional and separate from runtime discovery.
 
 These principles have guided the evolution of WebRadio and continue to shape its future development.
 
-This guide provides an overview of the complete application architecture before diving into the individual systems such as the Plugin Manager, Theme Manager, Diagnostics, Storage, IPC and Renderer.
+This guide provides an overview of the complete application architecture before diving into the individual systems such as the Application, Storage Manager, Window Manager, Plugin Manager, Theme Manager, Package System, Diagnostics, IPC and Renderer.

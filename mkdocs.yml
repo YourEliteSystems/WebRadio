@@ -2,6 +2,7 @@
 # Documentation source: docs/ (Single Source of Truth)
 # Build locally: mkdocs build --strict
 # Serve locally:  mkdocs serve
+# Versioned docs: mike deploy <version> --push
 
 site_name: WebRadio
 site_description: Open-source cross-platform desktop WebRadio application built with Electron and React.
@@ -18,6 +19,17 @@ site_dir: site
 exclude_docs: |
   internal/
   requirements.txt
+
+# Versioning configuration using mike
+# Enables multi-version documentation with version selector
+extra:
+  version:
+    provider: mike
+    default: latest
+    # Additional aliases can be configured, e.g.:
+    # - alpha
+    # - beta
+    # - rc
 
 theme:
   name: material
@@ -68,6 +80,7 @@ nav:
       - IPC: architecture/05-IPC.md
       - ThemeManager: architecture/06-ThemeManager.md
       - PluginManager: architecture/07-PluginManager.md
+      - Package System: architecture/11-PackageSystem.md
       - MediaKeys: architecture/08-MediaKeys.md
       - Tray: architecture/09-Tray.md
       - Updater: architecture/10-Updater.md
@@ -131,6 +144,8 @@ nav:
       - Code of Conduct: CODE_OF_CONDUCT.md
       - Contributing: CONTRIBUTING.md
       - Security Policy: SECURITY.md
+  - Documentation:
+      - Versioning: VERSIONING.md
 
 # Warn (and fail under `mkdocs build --strict`) about broken links or
 # navigation entries that do not point to a real file. Nothing is silenced.
