@@ -10,7 +10,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
 [![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
-**[⬇️ Downloads](../../releases) · [📚 Documentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
+**[⬇️ Downloads](../../releases) · [📊 Download Stats](./docs/DOWNLOAD_STATS.md) · [📚 Documentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
 
 ---
 
@@ -195,6 +195,8 @@ Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumge
 - **Alpha** → aktuelle Entwicklung ausprobieren
 
 > Die verfügbaren Artefakte und Release Notes findest du immer direkt im jeweiligen **GitHub Release**.
+>
+> 📊 **[Aktuelle Download-Statistik](./docs/DOWNLOAD_STATS.md)** – automatisch aus den GitHub-Release-Assets erzeugt.
 
 ---
 
