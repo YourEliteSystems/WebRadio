@@ -1,0 +1,31 @@
+# .readthedocs.yml
+# Read the documentation: https://docs.readthedocs.io/en/stable/config-file/v2.html
+
+version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.14"
+    # You can also specify other tools, but they are not required for MkDocs
+
+# Build documentation in the "docs/" directory with MkDocs
+mkdocs:
+  configuration: mkdocs.yml
+  fail_on_warning: false
+
+# Optionally declare the Python requirements required to build your docs
+python:
+  install:
+    - requirements: docs/requirements.txt
+
+# ReadTheDocs Versioning Configuration
+# Enables automatic versioning based on Git tags/branches
+sphinx:
+  # MkDocs doesn't use Sphinx, but this section is required for RTD
+  configuration: null
+
+# Configure submodules if needed (not required for this project)
+submodules:
+  recursive: false

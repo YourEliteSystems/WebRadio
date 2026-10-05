@@ -2,7 +2,7 @@
 # Documentation source: docs/ (Single Source of Truth)
 # Build locally: mkdocs build --strict
 # Serve locally:  mkdocs serve
-# Versioned docs: mike deploy <version> --push
+# Versioned docs: Managed by ReadTheDocs (based on Git tags/branches)
 
 site_name: WebRadio
 site_description: Open-source cross-platform desktop WebRadio application built with Electron and React.
@@ -20,16 +20,8 @@ exclude_docs: |
   internal/
   requirements.txt
 
-# Versioning configuration using mike
-# Enables multi-version documentation with version selector
-extra:
-  version:
-    provider: mike
-    default: latest
-    # Additional aliases can be configured, e.g.:
-    # - alpha
-    # - beta
-    # - rc
+# Versioning is managed by ReadTheDocs - see .readthedocs.yml
+# The version selector will be automatically added by ReadTheDocs
 
 theme:
   name: material
