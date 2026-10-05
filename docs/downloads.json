@@ -1,0 +1,152 @@
+{
+  "generatedAt": "2026-10-05T19:13:00Z",
+  "repository": "YourEliteSystems/WebRadio",
+  "definition": "Counts only downloadable application packages. GitHub updater metadata, blockmaps, checksums and builder-debug files are excluded.",
+  "totalDownloads": 34,
+  "platformDownloads": {
+    "appimage": 20,
+    "windows": 10,
+    "arch": 4
+  },
+  "releases": [
+    {
+      "version": "v1.0.7-alpha.5",
+      "publishedAt": "2026-09-29",
+      "prerelease": true,
+      "downloads": 1,
+      "platforms": {
+        "appimage": 1
+      }
+    },
+    {
+      "version": "v1.0.7-alpha.4",
+      "publishedAt": "2026-09-27",
+      "prerelease": true,
+      "downloads": 3,
+      "platforms": {
+        "appimage": 1,
+        "windows": 1,
+        "arch": 1
+      }
+    },
+    {
+      "version": "v1.0.7-alpha.3",
+      "publishedAt": "2026-09-26",
+      "prerelease": true,
+      "downloads": 0,
+      "platforms": {}
+    },
+    {
+      "version": "v1.0.7-alpha.2",
+      "publishedAt": "2026-09-26",
+      "prerelease": true,
+      "downloads": 4,
+      "platforms": {
+        "appimage": 3,
+        "arch": 1
+      }
+    },
+    {
+      "version": "v1.0.7-alpha.1",
+      "publishedAt": "2026-09-25",
+      "prerelease": true,
+      "downloads": 1,
+      "platforms": {
+        "appimage": 1
+      }
+    },
+    {
+      "version": "v1.0.6",
+      "publishedAt": "2026-09-18",
+      "prerelease": false,
+      "downloads": 3,
+      "platforms": {
+        "appimage": 2,
+        "windows": 1
+      }
+    },
+    {
+      "version": "v1.0.6-beta.7",
+      "publishedAt": "2026-09-17",
+      "prerelease": true,
+      "downloads": 1,
+      "platforms": {
+        "appimage": 1
+      }
+    },
+    {
+      "version": "v1.0.6-beta.6",
+      "publishedAt": "2026-09-16",
+      "prerelease": true,
+      "downloads": 2,
+      "platforms": {
+        "appimage": 2
+      }
+    },
+    {
+      "version": "v1.0.6-beta.5",
+      "publishedAt": "2026-09-14",
+      "prerelease": true,
+      "downloads": 2,
+      "platforms": {
+        "appimage": 2
+      }
+    },
+    {
+      "version": "v1.0.6-beta.4",
+      "publishedAt": "2026-09-13",
+      "prerelease": true,
+      "downloads": 4,
+      "platforms": {
+        "appimage": 1,
+        "windows": 2,
+        "arch": 1
+      }
+    },
+    {
+      "version": "v1.0.6-beta.3",
+      "publishedAt": "2026-09-07",
+      "prerelease": true,
+      "downloads": 2,
+      "platforms": {
+        "appimage": 2
+      }
+    },
+    {
+      "version": "v1.0.6-beta.2",
+      "publishedAt": "2026-09-05",
+      "prerelease": true,
+      "downloads": 9,
+      "platforms": {
+        "appimage": 3,
+        "windows": 3,
+        "arch": 3
+      }
+    },
+    {
+      "version": "v1.0.6-beta.1",
+      "publishedAt": "2026-08-23",
+      "prerelease": true,
+      "downloads": 1,
+      "platforms": {
+        "windows": 1
+      }
+    },
+    {
+      "version": "v1.0.5",
+      "publishedAt": "2026-08-07",
+      "prerelease": false,
+      "downloads": 1,
+      "platforms": {
+        "windows": 1
+      }
+    },
+    {
+      "version": "v1.0.0",
+      "publishedAt": "2026-03-05",
+      "prerelease": false,
+      "downloads": 0,
+      "platforms": {}
+    }
+  ]
+}
