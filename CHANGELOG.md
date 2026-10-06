@@ -4,6 +4,75 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7-beta.1] – 2026-10-06
+
+> Beta-Version 1.0.7-beta.1: Führt eine strikte Trennung zwischen Package-Installation und Runtime-Discovery/Ausführung ein. PluginLoader und ThemeLoader arbeiten jetzt unabhängig von PackageRegistry und install.json. Manuell installierte Plugins/Themes funktionieren ohne Registry-Einträge. Package-Installation startet keine Runtime-Komponenten automatisch. Die Package-Architektur besteht aus PackageDiscovery, PackageValidator, PackageInstaller, PackageRegistry und PackageManager als Installationsebene, während PluginLoader/PluginManager/PluginRuntime und ThemeLoader/ThemeManager die Runtime-Ebene bilden. Dokumentation wurde umfassend aktualisiert (Package System, ReadTheDocs-Integration, Discord-Link). Download-Statistik-System mit GitHub API-Integration und automatischem Workflow hinzugefügt. Alle Package-System-Tests bestehen (60/60).
+
+### 🏗️ Package Architecture Refactoring
+
+**Installationsebene (neu/erweitert):**
+- **PackageDiscovery:** Inspektion von Packages ohne Installation – API: `inspect(sourcePath)`, `detectType(sourcePath)`, `readInstallManifest(sourcePath)`, `readPackageManifest(sourcePath, type)`
+- **PackageValidator:** Erweitert um Source-Level-Validierung (`validateSource(sourcePath)`) und Security-Constraints (Path Traversal, Capability-Validierung, Permission-Validierung)
+- **PackageInstaller:** Validierung an PackageValidator delegiert, keine PluginManager/ThemeManager Dependencies mehr, FilesPolicy für Pfad-Validierung
+- **PackageRegistry:** Namenskonflikt behoben (`this._packageDataPath` statt `this.packageDataPath`), FilesPolicy korrigiert (`userPackageBaseDir()` gibt `userDataPath()` zurück), neue Methode `isWithinAllowedInstallTarget()` für Installationsziel-Validierung
+- **PackageManager:** `getInstallBaseDir()` korrigiert – gibt jetzt `userDataPath()` statt `packageDataPath` zurück, Runtime-Callbacks für saubere Trennung Installation ↔ Runtime
+
+**Runtime-Ebene (unabhängig):**
+- **PluginLoader:** Ignoriert `install.json` für Runtime-Discovery, liest direkt `plugin.json` oder `manifest.json`, keine PackageRegistry-Abhängigkeit
+- **ThemeLoader:** Ignoriert `install.json` für Runtime-Discovery, liest direkt `theme.json`, keine PackageRegistry-Abhängigkeit
+- **PluginManager/PluginRuntime:** Keine Änderungen an Runtime-Logik, arbeiten unabhängig von Package-System
+- **ThemeManager:** Keine Änderungen an Runtime-Logik, arbeiten unabhängig von Package-System
+
+**Architekturprinzipien:**
+- Installation ist nicht Runtime
+- Registry ist nicht Runtime-Discovery
+- `install.json` ist nicht das Runtime-Manifest
+- Manuell installierte Erweiterungen sind vollwertige Runtime-Erweiterungen
+- PackageManager verwaltet Packages; PluginLoader/PluginRuntime verwalten die Ausführung
+
+### 📚 Dokumentation
+
+- **Neu `docs/architecture/11-PackageSystem.md`:** Umfassende Dokumentation des Package Systems – Architekturprinzipien, Komponenten, Workflows, Security, Events, IPC API, Best Practices
+- **Aktualisiert `docs/architecture/readme.md`:** Version auf 2.1 aktualisiert, Package System zur Liste der Systeme hinzugefügt, Architekturprinzip um "Installation ist nicht Runtime" erweitert
+- **ReadTheDocs-Integration:** `.readthedocs.yml` für native ReadTheDocs-Versionierung konfiguriert, `mkdocs.yml` von mike-Dependency bereinigt, `docs/requirements.txt` mike entfernt, `docs/VERSIONING.md` auf ReadTheDocs-native Workflow aktualisiert
+- **README aktualisiert:** Link auf ReadTheDocs-Dokumentation (https://webradio.readthedocs.io/de/latest/), offizieller Discord-Link hinzugefügt (https://discord.gg/6PfkRNYw)
+
+### 📊 Download Statistics
+
+- **Neu `scripts/release/download-stats.js`:** Skript zur Generierung von Download-Statistiken aus GitHub Releases API
+- **Neu `.github/workflows/download-stats.yml`:** Automatischer Workflow für tägliche Aktualisierung (Cron: 03:17 UTC)
+- **Neu `docs/downloads.json`:** Strukturierte Download-Statistiken pro Release und Plattform
+- **Neu `docs/DOWNLOAD_STATS.md`:** Markdown-Darstellung der Download-Statistiken
+- **Metrik-Filter:** Update-Metadaten (.yml/.json), Blockmaps, Checksums und Builder-Debug-Dateien werden ausgeschlossen
+
+### 🧪 Tests
+
+- **Package-System-Tests (60/60 bestanden):**
+  - `package-system.test.js`: 20/20 ✅
+  - `package-architecture.test.js`: 28/28 ✅
+  - `package-integration.test.js`: 12/12 ✅
+- **Architektur-Validierung:** Runtime funktioniert ohne PackageRegistry, manuell kopierte Plugins/Themes werden entdeckt, install.json ist optional für Runtime
+
+### 🐛 Bug Fixes
+
+- **ThemeLoader-Test korrigiert:** Test validiert jetzt, dass ThemeLoader install.json ignoriert und direkt theme.json liest
+- **PackageRegistry Namenskonflikt:** `this.packageDataPath` als Property und `packageDataPath()` als Methode führten zu Konflikten – Property in `_packageDataPath` umbenannt
+- **PackageInstaller Pfad-Validierung:** `_isWithinAllowedDir()` durch `FilesPolicy.isWithinAllowedInstallTarget()` ersetzt
+- **PluginManager Shutdown:** Plugin-Runtime wird ordnungsgemäß beim Application-Shutdown beendet
+
+### 🔧 Interne Änderungen
+
+- **RadioProvider/StreamManager:** Session- und Command-IDs für verbesserte Diagnose hinzugefügt
+- **radioAPI:** `startStream(url, station)` akzeptiert jetzt zusätzlich einen Station-Parameter
+- **ROADMAP.md:** Aktualisiert mit bevorstehenden Meilensteinen und zukünftigen Ideen
+
+### 📦 Version
+
+- **`package.json`:** Version von `1.0.7-alpha.5` auf `1.0.7-beta.1` angehoben
+- **Release-Validierung:** Eintrag erfüllt `npm run release:validate`
+
+---
+
 ## [v1.0.7-alpha.5] – 2026-09-29
 
 > Vorabversion 1.0.7-alpha.5: Behebt, dass Renderer-Plugin-Skripte nicht geladen wurden – die Content-Security-Policy des Hauptfensters blockierte die über den lokalen Plugin-HTTP-Server ausgelieferten Skripte, bevor überhaupt ein HTTP-Request entstand – und einen Preload-Abbruch durch doppelte `updatesAPI`-Exposition. Ergänzt eine zentrale SVG-Icon-Bibliothek für Navigation und Einstellungen, trennt Arch-`pkgver` und AppImage-Artefaktnamen strikt, entfernt das gebündelte YouTube-Plugin (MediaHub bleibt ein reguläres Plugin außerhalb des Cores) und erweitert die Testabdeckung um Plugin-HTTP- und Renderer-Lade-Tests und bereinigt den FFmpeg-Lifecycle im Main-Prozess (SIGTERM/SIGKILL-Eskalation nur bei tatsächlich lebendigen Prozessen, Rekursion im RadioProvider, Wiederherstellung der letzten Stream-URL bei `player:play`). Alle Versionsangaben in Dokumentation, README und Roadmap sind auf `1.0.7-alpha.5` synchronisiert.
