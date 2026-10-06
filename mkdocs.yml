@@ -138,6 +138,7 @@ nav:
       - Security Policy: SECURITY.md
   - Documentation:
       - Versioning: VERSIONING.md
+      - Download Statistics: DOWNLOAD_STATS.md
 
 # Warn (and fail under `mkdocs build --strict`) about broken links or
 # navigation entries that do not point to a real file. Nothing is silenced.
