@@ -1,8 +1,8 @@
 # 📊 WebRadio Download Statistics
 
-> Automatisch aus den GitHub Release-Assets erzeugt. Stand: 2026-10-05.
+> Automatisch aus den GitHub Release-Assets erzeugt. Stand: 2026-10-06T10:13:50.053Z.
 
-Diese Statistik zählt bewusst nur **Installations-/Distributionspakete**. Update-Metadaten (.yml/.json), Blockmaps, Checksums und Builder-Debug-Dateien werden ausgeschlossen.
+Diese Statistik zählt bewusst nur Installations-/Distributionspakete. Update-Metadaten (.yml/.json), Blockmaps, Checksums und Builder-Debug-Dateien werden ausgeschlossen.
 
 ## Gesamt
 
@@ -10,9 +10,9 @@ Diese Statistik zählt bewusst nur **Installations-/Distributionspakete**. Updat
 
 | Plattform | Downloads |
 | --- | ---: |
-| Linux AppImage | 20 |
-| Windows | 10 |
-| Arch Linux | 4 |
+| Linux AppImage | 19 |
+| Windows | 9 |
+| Arch Linux | 6 |
 
 ## Releases
 
@@ -41,6 +41,5 @@ Diese Statistik zählt bewusst nur **Installations-/Distributionspakete**. Updat
 - Mehrfachdownloads derselben Datei werden von GitHub mehrfach gezählt.
 - Ein Download entspricht nicht automatisch einer Installation oder einem eindeutigen Nutzer.
 - GitHub zählt außerdem keine Tarball-/Zipball-Downloads in diesen Asset-Zahlen.
-- Update-Metadaten und technische Release-Dateien werden bewusst nicht als App-Downloads gewertet.
 
 Quelle: GitHub Releases API.
