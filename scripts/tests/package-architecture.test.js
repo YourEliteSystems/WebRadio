@@ -591,22 +591,29 @@ test("PACKAGE_TARGETS ist definiert und korrekt", () => {
 // ─────────────────────────────────────────────────────────────
 console.log("\n[6] PluginLoader und ThemeLoader Unabhängigkeit");
 
-test("PluginLoader liest install.json wenn vorhanden", () => {
-  const pluginDir = makePluginWithInstallJson("loader-install-plugin", "Loader Install Plugin", "1.0.0", {
-    manifestFile: "custom.json"
-  });
+test("PluginLoader ignoriert install.json für Runtime-Discovery", () => {
+  const pluginDir = makePluginWithInstallJson("loader-install-plugin", "Loader Install Plugin", "1.0.0");
+  const customManifest = { id: "wrong-runtime-manifest", name: "Wrong Runtime Manifest", version: "9.9.9", main: "main.js" };
+  fs.writeFileSync(path.join(pluginDir, "custom.json"), JSON.stringify(customManifest, null, 2));
+  const installJson = JSON.parse(fs.readFileSync(path.join(pluginDir, "install.json"), "utf8"));
+  installJson.manifest = "custom.json";
+  fs.writeFileSync(path.join(pluginDir, "install.json"), JSON.stringify(installJson, null, 2));
 
   const loader = loadPluginLoader();
   const manifest = loader.loadManifest(pluginDir);
 
   assert.ok(manifest);
   assert.strictEqual(manifest.id, "loader-install-plugin");
+  assert.strictEqual(manifest.version, "1.0.0");
 });
 
-test("ThemeLoader liest install.json wenn vorhanden", () => {
-  const themeDir = makeThemeWithInstallJson("loader-install-theme", "Loader Install Theme", "1.0.0", {
-    manifestFile: "custom.json"
-  });
+test("ThemeLoader ignoriert install.json für Runtime-Discovery", () => {
+  const themeDir = makeThemeWithInstallJson("loader-install-theme", "Loader Install Theme", "1.0.0");
+  const customManifest = { id: "wrong-runtime-theme", name: "Wrong Runtime Theme", version: "9.9.9", css: "style.css" };
+  fs.writeFileSync(path.join(themeDir, "custom.json"), JSON.stringify(customManifest, null, 2));
+  const installJson = JSON.parse(fs.readFileSync(path.join(themeDir, "install.json"), "utf8"));
+  installJson.manifest = "custom.json";
+  fs.writeFileSync(path.join(themeDir, "install.json"), JSON.stringify(installJson, null, 2));
 
   const loader = loadThemeLoader();
   const themes = loader.scanDirectory(path.join(tmpRoot, "themes"), "user");
@@ -614,7 +621,8 @@ test("ThemeLoader liest install.json wenn vorhanden", () => {
   assert.ok(themes.length >= 1);
   const theme = themes.find(t => t.id === "loader-install-theme");
   assert.ok(theme);
-  assert.strictEqual(theme.name, "Loader Install Theme");
+  assert.strictEqual(theme.name, "Install Theme");
+  assert.strictEqual(theme.version, "1.0.0");
 });
 
 test("PluginLoader funktioniert ohne install.json", () => {
