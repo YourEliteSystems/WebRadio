@@ -216,6 +216,7 @@ class Application {
         await this.shutdownServices();
         await this.shutdownPlayer();
         await this.shutdownNavigation();
+        await this.shutdownPlugins();
         await this.shutdownPackages();
         await this.shutdownThemes();
         destroyTray();
