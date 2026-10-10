@@ -129,14 +129,6 @@ class Application {
         await this.initializeIPC();
         BootupDiagnostics.markComplete("ipc-init");
 
-        BootupDiagnostics.markStart("plugin-http-init");
-        await this.initializePluginHttpServer();
-        BootupDiagnostics.markComplete("plugin-http-init");
-
-        BootupDiagnostics.markStart("plugin-http-init");
-        await this.initializePluginHttpServer();
-        BootupDiagnostics.markComplete("plugin-http-init");
-
         BootupDiagnostics.markStart("navigation-init");
         await this.initializeNavigation();
         BootupDiagnostics.markComplete("navigation-init");
@@ -257,16 +249,6 @@ class Application {
         );
 
     }
-
-    async initializePluginHttpServer() {
-        // Start wird von initializePlugins() übernommen.
-        // Diese Methode bleibt aus Kompatibilitätsgründen erhalten.
-    }
-
-    // ─────────────────────────────────────────
-    // Legacy: initializePluginHttpServer wurde in initializePlugins()
-    // integriert. Diese Markierungen bleiben aus Kompatibilitätsgründen.
-    // ─────────────────────────────────────────
 
     async initializePlugins() {
         BootupDiagnostics.markStart("plugins-init");
