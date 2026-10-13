@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-12T10:44:00.177Z",
+  "generatedAt": "2026-10-13T10:31:17.999Z",
   "repository": "YourEliteSystems/WebRadio",
   "definition": "Counts only downloadable application packages. GitHub updater metadata, blockmaps, checksums and builder-debug files are excluded.",
-  "totalDownloads": 38,
+  "totalDownloads": 39,
   "platformDownloads": {
-    "appimage": 21,
+    "appimage": 22,
     "windows": 10,
     "arch": 7
   },
@@ -304,9 +304,9 @@
       "name": "WebRadio 1.0.6-beta.4",
       "publishedAt": "2026-09-13T12:34:29Z",
       "prerelease": true,
-      "downloads": 7,
+      "downloads": 8,
       "platforms": {
-        "appimage": 2,
+        "appimage": 3,
         "windows": 3,
         "arch": 2
       },
@@ -314,7 +314,7 @@
         {
           "name": "WebRadio-1.0.6-beta.4-linux-x86_64.AppImage",
           "platform": "appimage",
-          "downloads": 2
+          "downloads": 3
         },
         {
           "name": "WebRadio-1.0.6-beta.4-win-x64.exe",
