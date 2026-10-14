@@ -21,20 +21,38 @@ const IntegrationsSettings = () => {
     }
   };
 
-  const saveIntegrations = async () => {
+  const saveIntegrations = async (enabled) => {
     if (!window.integrationsAPI) return;
 
     try {
-      await window.integrationsAPI.update({ id: "discord-rpc", enabled: discordEnabled });
+      const result = await window.integrationsAPI.update({ id: "discord-rpc", enabled: enabled });
+      
+      // API-Antwort prüfen: nur bei Erfolg den UI-Zustand finalisieren
+      if (result && result.ok === false) {
+        console.error("Failed to save integrations:", result.error);
+        return false;
+      }
+      
+      return true;
     } catch (err) {
       console.error("Failed to save integrations:", err);
+      return false;
     }
   };
 
-  const handleDiscordToggle = (e) => {
+  const handleDiscordToggle = async (e) => {
     const enabled = e.target.checked;
+    
+    // UI-Zustand sofort aktualisieren für reaktives Feedback
     setDiscordEnabled(enabled);
-    saveIntegrations();
+    
+    // Speichern mit dem neuen Wert (nicht aus dem State lesen)
+    const saved = await saveIntegrations(enabled);
+    
+    // Bei Speicherfehler: UI-Zustand zurücksetzen
+    if (!saved) {
+      setDiscordEnabled(!enabled);
+    }
   };
 
   return (
