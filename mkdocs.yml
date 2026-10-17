@@ -20,7 +20,7 @@ exclude_docs: |
   internal/
   requirements.txt
 
-# Versioning is managed by ReadTheDocs - see .readthedocs.yml
+# Versioning is managed by ReadTheDocs - see .readthedocs.yaml
 # The version selector will be automatically added by ReadTheDocs
 
 theme:
