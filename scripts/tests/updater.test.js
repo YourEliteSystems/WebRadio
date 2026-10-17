@@ -138,6 +138,14 @@ function makeFakeAutoUpdater() {
     };
 }
 
+// Update behavior tests must not depend on the host runner's OS/package type.
+function setSupportedTestProvider(manager) {
+    manager._provider = {
+        getProviderType: () => "windows-nsis",
+        getReason: () => ""
+    };
+}
+
 let fakeAutoUpdater = makeFakeAutoUpdater();
 require.cache["electron-updater-stub"] = {
     id: "electron-updater-stub",
@@ -680,6 +688,7 @@ test("installUpdate nach Download -> quitAndInstall", () => {
     updateManager._setTestAutoUpdater(fakeAutoUpdater);
     updateManager._initialized = false;
     updateManager.initialize();
+    setSupportedTestProvider(updateManager);
     let called = false;
     fakeAutoUpdater.quitAndInstall = () => { called = true; };
     updateManager._handleDownloaded({
@@ -698,6 +707,7 @@ test("installUpdate ohne Download liefert Fehler", () => {
     updateManager._setTestAutoUpdater(fakeAutoUpdater);
     updateManager._initialized = false;
     updateManager.initialize();
+    setSupportedTestProvider(updateManager);
     updateManager._state.downloaded = false;
     const result = updateManager.installUpdate();
     return result.then((r) => {
@@ -955,6 +965,7 @@ test("updates:check gibt strukturiertes Result zurück", async () => {
     fresh._setTestAutoUpdater(fakeAutoUpdater);
     fresh._initialized = false;
     fresh.initialize();
+    setSupportedTestProvider(fresh);
     fakeAutoUpdater._nextCheckResult = {
         updateInfo: {
             version: "1.0.7",
