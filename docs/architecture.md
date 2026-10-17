@@ -1,46 +1,46 @@
-# 📖 WebRadio Architecture Guide
+# 📖 Architekturleitfaden für WebRadio
 
-**Version:** 3.0
-**Applies to:** WebRadio v1.0.7-alpha.5+
-
----
-
-# Introduction
-
-Welcome to the WebRadio Architecture Guide.
-
-This document provides an overview of WebRadio's internal architecture and explains how the application's core components work together.
-
-Unlike a traditional API reference, this guide focuses on the design decisions behind the project. It explains not only *how* WebRadio works, but also *why* it is built this way.
-
-Understanding the architecture makes it significantly easier to contribute to the project, develop plugins, create themes or extend existing functionality.
+**Version:** 3.0  
+**Gilt für:** WebRadio v1.0.7-alpha.5 und neuer
 
 ---
 
-# Design Philosophy
+# Einführung
 
-WebRadio is built around a simple philosophy:
+Willkommen beim Architekturleitfaden von WebRadio.
 
-> **Keep the core small, modular and maintainable while allowing functionality to grow through extensions.**
+Dieses Dokument gibt einen Überblick über die interne Architektur von WebRadio und erklärt, wie die zentralen Komponenten der Anwendung zusammenarbeiten.
 
-Every major component has a clearly defined responsibility.
+Im Gegensatz zu einer klassischen API-Referenz konzentriert sich dieser Leitfaden auf die Entwurfsentscheidungen hinter dem Projekt. Er erklärt nicht nur, *wie* WebRadio funktioniert, sondern auch, *warum* es auf diese Weise aufgebaut ist.
 
-Instead of creating tightly coupled systems, WebRadio separates features into independent modules that communicate through well-defined interfaces.
-
-This approach provides several advantages:
-
-* Better maintainability
-* Easier testing
-* Improved scalability
-* Cleaner source code
-* Simpler debugging
-* Better support for plugins and themes
+Wer die Architektur versteht, kann leichter zum Projekt beitragen, Plugins entwickeln, Themes erstellen oder bestehende Funktionen erweitern.
 
 ---
 
-# High-Level Architecture
+# Architekturprinzipien
 
-The application starts from a single entry point.
+WebRadio folgt einem einfachen Grundsatz:
+
+> **Der Kern bleibt klein, modular und wartbar. Neue Funktionen kommen über Erweiterungen hinzu.**
+
+Jede größere Komponente hat eine klar definierte Aufgabe.
+
+Anstatt eng gekoppelte Systeme zu schaffen, trennt WebRadio Funktionen in unabhängige Module, die über klar definierte Schnittstellen miteinander kommunizieren.
+
+Dieser Ansatz bietet mehrere Vorteile:
+
+- bessere Wartbarkeit
+- einfachere Tests
+- bessere Skalierbarkeit
+- übersichtlicherer Quellcode
+- einfachere Fehlersuche
+- bessere Unterstützung für Plugins und Themes
+
+---
+
+# Architektur auf hoher Ebene
+
+Die Anwendung startet an einem zentralen Einstiegspunkt.
 
 ```text
 main.js
@@ -49,15 +49,15 @@ main.js
 Application
 ```
 
-The `Application` class is responsible for initializing and managing every core subsystem.
+Die Klasse `Application` ist für die Initialisierung und Verwaltung aller Core-Subsysteme zuständig.
 
-Rather than placing startup logic inside `main.js`, all initialization is delegated to the `Application` class. This keeps the entry point small and makes the startup sequence predictable.
+Anstatt die Startlogik in `main.js` abzulegen, wird die Initialisierung an die Klasse `Application` delegiert. Dadurch bleibt der Einstiegspunkt klein und der Startablauf vorhersehbar.
 
 ---
 
-# Core Components
+# Core-Komponenten
 
-The Application initializes each subsystem in a defined order.
+Die Klasse `Application` initialisiert die Subsysteme in einer festgelegten Reihenfolge.
 
 ```text
 Application
@@ -72,190 +72,190 @@ Application
     ├── Tray
     └── Updater
 
-Supporting core modules:
+Unterstützende Core-Module:
     │
-    ├── StreamManager (FFmpeg stream handling)
-    ├── RadioBrowserService (station discovery)
-    ├── RuntimeDetector (platform & packaging detection)
-    ├── UpdateProviderFactory (provider selection)
-    ├── NavigationManager (plugin-driven navigation)
-    ├── ThemeManager (theme detection and activation)
-    ├── PluginManager (plugin lifecycle)
-    └── Diagnostics (logging and crash reporting)
+    ├── StreamManager (FFmpeg-Stream-Verarbeitung)
+    ├── RadioBrowserService (Sendersuche)
+    ├── RuntimeDetector (Erkennung von Plattform und Paketierung)
+    ├── UpdateProviderFactory (Auswahl des Update-Anbieters)
+    ├── NavigationManager (Plugin-gesteuerte Navigation)
+    ├── ThemeManager (Erkennung und Aktivierung von Themes)
+    ├── PluginManager (Plugin-Lebenszyklus)
+    └── Diagnostics (Protokollierung und Absturzberichte)
 ```
 
-Each subsystem is responsible for a single area of the application.
+Jedes Subsystem ist für einen klar abgegrenzten Bereich der Anwendung verantwortlich.
 
-No component should perform responsibilities that belong to another subsystem.
-
----
-
-# Core Module Overview
-
-WebRadio distinguishes between high-level managers and supporting core modules.
-
-## Managers (high-level)
-
-* **Application** – orchestrates startup and shutdown.
-* **StorageManager** – persists application and plugin data.
-* **WindowManager** – manages main window and lifecycle.
-* **IPC** – exposes a controlled bridge between main and renderer.
-* **PluginManager** – discovers and controls plugins.
-* **ThemeManager** – detects and applies themes.
-* **UpdateManager** – coordinates update checks and provider selection.
-* **Tray** – exposes system tray integration.
-* **Diagnostics** – collects logs, runtime info and crash context.
-
-## Supporting core modules (newer additions)
-
-* **StreamManager** – starts and controls FFmpeg-based audio streams.
-* **PlayerManager / RadioProvider / MediaHubProvider** – the Unified Player: one state machine and provider registry over every playback source.
-* **RadioBrowserService** – fetches station lists and metadata from the Radio Browser API.
-* **RuntimeDetector** – detects platform, architecture and packaging type at runtime.
-* **ProviderFactory** – selects the correct update provider for the detected runtime.
-* **NavigationManager** – manages sidebar and plugin-driven navigation entries.
-* **ThemeAPI / ThemeHandlers** – bridges theme selection and activation from UI to core.
-* **RadioHandlers / UpdaterHandlers** – expose radio playback and update operations via IPC.
+Keine Komponente sollte Aufgaben übernehmen, die zu einem anderen Subsystem gehören.
 
 ---
 
-# Why an Application Class?
+# Überblick über die Core-Module
 
-One of the biggest architectural decisions in WebRadio was introducing a dedicated `Application` class.
+WebRadio unterscheidet zwischen übergeordneten Managern und unterstützenden Core-Modulen.
 
-Instead of scattering initialization logic throughout multiple files, all startup and shutdown operations are centralized.
+## Manager auf hoher Ebene
 
-This provides several benefits:
+- **Application** – koordiniert Start und Beenden der Anwendung.
+- **StorageManager** – speichert Anwendungs- und Plugin-Daten dauerhaft.
+- **WindowManager** – verwaltet das Hauptfenster und dessen Lebenszyklus.
+- **IPC** – stellt eine kontrollierte Verbindung zwischen Main- und Renderer-Prozess bereit.
+- **PluginManager** – findet und verwaltet Plugins.
+- **ThemeManager** – erkennt und aktiviert Themes.
+- **UpdateManager** – koordiniert Update-Prüfungen und die Auswahl des Anbieters.
+- **Tray** – stellt die Integration in den System-Tray bereit.
+- **Diagnostics** – sammelt Logs, Laufzeitinformationen und Kontext zu Abstürzen.
 
-* One clear application lifecycle
-* Easier debugging
-* Predictable startup order
-* Simpler maintenance
-* Better separation of responsibilities
+## Unterstützende Core-Module (neuere Ergänzungen)
 
-The `Application` acts as the central coordinator of the entire desktop application.
+- **StreamManager** – startet und steuert Audiostreams auf Basis von FFmpeg.
+- **PlayerManager / RadioProvider / MediaHubProvider** – bilden den Unified Player: eine gemeinsame Zustandsmaschine und ein Provider-Register für alle Wiedergabequellen.
+- **RadioBrowserService** – ruft Senderlisten und Metadaten über die Radio-Browser-API ab.
+- **RuntimeDetector** – erkennt zur Laufzeit Plattform, Architektur und Pakettyp.
+- **ProviderFactory** – wählt den passenden Update-Anbieter für die erkannte Laufzeit aus.
+- **NavigationManager** – verwaltet Seitenleisten- und Plugin-Navigationseinträge.
+- **ThemeAPI / ThemeHandlers** – verbinden Theme-Auswahl und -Aktivierung der Benutzeroberfläche mit dem Core.
+- **RadioHandlers / UpdaterHandlers** – stellen Radio-Wiedergabe und Update-Funktionen über IPC bereit.
 
 ---
 
-# Startup Lifecycle
+# Warum eine Application-Klasse?
 
-A simplified startup sequence looks like this:
+Eine der wichtigsten Architekturentscheidungen bei WebRadio war die Einführung einer eigenen Klasse `Application`.
+
+Anstatt die Initialisierungslogik über viele Dateien zu verteilen, werden Start- und Beendigungsvorgänge zentralisiert.
+
+Das bietet mehrere Vorteile:
+
+- ein klarer Lebenszyklus der Anwendung
+- einfachere Fehlersuche
+- vorhersehbare Startreihenfolge
+- einfachere Wartung
+- klare Trennung der Zuständigkeiten
+
+`Application` koordiniert die gesamte Desktop-Anwendung.
+
+---
+
+# Startablauf
+
+Ein vereinfachter Startablauf sieht folgendermaßen aus:
 
 ```text
 Application.start()
 
 ↓
 
-Initialize Storage
+Speicher initialisieren
 
 ↓
 
-Initialize Diagnostics
+Diagnose initialisieren
 
 ↓
 
-Create Main Window
+Hauptfenster erstellen
 
 ↓
 
-Register IPC
+IPC registrieren
 
 ↓
 
-Load Themes
+Themes laden
 
 ↓
 
-Load Plugins
+Plugins laden
 
 ↓
 
-Initialize Update Manager
+UpdateManager initialisieren
 
 ↓
 
-Initialize Stream and Radio services
+Stream- und Radio-Dienste initialisieren
 
 ↓
 
-Register Media Keys
+Medientasten registrieren
 
 ↓
 
-Create System Tray
+System-Tray erstellen
 
 ↓
 
-Application Ready
+Anwendung bereit
 ```
 
-Every subsystem is initialized only once and in a predefined order.
+Jedes Subsystem wird genau einmal und in einer vorgegebenen Reihenfolge initialisiert.
 
-The update and radio subsystems are initialized after the plugin and theme layer so that the application can make platform-specific and plugin-aware runtime decisions.
-
----
-
-# Separation of Responsibilities
-
-WebRadio follows the **Single Responsibility Principle**.
-
-Each component has exactly one primary purpose.
-
-For example:
-
-* **StorageManager** manages application data.
-* **PluginManager** manages plugins.
-* **ThemeManager** manages themes.
-* **WindowManager** manages application windows.
-* **Diagnostics** collects logs and crash information.
-
-Keeping these responsibilities separate makes the application easier to extend without introducing unwanted dependencies.
+Die Update- und Radio-Subsysteme werden nach der Plugin- und Theme-Schicht initialisiert, damit die Anwendung plattformspezifische und Plugin-bezogene Entscheidungen zur Laufzeit treffen kann.
 
 ---
 
-# Extensibility
+# Trennung der Zuständigkeiten
 
-WebRadio was designed to grow without modifying its core.
+WebRadio folgt dem **Single-Responsibility-Prinzip**.
 
-New functionality should be implemented using:
+Jede Komponente hat genau eine primäre Aufgabe.
 
-* Plugins
-* Themes
-* Public APIs
+Beispiele:
 
-Whenever possible, contributors should avoid changing the core unless new infrastructure is required.
+- **StorageManager** verwaltet Anwendungsdaten.
+- **PluginManager** verwaltet Plugins.
+- **ThemeManager** verwaltet Themes.
+- **WindowManager** verwaltet Anwendungsfenster.
+- **Diagnostics** sammelt Logs und Informationen zu Abstürzen.
 
-This philosophy keeps updates stable while allowing the community to extend the application.
-
----
-
-# Runtime Services
-
-In addition to managers, WebRadio uses several core runtime services:
-
-* **StreamManager** – manages FFmpeg-based playback.
-* **PlayerManager** – Unified Player state, provider registry and controls.
-* **RadioBrowserService** – searches and caches station metadata.
-* **RuntimeDetector** – detects platform, architecture and packaging type.
-* **ProviderFactory** – selects the correct update provider.
-* **NavigationManager** – manages sidebar and plugin navigation.
+Durch die klare Trennung lassen sich Funktionen leichter erweitern, ohne unerwünschte Abhängigkeiten einzuführen.
 
 ---
 
-# Next Steps
+# Erweiterbarkeit
 
-The following documents describe each subsystem in detail:
+WebRadio wurde so entworfen, dass es erweitert werden kann, ohne den Core verändern zu müssen.
 
-* Application
-* Plugin System
-* Theme System
-* Update Architecture
-* Storage
-* Diagnostics
-* IPC
-* API Reference
-* StreamManager
-* Unified Player
-* RadioBrowserService
+Neue Funktionen sollten über folgende Mechanismen umgesetzt werden:
 
-Each guide builds upon the concepts introduced in this document.
+- Plugins
+- Themes
+- öffentliche APIs
+
+Wenn möglich, sollten Mitwirkende Änderungen am Core vermeiden, sofern keine neue Infrastruktur benötigt wird.
+
+So bleiben Updates stabil, während die Community die Anwendung erweitern kann.
+
+---
+
+# Laufzeitdienste
+
+Zusätzlich zu den Managern verwendet WebRadio verschiedene Core-Dienste zur Laufzeit:
+
+- **StreamManager** – verwaltet die Wiedergabe über FFmpeg.
+- **PlayerManager** – Zustände, Provider-Register und Steuerung des Unified Players.
+- **RadioBrowserService** – sucht Sender und speichert Metadaten zwischen.
+- **RuntimeDetector** – erkennt Plattform, Architektur und Pakettyp.
+- **ProviderFactory** – wählt den passenden Update-Anbieter.
+- **NavigationManager** – verwaltet Seitenleisten- und Plugin-Navigation.
+
+---
+
+# Nächste Schritte
+
+Die folgenden Dokumente beschreiben die einzelnen Subsysteme ausführlicher:
+
+- Application
+- Plugin-System
+- Theme-System
+- Aktualisierungsarchitektur
+- Speicherverwaltung
+- Diagnose
+- IPC
+- API-Referenz
+- StreamManager
+- Unified Player
+- RadioBrowserService
+
+Jeder Leitfaden baut auf den Konzepten dieses Dokuments auf.

@@ -1,152 +1,150 @@
-# WebRadio Theme SDK
+# WebRadio Theme-SDK
 
-Welcome to the **WebRadio Theme SDK**.
+Willkommen beim **WebRadio Theme-SDK**.
 
-This documentation explains everything you need to know to create custom themes for WebRadio.
+Diese Dokumentation erklärt, wie du eigene Themes für WebRadio erstellst.
 
-Whether you want to make small visual adjustments or completely redesign the application, this guide will walk you through every part of the theming system.
+Egal, ob du nur kleine visuelle Anpassungen vornehmen oder das Erscheinungsbild der Anwendung vollständig neu gestalten möchtest: Dieser Leitfaden führt dich durch alle Bereiche des Theme-Systems.
 
-The Theme SDK provides a stable and flexible foundation for creating beautiful, maintainable and future-proof themes.
-
----
-
-# What is a Theme?
-
-A theme changes the visual appearance of WebRadio without modifying the application's functionality.
-
-Themes allow developers and designers to customize the application's look and feel while remaining fully compatible with the WebRadio Core.
-
-Typical customizations include:
-
-* Colors
-* Typography
-* Icons
-* Spacing
-* Borders
-* Shadows
-* Backgrounds
-* Component styling
-
-Themes should only affect presentation and never modify application logic.
+Das Theme-SDK bietet eine stabile und flexible Grundlage für ansprechende, wartbare und zukunftsfähige Themes.
 
 ---
 
-# Why use the Theme SDK?
+# Was ist ein Theme?
 
-The Theme SDK provides a structured way to customize WebRadio.
+Ein Theme verändert das visuelle Erscheinungsbild von WebRadio, ohne die Funktionalität der Anwendung zu verändern.
 
-Using the SDK ensures that your theme:
+Entwickler und Designer können das Aussehen der Anwendung anpassen und dabei die Kompatibilität mit dem WebRadio-Core erhalten.
 
-* integrates cleanly with the application,
-* remains compatible with future versions,
-* follows a consistent structure,
-* uses officially supported styling variables,
-* is easy to maintain and share.
+Typische Anpassungen umfassen:
 
-Themes should never modify application source files directly.
+- Farben
+- Typografie
+- Icons
+- Abstände
+- Rahmen
+- Schatten
+- Hintergründe
+- Gestaltung von Komponenten
 
-Instead, they should rely on the public Theme SDK.
-
----
-
-# How Themes Work
-
-Each theme is stored inside its own directory.
-
-WebRadio discovers installed themes during startup, validates the theme manifest and makes the theme available to the user.
-
-Once selected, the theme's resources are loaded and applied to the application.
+Themes sollen ausschließlich die Darstellung beeinflussen und niemals die Anwendungslogik verändern.
 
 ---
 
-# Theme Loading Process
+# Warum das Theme-SDK verwenden?
+
+Das Theme-SDK bietet eine strukturierte Möglichkeit, WebRadio anzupassen.
+
+Mit dem SDK stellst du sicher, dass dein Theme:
+
+- sauber in die Anwendung integriert wird,
+- mit zukünftigen Versionen kompatibel bleibt,
+- einer einheitlichen Struktur folgt,
+- offiziell unterstützte Styling-Variablen verwendet,
+- leicht zu warten und weiterzugeben ist.
+
+Themes sollten keine Quelldateien der Anwendung direkt verändern.
+
+Stattdessen sollten sie das öffentliche Theme-SDK verwenden.
+
+---
+
+# So funktionieren Themes
+
+Jedes Theme wird in einem eigenen Verzeichnis gespeichert.
+
+WebRadio erkennt installierte Themes beim Start, prüft das Theme-Manifest und stellt das Theme anschließend zur Auswahl bereit.
+
+Nach der Auswahl werden die Ressourcen des Themes geladen und auf die Anwendung angewendet.
+
+---
+
+# Ablauf beim Laden eines Themes
 
 ```text
-Theme Folder
+Theme-Ordner
 
 ↓
 
-Discovery
+Erkennung
 
 ↓
 
-Manifest Validation
+Manifest prüfen
 
 ↓
 
-Asset Loading
+Assets laden
 
 ↓
 
-CSS Variables
+CSS-Variablen
 
 ↓
 
-Theme Applied
+Theme anwenden
 ```
 
-Each theme follows the same loading process.
+Jedes Theme durchläuft denselben Ladeprozess.
 
 ---
 
-# What You Will Learn
+# Was du lernen wirst
 
-This guide covers every aspect of theme development.
+Dieser Leitfaden behandelt alle wichtigen Aspekte der Theme-Entwicklung, darunter:
 
-Topics include:
+- das erste Theme erstellen
+- das Theme-Manifest verstehen
+- Theme-Dateien strukturieren
+- CSS-Variablen
+- Gestaltung von Komponenten
+- Assets
+- bewährte Vorgehensweisen
+- vollständige Beispiel-Themes
 
-* Creating your first theme
-* Understanding the theme manifest
-* Organizing theme files
-* CSS variables
-* Component styling
-* Assets
-* Best practices
-* Complete example themes
-
-No knowledge of WebRadio internals is required.
+Kenntnisse der internen WebRadio-Architektur sind nicht erforderlich.
 
 ---
 
-# Requirements
+# Voraussetzungen
 
-Before creating themes, you should be familiar with:
+Vor der Theme-Erstellung solltest du mit Folgendem vertraut sein:
 
-* HTML
-* CSS
-* CSS Custom Properties (Variables)
-* Basic directory structures
+- HTML
+- CSS
+- CSS Custom Properties (Variablen)
+- grundlegende Verzeichnisstrukturen
 
-JavaScript knowledge is not required for most themes.
+Für die meisten Themes sind keine JavaScript-Kenntnisse erforderlich.
 
 ---
 
-# Documentation Structure
+# Aufbau der Dokumentation
 
-The Theme SDK is organized into the following chapters.
+Das Theme-SDK ist in folgende Kapitel unterteilt.
 
 ```text
 README
 
 ↓
 
-Getting Started
+Erste Schritte
 
 ↓
 
-Theme Manifest
+Theme-Manifest
 
 ↓
 
-Directory Structure
+Verzeichnisstruktur
 
 ↓
 
-CSS Variables
+CSS-Variablen
 
 ↓
 
-Components
+Komponenten
 
 ↓
 
@@ -154,62 +152,62 @@ Assets
 
 ↓
 
-Best Practices
+Bewährte Vorgehensweisen
 
 ↓
 
-Hello Theme
+Hallo Theme
 
 ↓
 
-FAQ
+Häufige Fragen (FAQ)
 ```
 
-Each chapter builds upon the previous one.
+Jedes Kapitel baut auf dem vorherigen auf.
 
-For the best learning experience, it is recommended to read them in order.
-
----
-
-# Design Philosophy
-
-The Theme SDK follows a few important principles.
-
-## Consistency
-
-Themes should provide a consistent visual experience throughout the application.
+Für den besten Einstieg empfiehlt es sich, die Kapitel der Reihe nach zu lesen.
 
 ---
 
-## Maintainability
+# Architekturprinzipien
 
-Themes should be easy to update as WebRadio evolves.
+Das Theme-SDK folgt mehreren wichtigen Grundsätzen.
 
----
+## Einheitlichkeit
 
-## Compatibility
-
-Themes should rely only on documented variables and supported extension points.
+Themes sollen in der gesamten Anwendung ein einheitliches visuelles Erlebnis bieten.
 
 ---
 
-## Flexibility
+## Wartbarkeit
 
-The Theme SDK is designed to support both simple color schemes and complete visual redesigns.
-
----
-
-# Need Help?
-
-If you encounter issues while developing a theme, consider the following resources:
-
-* Theme SDK documentation
-* Architecture documentation
-* GitHub Issues
-* GitHub Discussions
+Themes sollen sich bei Weiterentwicklung von WebRadio leicht aktualisieren lassen.
 
 ---
 
-# Next Step
+## Kompatibilität
 
-Continue with **Getting Started** to create your first WebRadio theme.
+Themes sollen ausschließlich dokumentierte Variablen und unterstützte Erweiterungspunkte verwenden.
+
+---
+
+## Flexibilität
+
+Das Theme-SDK unterstützt sowohl einfache Farbschemata als auch umfassende visuelle Neugestaltungen.
+
+---
+
+# Hilfe erhalten
+
+Wenn du bei der Theme-Entwicklung auf Probleme stößt, helfen dir möglicherweise folgende Ressourcen:
+
+- Dokumentation zum Theme-SDK
+- Architekturdokumentation
+- GitHub-Issues
+- GitHub-Discussions
+
+---
+
+# Nächster Schritt
+
+Fahre mit **Erste Schritte** fort, um dein erstes WebRadio-Theme zu erstellen.

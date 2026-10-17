@@ -1,31 +1,31 @@
-# WebRadio Architecture Guide
+# Architekturleitfaden für WebRadio
 
-**Version:** 2.1
-**Applies to:** WebRadio v1.0.7+
+**Version:** 2.1  
+**Gilt für:** WebRadio v1.0.7 und neuer
 
 ---
 
-# Introduction
+# Einführung
 
-Welcome to the WebRadio Architecture Guide.
+Willkommen beim Architekturleitfaden von WebRadio.
 
-This document explains how WebRadio is built internally and why the project is structured the way it is. It is intended for contributors, plugin developers and anyone interested in understanding the application's architecture.
+Dieses Dokument erklärt den internen Aufbau von WebRadio und die Gründe für die gewählte Projektstruktur. Es richtet sich an Mitwirkende, Plugin-Entwickler und alle, die die Architektur der Anwendung verstehen möchten.
 
-Unlike traditional documentation that only explains *how* something works, this guide also explains *why* architectural decisions were made.
+Im Gegensatz zu einer Dokumentation, die ausschließlich erklärt, *wie* etwas funktioniert, erläutert dieser Leitfaden auch, *warum* bestimmte Architekturentscheidungen getroffen wurden.
 
-The goal of WebRadio is not only to provide a modern desktop radio application, but also a clean, modular and maintainable platform that can be extended without modifying the core application.
+WebRadio soll nicht nur eine moderne Desktop-Radioanwendung bereitstellen, sondern auch eine saubere, modulare und wartbare Plattform sein, die sich erweitern lässt, ohne den Anwendungskern zu verändern.
 
-Every major subsystem has a clearly defined responsibility. This separation allows new functionality to be added while keeping the core stable, understandable and easy to maintain.
+Jedes größere Subsystem hat eine klar definierte Aufgabe. Durch diese Trennung lassen sich neue Funktionen hinzufügen, während der Core stabil, verständlich und wartbar bleibt.
 
-The architecture follows a few simple principles:
+Die Architektur folgt einigen grundlegenden Prinzipien:
 
-* Every component has a single responsibility.
-* Components communicate through well-defined interfaces.
-* Features should be replaceable without affecting unrelated systems.
-* Plugins and themes should extend the application instead of modifying it.
-* The application startup should be predictable and centralized.
-* **Installation is not Runtime** – Package management is optional and separate from runtime discovery.
+- Jede Komponente hat eine klar abgegrenzte Aufgabe.
+- Komponenten kommunizieren über eindeutig definierte Schnittstellen.
+- Funktionen sollen austauschbar sein, ohne unabhängige Systeme zu beeinflussen.
+- Plugins und Themes sollen die Anwendung erweitern, statt sie direkt zu verändern.
+- Der Start der Anwendung soll vorhersehbar und zentral gesteuert sein.
+- **Installation ist nicht Laufzeit:** Paketverwaltung ist optional und von der Erkennung zur Laufzeit getrennt.
 
-These principles have guided the evolution of WebRadio and continue to shape its future development.
+Diese Prinzipien haben die Entwicklung von WebRadio geprägt und beeinflussen weiterhin die zukünftige Entwicklung.
 
-This guide provides an overview of the complete application architecture before diving into the individual systems such as the Application, Storage Manager, Window Manager, Plugin Manager, Theme Manager, Package System, Diagnostics, IPC and Renderer.
+Dieser Leitfaden bietet einen Überblick über die gesamte Anwendungsarchitektur, bevor die einzelnen Systeme wie Application, StorageManager, WindowManager, PluginManager, ThemeManager, Package System, Diagnostics, IPC und Renderer im Detail behandelt werden.

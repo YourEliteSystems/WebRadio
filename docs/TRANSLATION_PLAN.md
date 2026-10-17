@@ -16,6 +16,34 @@ Diese Datei ist ein Arbeitsplan und noch keine Übersetzung der aufgeführten Se
 
 Die Sprachbewertung jeder einzelnen Seite ist noch nicht abgeschlossen. Daher wird keine Seite allein anhand ihres Dateinamens als vollständig übersetzt eingestuft.
 
+
+## Fortschritt
+
+### Bereits ins Deutsche übertragen
+
+- `docs/index.md` – Startseite
+- `docs/Readme.md` – Erste Schritte und Projektüberblick
+- `docs/CONTRIBUTING.md` – Mitwirken am Projekt
+- `docs/CODE_OF_CONDUCT.md` – Verhaltenskodex
+- `docs/SECURITY.md` – Sicherheitsrichtlinie
+- `docs/VERSIONING.md` – Versionierung der Dokumentation
+- `docs/CROSS_PLATFORM_SETUP.md` – plattformübergreifende Einrichtung
+
+Die MkDocs-Navigation, die Theme-Sprache und die Theme-Umschalter wurden ebenfalls auf Deutsch umgestellt.
+
+### In der aktuellen Übersetzungsrunde
+
+- `docs/architecture.md`
+- `docs/architecture/readme.md`
+- `docs/api-reference/README.md`
+- `docs/plugin-sdk/README.md`
+- `docs/theme-sdk/README.md`
+
+### Noch gesondert prüfen
+
+- `docs/PRIVACY.md` ist bereits weitgehend deutschsprachig. Vor einer Überarbeitung müssen die Aussagen zu Telemetrie, Diagnose und Integrationen gegen den aktuellen Implementierungsstand geprüft werden.
+- `docs/DOWNLOAD_STATS.md` wird automatisch aus GitHub-Release-Daten erzeugt. Übersetzungen an dieser Datei sollten daher im erzeugenden Workflow bzw. Skript vorgenommen werden, nicht nur in der generierten Ausgabe.
+
 ## Vollständiges Dateiinventar
 
 ### Allgemeine Dokumentation und Projektregeln (11 Seiten)
