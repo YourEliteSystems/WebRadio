@@ -174,7 +174,7 @@ npm test -- --platform=windows
 
 ## CI/CD Integration
 
-The repository's current build and release workflows are the source of truth for automated builds. See [GitHub Actions workflows](https://github.com/YourEliteSystems/WebRadio/tree/main/.github/workflows) and the [Contributing Guide](../CONTRIBUTING.md) rather than copying an independent workflow example that may drift from the project configuration.
+The repository's current build and release workflows are the source of truth for automated builds. See [GitHub Actions workflows](https://github.com/YourEliteSystems/WebRadio/tree/main/.github/workflows) and the [Contributing Guide](https://github.com/YourEliteSystems/WebRadio/blob/main/CONTRIBUTING.md) rather than copying an independent workflow example that may drift from the project configuration.
 
 ## Troubleshooting
 
