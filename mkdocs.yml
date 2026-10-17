@@ -136,6 +136,7 @@ nav:
       - Verhaltenskodex: CODE_OF_CONDUCT.md
       - Mitwirken: CONTRIBUTING.md
       - Sicherheitsrichtlinie: SECURITY.md
+      - Bedrohungsmodell: THREAT_MODEL.md
   - Dokumentation:
       - Übersetzungsplan: TRANSLATION_PLAN.md
       - Versionierung: VERSIONING.md
