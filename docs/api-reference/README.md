@@ -2,7 +2,7 @@
 
 Welcome to the WebRadio API Reference.
 
-This documentation describes every public API available to plugin and theme developers.
+This reference documents the current plugin-facing APIs and clearly marks planned or not-yet-implemented services.
 
 Unlike the Plugin SDK and Theme SDK, which focus on learning and practical examples, the API Reference serves as the official technical specification for the WebRadio SDK.
 
@@ -133,7 +133,7 @@ Each category is documented separately.
 * [Navigation](../plugin-sdk/08-Navigation.md)
 * [UI](../plugin-sdk/09-UI.md)
 
-> In WebRadio 1.0.7-alpha.5, some API reference pages describe future-facing plugin services that are not yet implemented. Those pages now document their current "not yet implemented" status.
+> Some API reference pages describe future-facing plugin services that are not yet implemented. Check each page's status before relying on a service.
 
 ---
 
