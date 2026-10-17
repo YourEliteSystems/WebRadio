@@ -1,6 +1,6 @@
 # WebRadio
 
-Open-source cross-platform desktop WebRadio application.
+Open-source desktop WebRadio application for Windows and Linux.
 
 Built with Electron and React, WebRadio is a fast, lightweight and extensible
 desktop web radio player with a plugin system, a theme system and a unified
@@ -13,7 +13,8 @@ player API.
 - Plugin system
 - Theme system
 - Unified Player API
-- Cross-platform support
+- Windows and Linux release builds
+- macOS is not currently available as a release build
 
 ## Documentation
 
