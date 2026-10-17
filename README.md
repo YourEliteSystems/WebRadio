@@ -2,30 +2,27 @@
 
 > **ONE WORLD. ONE SIGNAL.**
 >
-> Ein moderner, plattformübergreifender Open-Source-Radioplayer für Windows und Linux – mit tausenden Sendern, leistungsstarker Audiowiedergabe, Themes und einem echten Plugin-System.
+> Dein Internetradio für den Desktop: WebRadio vereint die Suche nach Sendern aus aller Welt, Favoriten und eine anpassbare Oberfläche in einer quelloffenen Anwendung für Windows und Linux.
 
 [![Version](https://img.shields.io/github/v/release/YourEliteSystems/WebRadio?include_prereleases&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
-[![License](https://img.shields.io/github/license/YourEliteSystems/WebRadio?style=for-the-badge)](./LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
+[![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
+[![Lizenz](https://img.shields.io/github/license/YourEliteSystems/WebRadio?style=for-the-badge)](./LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
 [![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
-**[⬇️ Downloads](../../releases) · [📚 Dokumentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [📖 Datenschutz](./docs/PRIVACY.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
+**[⬇️ Downloads](../../releases) · [📚 Dokumentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin-SDK](./docs/plugin-sdk/README.md) · [🔒 Datenschutz](./docs/PRIVACY.md) · [🐛 Fehler melden](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
 
-> **Aktueller Entwicklungsstand: v1.0.7-beta.2.** WebRadio befindet sich in der Beta-Phase. Bitte prüfe die Release-Hinweise und sichere wichtige Einstellungen, bevor du eine Vorabversion im Alltag einsetzt.
+> **Beta-Status:** WebRadio wird aktiv entwickelt. Funktionen und Pakete können sich zwischen Vorabversionen ändern. Prüfe vor der Installation die Hinweise und Dateien des jeweiligen [Releases](../../releases).
 
 ---
 
 ## 🌍 Radio. Everywhere.
 
-Warum zwischen Webseiten, Tabs und einzelnen Apps wechseln?
+### Dein Radio. Deine Sender. Deine Oberfläche.
 
-**WebRadio bringt Internetradio an einen Ort.**
+Entdecke Internetradios aus aller Welt, speichere deine Favoriten und passe WebRadio mit Themes und Plugins an. Die Anwendung verbindet eine eigene Audiopipeline mit einer erweiterbaren Desktop-Oberfläche – und bleibt als Open-Source-Projekt nachvollziehbar.
 
-Suche Sender aus aller Welt, speichere deine Favoriten, höre Musik direkt über eine native FFmpeg-Audiopipeline und passe die Anwendung mit Themes und Plugins an deine eigenen Vorstellungen an.
-
-> **Nicht nur ein Radioplayer.**
-> **Eine Plattform, die du erweitern kannst.**
+**[WebRadio herunterladen](../../releases) · [Projekt erkunden](../../tree/main/docs) · [Mitentwickeln](./CONTRIBUTING.md)**
 
 ---
 
@@ -69,18 +66,6 @@ Speichere Sender und finde kürzlich gehörte Stationen schnell wieder.
 
 ### 🔄 Update-Kanäle
 Wähle zwischen **Stable**, **Beta** und **Alpha** – direkt über die Einstellungen.
-
----
-
-## 🖥️ Ein Blick auf WebRadio
-
-WebRadio soll sich nicht wie eine Webseite im Desktop-Fenster anfühlen, sondern wie eine eigenständige Anwendung.
-
-**Ziel:** eine klare Oberfläche, schnelle Navigation und ein Player, der während der gesamten Nutzung im Mittelpunkt bleibt.
-
-> 📸 **Screenshots und ein kurzer Demo-Clip folgen hier, sobald aktuelles Material aus der finalen UI vorliegt.**
->
-> Wir verzichten bewusst darauf, veraltete Screenshots einzubauen – die README soll immer die tatsächlich aktuelle Anwendung zeigen.
 
 ---
 
