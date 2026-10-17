@@ -1,137 +1,135 @@
-# WebRadio Plugin SDK
+# WebRadio Plugin-SDK
 
-> 📌 **Hinweis zur Architektur:**  
-> WebRadio verwendet ausschließlich dieses modulare Plugin-System (`electron/core/plugins/`). Alle Plugins werden über diesen Plugin-Manager geladen, verwaltet und ausgeführt. Legacy-Plugin-Schnittstellen wurden vollständig entfernt.
+> 📌 **Architekturhinweis:**  
+> WebRadio verwendet ausschließlich dieses modulare Plugin-System (`electron/core/plugins/`). Alle Plugins werden über diesen Plugin-Manager geladen, verwaltet und ausgeführt. Veraltete Plugin-Schnittstellen wurden vollständig entfernt.
 
-Welcome to the **WebRadio Plugin SDK**.
+Willkommen beim **WebRadio Plugin-SDK**.
 
-This documentation explains everything you need to know to develop plugins for WebRadio.
+Diese Dokumentation erklärt alles, was du wissen musst, um Plugins für WebRadio zu entwickeln.
 
-Whether you are creating your very first extension or building a complex integration, this guide will walk you through every part of the plugin development process.
+Egal, ob du deine erste Erweiterung erstellst oder eine komplexe Integration entwickelst: Dieser Leitfaden führt dich durch alle Bereiche der Plugin-Entwicklung.
 
-The Plugin SDK is designed to provide a stable, consistent and easy-to-use interface between your plugin and the WebRadio Core.
-
----
-
-# What are Plugins?
-
-Plugins allow you to extend WebRadio without modifying the application's source code.
-
-A plugin can add entirely new functionality while remaining independent from the core application.
-
-Examples include:
-
-* Music service integrations
-* Discord Rich Presence
-* Notification providers
-* Audio visualizers
-* Custom sidebar pages
-* Settings pages
-* Utility tools
-* Developer tools
-* External service integrations
-
-The goal of the Plugin SDK is to make plugin development simple while keeping the WebRadio Core stable and maintainable.
+Das Plugin-SDK stellt eine stabile, einheitliche und leicht nutzbare Schnittstelle zwischen deinem Plugin und dem WebRadio-Core bereit.
 
 ---
 
-# Why use the Plugin SDK?
+# Was sind Plugins?
 
-The Plugin SDK provides a structured way to interact with WebRadio.
+Plugins erweitern WebRadio, ohne dass du den Quellcode der Anwendung ändern musst.
 
-Using the SDK ensures that your plugin:
+Ein Plugin kann neue Funktionen hinzufügen und dabei unabhängig vom Anwendungskern bleiben.
 
-* integrates cleanly with the application,
-* remains compatible with future versions,
-* follows the same lifecycle as every other plugin,
-* can safely access public APIs,
-* remains isolated from the application core.
+Beispiele:
 
-Plugins should never modify internal application components directly.
+- Integrationen für Musikdienste
+- Discord Rich Presence
+- Anbieter für Benachrichtigungen
+- Audio-Visualisierungen
+- Eigene Seiten in der Seitenleiste
+- Einstellungsseiten
+- Hilfswerkzeuge
+- Entwicklerwerkzeuge
+- Integrationen externer Dienste
 
-Instead, they should communicate through the public Plugin API.
+Das Plugin-SDK soll die Plugin-Entwicklung vereinfachen und gleichzeitig den WebRadio-Core stabil und wartbar halten.
 
 ---
 
-# Plugin Lifecycle
+# Warum das Plugin-SDK verwenden?
 
-Every plugin follows the same lifecycle.
+Das Plugin-SDK bietet eine strukturierte Möglichkeit, mit WebRadio zu interagieren.
+
+Mit dem SDK stellst du sicher, dass dein Plugin:
+
+- sauber in die Anwendung integriert wird,
+- mit zukünftigen Versionen kompatibel bleibt,
+- denselben Lebenszyklus wie andere Plugins verwendet,
+- sicher auf öffentliche APIs zugreifen kann,
+- vom Anwendungskern isoliert bleibt.
+
+Plugins sollten interne Anwendungskomponenten niemals direkt verändern.
+
+Stattdessen kommunizieren sie über die öffentliche Plugin-API.
+
+---
+
+# Lebenszyklus eines Plugins
+
+Jedes Plugin durchläuft denselben Lebenszyklus.
 
 ```text
-Plugin Folder
+Plugin-Ordner
 
 ↓
 
-Manifest Validation
+Manifest prüfen
 
 ↓
 
-Registration
+Registrierung
 
 ↓
 
-Initialization
+Initialisierung
 
 ↓
 
-Running
+Ausführung
 
 ↓
 
-Shutdown
+Beenden
 ```
 
-Understanding this lifecycle is essential before developing plugins.
+Das Verständnis dieses Lebenszyklus ist eine wichtige Voraussetzung für die Plugin-Entwicklung.
 
-The following chapters explain every stage in detail.
-
----
-
-# What you will learn
-
-This guide covers every aspect of plugin development.
-
-Topics include:
-
-* Creating your first plugin
-* Understanding the manifest
-* Organizing project files
-* Plugin lifecycle
-* Plugin context
-* Storage API
-* Events
-* Hooks
-* User interface integration
-* Best practices
-* Example plugins
-
-No previous knowledge of WebRadio internals is required.
+Die folgenden Kapitel erläutern jede Phase im Detail.
 
 ---
 
-# Requirements
+# Was du lernen wirst
 
-Before developing plugins, you should be familiar with:
+Dieser Leitfaden behandelt alle wichtigen Aspekte der Plugin-Entwicklung, darunter:
 
-* JavaScript (ES2022 or newer)
-* Node.js
-* JSON
-* Basic Electron concepts
+- das erste Plugin erstellen
+- das Manifest verstehen
+- Projektdateien strukturieren
+- Plugin-Lebenszyklus
+- Plugin-Kontext
+- Storage-API
+- Ereignisse
+- Hooks
+- Integration der Benutzeroberfläche
+- bewährte Vorgehensweisen
+- Beispiel-Plugins
 
-Knowledge of the internal WebRadio architecture is helpful but not required.
+Vorkenntnisse über die internen Abläufe von WebRadio sind nicht erforderlich.
 
 ---
 
-# Documentation Structure
+# Voraussetzungen
 
-The Plugin SDK is organized into the following chapters.
+Vor der Plugin-Entwicklung solltest du mit Folgendem vertraut sein:
+
+- JavaScript (ES2022 oder neuer)
+- Node.js
+- JSON
+- grundlegende Konzepte von Electron
+
+Kenntnisse der internen WebRadio-Architektur sind hilfreich, aber nicht erforderlich.
+
+---
+
+# Aufbau der Dokumentation
+
+Das Plugin-SDK ist in folgende Kapitel unterteilt.
 
 ```text
 README
 
 ↓
 
-Getting Started
+Erste Schritte
 
 ↓
 
@@ -139,27 +137,27 @@ Manifest
 
 ↓
 
-Project Structure
+Projektstruktur
 
 ↓
 
-Lifecycle
+Lebenszyklus
 
 ↓
 
-Plugin Context
+Plugin-Kontext
 
 ↓
 
-Plugin API
+Plugin-API
 
 ↓
 
-Storage
+Speicher
 
 ↓
 
-Events
+Ereignisse
 
 ↓
 
@@ -167,75 +165,75 @@ Hooks
 
 ↓
 
-UI Integration
+UI-Integration
 
 ↓
 
-Navigation (Sidebar & Sections)
+Navigation (Seitenleiste und Bereiche)
 
 ↓
 
-Capabilities & Plugin HTTP Environment
+Capabilities und Plugin-HTTP-Umgebung
 
 ↓
 
-Best Practices
+Bewährte Vorgehensweisen
 
 ↓
 
-Hello World
+Hallo Welt
 
 ↓
 
-FAQ
+Häufige Fragen (FAQ)
 ```
 
-Each chapter builds upon the previous one.
+Jedes Kapitel baut auf dem vorherigen auf.
 
-For the best learning experience, it is recommended to read them in order.
-
----
-
-# Design Philosophy
-
-The Plugin SDK follows a few important principles.
-
-## Stability
-
-Public APIs should remain stable whenever possible.
+Für den besten Einstieg empfiehlt es sich, die Kapitel der Reihe nach zu lesen.
 
 ---
 
-## Simplicity
+# Architekturprinzipien
 
-Common tasks should require as little code as possible.
+Das Plugin-SDK folgt mehreren wichtigen Grundsätzen.
+
+## Stabilität
+
+Öffentliche APIs sollen nach Möglichkeit stabil bleiben.
+
+---
+
+## Einfachheit
+
+Häufige Aufgaben sollen mit möglichst wenig Code umgesetzt werden können.
 
 ---
 
 ## Isolation
 
-Plugins should operate independently and should not interfere with each other.
+Plugins sollen unabhängig voneinander arbeiten und sich nicht gegenseitig beeinträchtigen.
 
 ---
 
-## Extensibility
+## Erweiterbarkeit
 
-The SDK is designed to grow alongside WebRadio without breaking existing plugins.
-
----
-
-# Need Help?
-
-If you encounter issues while developing a plugin, consider the following resources:
-
-* Plugin SDK documentation
-* Architecture documentation
-* API Reference
-* GitHub Issues
-* GitHub Discussions
+Das SDK soll gemeinsam mit WebRadio wachsen können, ohne bestehende Plugins zu beschädigen.
 
 ---
 
-# Next Step
+# Hilfe erhalten
 
-Continue with **Getting Started** to create your first WebRadio plugin.
+Wenn du bei der Plugin-Entwicklung auf Probleme stößt, helfen dir möglicherweise folgende Ressourcen:
+
+- Dokumentation zum Plugin-SDK
+- Architekturdokumentation
+- API-Referenz
+- GitHub-Issues
+- GitHub-Discussions
+
+---
+
+# Nächster Schritt
+
+Fahre mit **Erste Schritte** fort, um dein erstes WebRadio-Plugin zu erstellen.
