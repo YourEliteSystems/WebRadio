@@ -1,0 +1,42 @@
+name: Production Dependency Audit (main baseline)
+on:
+  push:
+    branches:
+      - audit/production-audit-main-baseline
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/production-dependency-audit.yml
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Audit production dependencies only
+        shell: bash
+        run: |
+          npm audit --omit=dev --json > production-audit.json || true
+          node <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("production-audit.json", "utf8"));
+          const meta = report.metadata?.vulnerabilities ?? {};
+          console.log("PRODUCTION AUDIT SUMMARY (MAIN BASELINE)");
+          console.log(JSON.stringify(meta, null, 2));
+          for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+            console.log(`\n${item.severity.toUpperCase()} ${name} | direct=${item.isDirect} | range=${item.range}`);
+            console.log(`  via: ${(item.via ?? []).map(v => typeof v === "string" ? v : `${v.name}: ${v.title ?? v.url ?? "advisory"}`).join("; ")}`);
+            console.log(`  fixAvailable: ${JSON.stringify(item.fixAvailable)}`);
+          }
+          NODE
+      - name: Validate audit report
+        run: node -e "JSON.parse(require('node:fs').readFileSync('production-audit.json', 'utf8')); console.log('Audit JSON parsed successfully')"
