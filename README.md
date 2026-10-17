@@ -12,7 +12,7 @@
 
 **[⬇️ Downloads](../../releases) · [📚 Dokumentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [📖 Datenschutz](./docs/PRIVACY.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
 
-> **Aktueller Entwicklungsstand: v1.0.7-beta.2.** WebRadio befindet sich in der Beta-Phase. Bitte prüfe die Release-Hinweise und sichere wichtige Einstellungen, bevor du eine Vorabversion im Alltag einsetzt.**
+> **Aktueller Entwicklungsstand: v1.0.7-beta.2.** WebRadio befindet sich in der Beta-Phase. Bitte prüfe die Release-Hinweise und sichere wichtige Einstellungen, bevor du eine Vorabversion im Alltag einsetzt.
 
 ---
 
