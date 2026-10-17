@@ -1,89 +1,89 @@
-# Documentation Versioning
+# Versionierung der Dokumentation
 
-WebRadio documentation uses **ReadTheDocs** for multi-version documentation deployment.
+WebRadio nutzt **Read the Docs**, um mehrere Dokumentationsversionen bereitzustellen.
 
-## How It Works
+## Funktionsweise
 
-ReadTheDocs automatically builds documentation for:
+Read the Docs erstellt automatisch Dokumentations-Builds für:
 
-* **Tags** – Stable releases (e.g., `v1.0.0`, `v1.1.0`)
-* **Branches** – Development versions (e.g., `main`, `develop`)
-* **Pull Requests** – Preview versions
+- **Tags** – stabile Releases (z. B. `v1.0.0`, `v1.1.0`)
+- **Branches** – Entwicklungsstände (z. B. `main`, `develop`)
+- **Pull Requests** – Vorschauversionen
 
-The version selector in the documentation header is automatically managed by ReadTheDocs.
+Die Versionsauswahl im Dokumentationskopf wird automatisch von Read the Docs verwaltet.
 
-## Configuration
+## Konfiguration
 
-Versioning is configured in `.readthedocs.yml`:
+Die Konfiguration befindet sich in `.readthedocs.yaml`:
 
 ```yaml
 version: 2
 
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
   tools:
-    python: "3.14"
+    python: "3.12"
 
 mkdocs:
   configuration: mkdocs.yml
-  fail_on_warning: false
+  fail_on_warning: true
 
 python:
   install:
     - requirements: docs/requirements.txt
 ```
 
-## Version Types
+## Versionstypen
 
-### Stable Versions
+### Stabile Versionen
 
-Created from Git tags:
+Sie werden aus Git-Tags erstellt:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-ReadTheDocs automatically builds version `v1.0.0` and marks it as stable.
+Read the Docs erstellt automatisch die Version `v1.0.0` und kennzeichnet sie als stabil.
 
-### Development Versions
+### Entwicklungsversionen
 
-Created from branches:
+Sie werden aus Branches erstellt:
 
-* `main` – Latest development version
-* `develop` – Feature development branch (if used)
-* Custom branches – Any branch in the repository
+- `main` – aktueller Entwicklungsstand
+- `develop` – Entwicklungsbranch für Funktionen, falls verwendet
+- eigene Branches – beliebige weitere Branches im Repository
 
-### Pull Request Versions
+### Vorschauversionen für Pull Requests
 
-Every PR gets a temporary preview build for testing documentation changes.
+Für jeden Pull Request kann ein temporärer Vorschau-Build erstellt werden, mit dem Änderungen an der Dokumentation vor dem Merge geprüft werden können.
 
-## Setting Default Version
+## Standardversion festlegen
 
-In the ReadTheDocs dashboard:
+Im Read-the-Docs-Dashboard:
 
-1. Go to **Admin** → **Versions**
-2. Select the version you want as default
-3. Click **Make default**
+1. Öffne **Admin** → **Versions**.
+2. Wähle die gewünschte Standardversion aus.
+3. Klicke auf **Make default**.
 
-Typically, the latest stable tag is set as default.
+Üblicherweise wird der neueste stabile Tag als Standard festgelegt.
 
-## Version Aliases
+## Versionsaliase
 
-ReadTheDocs supports version aliases:
+Read the Docs unterstützt Versionsaliase:
 
-* `latest` – Usually points to the most recent stable version
-* `stable` – Points to the most recent stable release
-* `dev` – Points to the development branch
+- `latest` – verweist in der Regel auf die als neueste konfigurierte Version
+- `stable` – verweist auf das neueste stabile Release
+- `dev` – verweist auf den Entwicklungsbranch
 
-Configure aliases in the ReadTheDocs dashboard under **Admin** → **Versions**.
+Konfiguriere Aliase im Read-the-Docs-Dashboard unter **Admin** → **Versions**.
 
-## Pre-release Versions
+## Vorabversionen
 
-For alpha, beta, or rc releases:
+Für Alpha-, Beta- oder RC-Releases:
 
 ```bash
-# Tag pre-release versions
+# Vorabversionen taggen
 git tag v1.1.0-alpha.1
 git push origin v1.1.0-alpha.1
 
@@ -94,34 +94,34 @@ git tag v1.1.0-rc.1
 git push origin v1.1.0-rc.1
 ```
 
-ReadTheDocs will build these as separate versions. You can configure aliases in the dashboard.
+Read the Docs erstellt dafür separate Versionen. Aliase können im Dashboard konfiguriert werden.
 
-## Local Development
+## Lokale Entwicklung
 
-To serve the documentation locally:
+Starte die Dokumentation lokal mit:
 
 ```bash
 mkdocs serve
 ```
 
-This serves the current branch without versioning.
+Dabei wird der Dokumentationsstand des aktuellen Branches ohne Versionsverwaltung bereitgestellt.
 
-## Deleting Old Versions
+## Alte Versionen löschen
 
-In the ReadTheDocs dashboard:
+Im Read-the-Docs-Dashboard:
 
-1. Go to **Admin** → **Versions**
-2. Select the version to delete
-3. Click **Deactivate** → **Delete**
+1. Öffne **Admin** → **Versions**.
+2. Wähle die zu löschende Version aus.
+3. Klicke auf **Deactivate** → **Delete**.
 
-## Best Practices
+## Bewährte Vorgehensweisen
 
-* Tag stable releases with semantic versioning (`v1.0.0`, `v1.1.0`)
-* Keep the last 2-3 stable versions for reference
-* Delete very old versions to save space
-* Test documentation changes in PR previews before merging
-* Use descriptive branch names for long-lived development branches
+- Stabile Releases mit semantischer Versionierung taggen (z. B. `v1.0.0`, `v1.1.0`).
+- Die letzten zwei bis drei stabilen Versionen als Referenz behalten.
+- Sehr alte Versionen löschen, um Speicherplatz zu sparen.
+- Dokumentationsänderungen vor dem Merge in PR-Vorschauen testen.
+- Aussagekräftige Branchnamen für länger laufende Entwicklungsarbeiten verwenden.
 
-## More Information
+## Weitere Informationen
 
-See the [ReadTheDocs Versioning Documentation](https://docs.readthedocs.io/en/stable/versioning.html) for more details.
+Weitere Details findest du in der [Dokumentation zur Read-the-Docs-Versionierung](https://docs.readthedocs.io/en/stable/versioning.html).
