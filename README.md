@@ -425,7 +425,7 @@ Die Lizenz dieses Projekts ist in [LICENSE](./LICENSE) beschrieben.
 
 © 2026 Your Elite Systems
 
-**Hinweis zur Lizenz:** Das Projekt ist unter der Apache License 2.0 veröffentlicht. Detaillierte Lizenzinformationen und mögliche Drittanbieter-Hinweise sind im `LICENSE`-File und der Datenschutz-/Dokumentationsdokumentation zu finden.
+**Hinweis zur Lizenz:** WebRadio selbst steht unter der Apache License 2.0. Eingebundene Bibliotheken und mitgelieferte Programme können abweichende Lizenzbedingungen haben. Eine erste Übersicht steht in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md); die vollständige transitive Lizenzinventur und die Prüfung der mitgelieferten FFmpeg-Binärdateien sind noch offen.
 
 ---
 
