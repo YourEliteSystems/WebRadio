@@ -83,9 +83,7 @@ Future releases will introduce additional user experience improvements and new e
 
 Contributions are welcome.
 
-Please read the repository's [Contributing Guide](https://github.com/YourEliteSystems/WebRadio/blob/main/CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), [Security Policy](SECURITY.md) and [Privacy Notice](PRIVACY.md).
-
-before opening an Issue or Pull Request.
+Before opening an issue or pull request, please read the repository's [Contributing Guide](https://github.com/YourEliteSystems/WebRadio/blob/main/CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), [Security Policy](SECURITY.md) and [Privacy Notice](PRIVACY.md).
 
 ---
 
