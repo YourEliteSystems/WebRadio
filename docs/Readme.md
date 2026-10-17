@@ -4,7 +4,7 @@
 
 WebRadio is designed to provide a fast, lightweight and customizable listening experience while offering a powerful plugin and theme ecosystem for developers and the community.
 
-> **Current Status:** Active Development (v1.0.7-beta.2)
+> **Current Status:** Active development. The source tree currently documents `v1.0.7-beta.2`; check the [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases) page for the latest published download.
 
 ---
 
@@ -25,9 +25,9 @@ WebRadio is designed to provide a fast, lightweight and customizable listening e
 
 | Platform | Status               |
 | -------- | -------------------- |
-| Windows  | ✅ Fully Supported    |
-| Linux    | ✅ Produktions-Build (Windows ist die Haupt-Testplattform) |
-| macOS    | Vorbereitung |
+| Windows  | Supported; main test platform |
+| Linux    | Published builds available; test coverage may vary |
+| macOS    | Not currently available |
 
 ---
 
@@ -39,16 +39,13 @@ Clone the repository:
 git clone https://github.com/YourEliteSystems/WebRadio.git
 ```
 
-Install dependencies:
+**Prerequisites:** Node.js 26 or newer and npm 10 or newer. The packaged application does not require Node.js or npm on the target machine.
+
+Install dependencies and start the development version:
 
 ```bash
-npm install
-```
-
-Start the development version:
-
-```bash
-npm start
+npm ci
+npm run dev
 ```
 
 ---
@@ -86,12 +83,7 @@ Future releases will introduce additional user experience improvements and new e
 
 Contributions are welcome.
 
-Please read:
-
-* CONTRIBUTING.md
-* CODE_OF_CONDUCT.md
-* SECURITY.md
-* PRIVACY.md
+Please read the repository's [Contributing Guide](../CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), [Security Policy](SECURITY.md) and [Privacy Notice](PRIVACY.md).
 
 before opening an Issue or Pull Request.
 
