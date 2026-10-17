@@ -6,17 +6,17 @@ Sicherheit ist ein wichtiger Bestandteil von WebRadio. Das gilt insbesondere fü
 
 ## Unterstützte Versionen
 
-Sicherheitskorrekturen werden grundsätzlich für die aktuell aktiv entwickelte Version berücksichtigt. Bei älteren Releases kann eine Aktualisierung auf eine aktuelle Version erforderlich sein, bevor ein Problem behoben werden kann.
+Sicherheitskorrekturen werden für den aktuellen Entwicklungsstand auf `main` und die jeweils neueste veröffentlichte Version priorisiert. Ältere Releases erhalten keine garantierten Backports; bitte prüfe zuerst, ob das Problem auch mit der aktuellen Version auftritt.
 
-Da WebRadio aktiv weiterentwickelt wird, sollte bei Sicherheitsmeldungen immer die konkrete Version und Plattform angegeben werden.
+Gib bei einer Meldung immer die genaue WebRadio-Version, das Betriebssystem und die Architektur an.
 
 ## Eine Sicherheitslücke melden
 
 Bitte veröffentliche Sicherheitslücken nicht in einem öffentlichen GitHub-Issue, solange das Problem noch nicht behoben ist.
 
-Wenn im Repository GitHub Security Advisories beziehungsweise Private Vulnerability Reporting verfügbar ist, nutze diesen vertraulichen Meldeweg.
+Wenn auf der [Security-Seite des Repositorys](https://github.com/YourEliteSystems/WebRadio/security) die Schaltfläche **Report a vulnerability** verfügbar ist, nutze diesen vertraulichen GitHub-Meldeweg.
 
-Falls dieser Weg nicht verfügbar ist, kontaktiere die Projektverantwortlichen über einen privaten GitHub-Kontaktweg und teile dabei möglichst nur die für die Untersuchung notwendigen Informationen.
+Falls die private Meldung dort nicht verfügbar ist, sende die Meldung an **contact@yourelitesystems.com**. Diese Kontaktadresse wird auch in den offiziellen Paket-Metadaten des Projekts verwendet. Bitte veröffentliche Details nicht in öffentlichen Issues und teile nur Informationen, die für die Untersuchung notwendig sind.
 
 ## Informationen für eine Meldung
 
