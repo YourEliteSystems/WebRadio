@@ -29,3 +29,17 @@ scripts/release/SHA256SUMS.txt
 
 # Sentry Config File
 .sentryclirc
+
+# Local tooling and agent configuration
+.freebuff/
+.agents/
+.devin/
+.kilo/
+
+# Environment files (keep example templates)
+.env
+.env.*
+!.env.example
+
+# Local databases and runtime data
+*.db
