@@ -6,7 +6,7 @@ This guide covers the setup and build process for different platforms.
 
 macOS builds are **not currently published or supported as release downloads**. The repository's current npm scripts do not provide a dedicated `dist:mac` command, so the historical macOS build commands and code-signing examples have been removed from this guide.
 
-If you want to help bring macOS support back, please open a GitHub issue or discussion first so the current packaging configuration, native dependencies, signing and release process can be assessed before promising support.
+If you want to help develop future macOS support, please open a GitHub issue or discussion first so the current packaging configuration, native dependencies, signing and release process can be assessed before promising support.
 
 ## Linux Support
 
