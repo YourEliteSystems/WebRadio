@@ -143,7 +143,7 @@ nav:
       - Download-Statistik: DOWNLOAD_STATS.md
   - Datenschutz:
       - Datenschutz: PRIVACY.md
-      - Third-Party-Dienste: THIRD_PARTY_SERVICES.md
+      - Third-Party-Dienste: ../THIRD_PARTY_SERVICES.md
 
 # Warn (and fail under `mkdocs build --strict`) about broken links or
 # navigation entries that do not point to a real file. Nothing is silenced.
