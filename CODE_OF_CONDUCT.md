@@ -1,7 +1,5 @@
 # Code of Conduct
 
-Die vollständige Version unseres Code of Conduct befindet sich in der Dokumentation:
+Für WebRadio gilt unser vollständiger [Code of Conduct](./docs/CODE_OF_CONDUCT.md).
 
-➡️ **[docs/CODE_OF_CONDUCT.md](./docs/CODE_OF_CONDUCT.md)**
-
-Code of Conduct und Lizenz sind keine selbstdokumentierenden Metadaten: LICENSE ist im Repository vorhanden, der Badge im README verweist darauf, und der genaue Copyright-Eintrag sollte vor einer finalen Konsistenzprüfung mit dem COPYRIGHT-Eintrag im Metadata-Team abgeglichen werden.
+Wir erwarten eine respektvolle, sachliche und konstruktive Zusammenarbeit. Bitte lies die vollständigen Regeln, bevor du dich an Issues, Discussions oder Pull Requests beteiligst.
