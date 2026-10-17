@@ -5,7 +5,7 @@
 # Versioned docs: Managed by ReadTheDocs (based on Git tags/branches)
 
 site_name: WebRadio
-site_description: Open-source cross-platform desktop WebRadio application built with Electron and React.
+site_description: Open-source desktop WebRadio application for Windows and Linux, built with Electron and React.
 site_url: https://webradio.readthedocs.io/
 repo_url: https://github.com/YourEliteSystems/WebRadio
 repo_name: YourEliteSystems/WebRadio
