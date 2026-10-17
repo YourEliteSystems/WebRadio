@@ -23,7 +23,14 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 app.whenReady().then(async () => {
-    await Application.start();
+    try {
+        await Application.start();
+    } catch (error) {
+        // Application hat den Schritt bereits als fehlgeschlagen markiert und
+        // einen Diagnosebericht geschrieben. Der Splash bleibt mit Fehlerzustand,
+        // Bericht- und Logpfad offen; der Nutzer entscheidet ueber die Aktionen.
+        logger.fatal("Application start failed:", error);
+    }
 });
 
 app.on("before-quit", async () => {

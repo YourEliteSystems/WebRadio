@@ -46,6 +46,28 @@
     .progress-fill::after { content:''; position:absolute; top:0; right:-20px; width:20px; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent); animation:shimmer 1.2s ease-in-out infinite; }
     @keyframes shimmer { 0%{opacity:0} 50%{opacity:1} 100%{opacity:0} }
     .status-text { font-size:11px; color:var(--text-muted); letter-spacing:0.05em; text-align:center; min-height:16px; transition:opacity 0.3s ease; }
+    .status-text.error { color:#ff7b72; }
+    .progress-fill.error { background:#ff7b72; }
+    .progress-fill.error::after { display:none; }
+    /* Fehlerzustand: kompakte Diagnoseansicht mit Pfaden und Aktionen */
+    .error-panel { display:none; }
+    .splash.failed .error-panel { display:flex; flex-direction:column; gap:7px; width:100%; max-width:404px; }
+    .splash.failed .bars { display:none; }
+    .splash.failed .app-tagline { display:none; }
+    .splash.failed .content { gap:14px; }
+    .splash.failed .radio-icon { width:54px; height:54px; }
+    .splash.failed .radio-icon svg { width:34px; height:34px; }
+    .splash.failed .app-name { font-size:22px; }
+    /* Das Versionsbadge wuerde mit der Aktionsleiste kollidieren */
+    .splash.failed .version-badge { display:none; }
+    .error-row { display:flex; flex-direction:column; gap:1px; }
+    .error-label { font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(0,212,232,0.45); }
+    .error-path { font-family:ui-monospace,'Cascadia Mono',Consolas,monospace; font-size:10px; color:var(--text-muted); word-break:break-all; line-height:1.3; }
+    .error-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+    .btn { -webkit-app-region:no-drag; padding:5px 10px; font-size:11px; font-family:inherit; color:var(--text-primary); background:rgba(0,212,232,0.10); border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+    .btn:hover { background:rgba(0,212,232,0.20); }
+    .btn-quiet { color:var(--text-muted); background:transparent; }
+    .error-hint { font-size:10px; color:var(--text-muted); text-align:center; min-height:12px; }
     .version-badge { position:absolute; bottom:18px; right:20px; font-size:10px; color:rgba(0,212,232,0.35); letter-spacing:0.08em; }
     .corner { position:absolute; width:16px; height:16px; opacity:0.4; }
     .corner-tl{top:12px;left:12px;border-top:1.5px solid var(--cyan);border-left:1.5px solid var(--cyan)}
@@ -100,8 +122,25 @@
         </div>
         <div class="status-text" id="status-text">Wird gestartet&#8230;</div>
       </div>
+      <div class="error-panel" id="error-panel">
+        <div class="error-row">
+          <span class="error-label">Diagnosebericht</span>
+          <span class="error-path" id="report-path">&#8211;</span>
+        </div>
+        <div class="error-row">
+          <span class="error-label">Logdatei</span>
+          <span class="error-path" id="log-path">&#8211;</span>
+        </div>
+        <div class="error-actions">
+          <button class="btn" type="button" id="btn-report">Bericht öffnen</button>
+          <button class="btn" type="button" id="btn-logs">Logordner öffnen</button>
+          <button class="btn btn-quiet" type="button" id="btn-close" hidden>Schließen</button>
+          <button class="btn btn-quiet" type="button" id="btn-quit">Beenden</button>
+        </div>
+        <div class="error-hint" id="error-hint"></div>
+      </div>
     </div>
-    <div class="version-badge" id="version-badge">v1.0.7-beta.2</div>
+    <div class="version-badge" id="version-badge"></div>
     <div class="fade-overlay" id="fade-overlay"></div>
   </div>
   <script>
@@ -109,6 +148,15 @@
     var statusText   = document.getElementById('status-text');
     var fadeOverlay  = document.getElementById('fade-overlay');
     var versionBadge = document.getElementById('version-badge');
+    var splashRoot   = document.getElementById('splash');
+    var errorPanel   = document.getElementById('error-panel');
+    var errorHint    = document.getElementById('error-hint');
+    var reportPathEl = document.getElementById('report-path');
+    var logPathEl    = document.getElementById('log-path');
+    var reportBtn    = document.getElementById('btn-report');
+    var logsBtn      = document.getElementById('btn-logs');
+    var closeBtn     = document.getElementById('btn-close');
+    var quitBtn      = document.getElementById('btn-quit');
     var STEP_LABELS = {
       'core-init':'Anwendung wird initialisiert\u2026',
       'storage-init':'Speicher wird vorbereitet\u2026',
@@ -133,22 +181,112 @@
       'packages-init','plugins-init','player-init','integrations-init','themes-init',
       'shortcuts-init','tray-init','updater-init','services-init','discord-adapter-init','app-ready'
     ];
-    var currentProgress = 5;
+    // Fortschritt wird ausschliesslich aus echten Bootup-Zustaenden berechnet.
+    var currentProgress = 0;
+    var failed = false;
+    var simTimer = null;
+
+    // Testmodus ausschliesslich bei ausdruecklicher Aktivierung
+    // (?simulate=1, im Dev-Build via WEBRADIO_SPLASH_SIMULATE=1).
+    // Im normalen App-Betrieb nie aktiv.
+    var TEST_MODE = /(^|[?&])simulate=1(&|$)/.test(window.location.search);
+
     function setProgress(pct, label) {
       currentProgress = Math.max(currentProgress, pct);
       progressFill.style.width = currentProgress + '%';
       if (label) statusText.textContent = label;
     }
     function computeProgress(steps) {
-      if (!steps || !steps.length) return 5;
-      var done = STEP_ORDER.filter(function(name) {
-        var s = steps.find(function(x){return x.name===name;});
-        return s && s.status==='completed';
+      if (!steps || !steps.length) return 0;
+      var completed = steps.filter(function(s){ return s && s.status === 'completed'; });
+      var done = 0;
+      for (var i = 0; i < STEP_ORDER.length; i++) {
+        for (var j = 0; j < completed.length; j++) {
+          if (completed[j].name === STEP_ORDER[i]) { done++; break; }
+        }
+      }
+      return Math.min(Math.round((done / STEP_ORDER.length) * 95), 95);
+    }
+    function findFailure(steps) {
+      if (!steps) return null;
+      for (var i = 0; i < steps.length; i++) {
+        if (steps[i] && steps[i].status === 'failed') return steps[i];
+      }
+      return null;
+    }
+    function showFailure(stepName) {
+      var label = STEP_LABELS[stepName] || stepName || '';
+      splashRoot.classList.add('failed');
+      statusText.textContent = 'Start fehlgeschlagen: ' + label;
+      statusText.classList.add('error');
+      progressFill.classList.add('error');
+      loadDiagnostics();
+    }
+    function setPath(el, value, fallback) {
+      el.textContent = value || fallback;
+      el.title = value || '';
+    }
+    function setHint(text) {
+      errorHint.textContent = text || '';
+    }
+    function runSplashAction(action, label) {
+      Promise.resolve()
+        .then(function () { return action(); })
+        .then(function (result) {
+          if (result && result.ok === false) {
+            setHint(label + ' fehlgeschlagen: ' + (result.error || 'unbekannter Fehler'));
+          } else {
+            setHint('');
+          }
+        })
+        .catch(function (err) {
+          setHint(label + ' fehlgeschlagen: ' + (err && err.message ? err.message : 'unbekannter Fehler'));
+        });
+    }
+    function renderDiagnostics(info) {
+      if (!info) return;
+      errorPanel.hidden = false;
+      setPath(reportPathEl, info.reportPath, 'Kein Bericht geschrieben');
+      setPath(logPathEl, info.logFilePath, 'Keine Logdatei gefunden');
+      closeBtn.hidden = !info.canContinue;
+    }
+    function loadDiagnostics() {
+      if (!window.splashApi || typeof window.splashApi.getDiagnostics !== 'function') {
+        setHint('Diagnosedaten nicht verfügbar.');
+        return;
+      }
+      window.splashApi.getDiagnostics().then(renderDiagnostics).catch(function () {
+        setHint('Diagnosedaten nicht verfügbar.');
       });
-      return Math.min(Math.round((done.length/STEP_ORDER.length)*90)+5, 95);
+    }
+    function wireActions() {
+      if (!window.splashApi) return;
+      logsBtn.addEventListener('click', function () {
+        runSplashAction(function () { return window.splashApi.openLogFolder(); }, 'Logordner öffnen');
+      });
+      reportBtn.addEventListener('click', function () {
+        runSplashAction(function () { return window.splashApi.openReport(); }, 'Bericht öffnen');
+      });
+      closeBtn.addEventListener('click', function () {
+        runSplashAction(function () { return window.splashApi.closeSplash(); }, 'Schließen');
+      });
+      quitBtn.addEventListener('click', function () {
+        runSplashAction(function () { return window.splashApi.quit(); }, 'Beenden');
+      });
+    }
+    function showIpcError() {
+      statusText.textContent = 'Keine Verbindung zum Hauptprozess.';
+      statusText.classList.add('error');
+      progressFill.classList.add('error');
     }
     function onBootupState(state) {
-      if (!state) return;
+      if (!state || failed) return;
+      var failure = findFailure(state.steps);
+      if (failure) {
+        failed = true;
+        showFailure(failure.name);
+        return;
+      }
       var pct = computeProgress(state.steps||[]);
       var label = state.current ? (STEP_LABELS[state.current]||state.current) : null;
       setProgress(pct, label);
@@ -157,19 +295,42 @@
         setTimeout(function(){ fadeOverlay.classList.add('active'); }, 400);
       }
     }
-    if (window.splashApi) {
-      if (window.splashApi.getVersion) {
-        window.splashApi.getVersion().then(function(v){ if(v) versionBadge.textContent='v'+v; }).catch(function(){});
-      }
-      window.splashApi.onBootupState(function(state){ onBootupState(state); });
-    } else {
-      var sim=5, simSteps=STEP_ORDER.slice();
-      var interval=setInterval(function(){
-        if(!simSteps.length){ clearInterval(interval); setProgress(100,'Bereit!'); setTimeout(function(){fadeOverlay.classList.add('active');},400); return; }
+    function startSimulation() {
+      var sim=0, simSteps=STEP_ORDER.slice();
+      simTimer=setInterval(function(){
+        if(!simSteps.length){
+          clearInterval(simTimer); simTimer=null;
+          setProgress(100,'Bereit!'); setTimeout(function(){fadeOverlay.classList.add('active');},400);
+          return;
+        }
         var name=simSteps.shift();
-        sim=Math.min(sim+Math.round(90/STEP_ORDER.length),95);
+        sim=Math.min(sim+Math.round(95/STEP_ORDER.length),95);
         setProgress(sim, STEP_LABELS[name]||name);
       },300);
+    }
+    function stopSimulation() {
+      if (simTimer) { clearInterval(simTimer); simTimer=null; }
+    }
+    window.addEventListener('pagehide', stopSimulation);
+
+    if (TEST_MODE) {
+      // Nur fuer Design-/Animationstests: das Vortaeuschen ist hier
+      // ausdruecklich gewollt und muss aktiv angefordert werden.
+      startSimulation();
+    } else if (window.splashApi && typeof window.splashApi.onBootupState === 'function') {
+      if (typeof window.splashApi.getVersion === 'function') {
+        window.splashApi.getVersion().then(function(v){
+          // Version ausschliesslich aus app.getVersion(): kein hartkodierter
+          // Fallback, damit kein veralteter Wert angezeigt wird.
+          if (v) versionBadge.textContent = 'v' + v;
+        }).catch(function(){});
+      }
+      window.splashApi.onBootupState(onBootupState);
+      wireActions();
+    } else {
+      // Ohne Splash-IPC gibt es keinen echten Fortschritt: kein simulierter
+      // erfolgreicher Start, sondern ein sichtbarer Fehlerzustand.
+      showIpcError();
     }
   </script>
 </body>

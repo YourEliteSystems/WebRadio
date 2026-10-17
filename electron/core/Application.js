@@ -85,6 +85,7 @@ const CrashReportManager = require("./diagnostics/crash/CrashReportManager");
 const HealthCheck = require("./diagnostics/health/HealthCheck");
 const MemoryMonitor = require("./diagnostics/memory/MemoryMonitor");
 const { DiagnosticsManager, BootupDiagnostics } = require("./diagnostics");
+const BootFailureReport = require("./diagnostics/BootFailureReport");
 
 const logger = LogManager.getLogger("Application");
 
@@ -94,6 +95,9 @@ class Application {
 
         this.initialized = false;
         this.windowManager = null;
+
+        this._splashManager = null;
+        this._splashUnsubscribe = null;
 
     }
 
@@ -107,18 +111,57 @@ class Application {
             return;
         }
 
-        // ── Splash Screen ─────────────────────────────
-        // Splash oeffnen bevor irgendeine schwere Initialisierung laeuft.
-        // Ein minimaler WindowManager wird temporaer erstellt, damit der
-        // Splash-IPC-Handler registriert werden kann. Der echte
-        // WindowManager wird weiter unten in initializeWindow() gesetzt.
-        const tempWm = new WindowManager(!app.isPackaged);
-        tempWm.openSplash();
+        // Splash zuerst oeffnen, dann die eigentliche Initialisierung.
+        // Der temporaere WindowManager haelt das Splash-Fenster, bis der
+        // echte WindowManager in initializeWindow() gesetzt wird.
+        const splash = this._openSplash();
 
-        // Leite alle BootupDiagnostics-Aenderungen an den Splash-Renderer weiter.
-        const splashStateUnsubscribe = BootupDiagnostics.onChange((state) => {
-            tempWm.sendSplashBootupState(state);
-        });
+        try {
+
+            // Auf das echte Lade-Signal des Splash warten (begrenzt), damit
+            // der Startbildschirm vor der Schwerinitialisierung sichtbar ist
+            // und nicht mitten im Ladevorgang geschlossen wird.
+            if (splash && typeof splash.whenLoaded === "function") {
+                await splash.whenLoaded();
+            }
+
+            await this._initializeCore();
+
+            // Splash erst schliessen, nachdem app-ready gesendet wurde.
+            this._closeSplash(700);
+
+        } catch (error) {
+
+            const currentStep = BootupDiagnostics.getCurrent();
+            const failedStep = currentStep ? currentStep.name : null;
+
+            // Diagnosebericht vor dem Zustands-Update schreiben, damit der
+            // Splash-Renderer beim Abruf bereits Bericht- und Logpfad erhaelt.
+            BootFailureReport.create(error, failedStep);
+
+            // Keinen erfolgreichen Start vortaeuschen: den laufenden Schritt
+            // als fehlgeschlagen markieren, damit der Splash den Fehler zeigt.
+            if (currentStep && currentStep.status === "started") {
+                BootupDiagnostics.markFailed(currentStep.name, error);
+            }
+
+            logger.error(`WebRadio start failed: ${error.message}`);
+
+            // Splash bleibt mit Fehlerzustand, Bericht- und Logpfad offen,
+            // damit der Nutzer die Ursache pruefen kann (Aktionen im Renderer).
+            this._detachSplashListener();
+
+            throw error;
+
+        }
+
+    }
+
+    /**
+     * Fuehrt die Initialisierungssequenz aus. Wird von start() aufgerufen,
+     * damit Splash-Aufbau und Fehlerbehandlung an einer Stelle bleiben.
+     */
+    async _initializeCore() {
 
         BootupDiagnostics.markStart("core-init");
 
@@ -191,15 +234,73 @@ class Application {
         BootupDiagnostics.markComplete("core-init");
         BootupDiagnostics.markComplete("app-ready");
 
-        // ── Splash Screen schliessen ──────────────────
-        splashStateUnsubscribe();
-        tempWm.closeSplash(700);
-
         logger.info("WebRadio successfully started.");
 
     }
 
+    // ─────────────────────────────────────────
+    // Splash Screen
+    // ─────────────────────────────────────────
+
+    _openSplash() {
+
+        const manager = new WindowManager(!app.isPackaged);
+
+        const splash = manager.openSplash();
+        this._splashManager = manager;
+
+        // Alle BootupDiagnostics-Aenderungen in Echtzeit an den Splash senden.
+        this._splashUnsubscribe = BootupDiagnostics.onChange((state) => {
+            manager.sendSplashBootupState(state);
+        });
+
+        return splash;
+    }
+
+    _closeSplash(delay) {
+
+        this._detachSplashListener();
+
+        if (this._splashManager) {
+            this._splashManager.closeSplash(delay);
+        }
+
+    }
+
+    _detachSplashListener() {
+
+        if (!this._splashUnsubscribe) {
+            return;
+        }
+
+        this._splashUnsubscribe();
+        this._splashUnsubscribe = null;
+
+    }
+
+    /**
+     * Gibt Splash-Fenster, Timer und IPC-Handler frei. Muss auch dann
+     * funktionieren, wenn start() nie abgeschlossen wurde.
+     */
+    _disposeSplash() {
+
+        this._detachSplashListener();
+
+        const manager = this._splashManager;
+
+        this._splashManager = null;
+
+        if (manager && typeof manager.disposeSplash === "function") {
+            manager.disposeSplash();
+        }
+
+    }
+
     async shutdown() {
+
+        // Vorzeitiges Beenden: Splash-Ressourcen unabhaengig vom
+        // Initialisierungsstand freigeben.
+        this._disposeSplash();
 
         if (!this.initialized) {
             return;

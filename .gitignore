@@ -1,6 +1,9 @@
 dist
 dist/*
 
+.temp-dist-check
+.temp-dist-check/*
+
 protected
 protected/*
 

@@ -28,6 +28,10 @@ class WindowManager {
     this.splashWindow.close(delay);
   }
 
+  disposeSplash() {
+    this.splashWindow.dispose();
+  }
+
   // ─────────────────────────────────────────────────────────
   // Main Window
   // ─────────────────────────────────────────────────────────

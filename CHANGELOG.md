@@ -4,9 +4,9 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
-## [v1.0.7-beta.3] – 2026-10-17
+## [Unreleased]
 
-> Beta-Version 1.0.7-beta.3: Implementiert einen professionellen Boot-up-Screen (Splash-Window) für die Electron-Anwendung. Der Startbildschirm erscheint sofort beim App-Launch, zeigt in Echtzeit den Fortschritt der Initialisierungssequenz und schließt sich automatisch nach dem `app-ready`-Event. Das Design orientiert sich am dunklen Cyan-Farbschema der WebRadio-Oberfläche und integriert sich nahtlos in das bestehende `BootupDiagnostics`-System.
+> Noch nicht veröffentlicht. `package.json` und das Versionsbadge bleiben bis zum tatsächlichen Release auf `1.0.7-beta.2`; ein eigener `v1.0.7-beta.3`-Tag/Release existiert nicht. Inhalt: Implementiert einen professionellen Boot-up-Screen (Splash-Window) für die Electron-Anwendung. Der Startbildschirm erscheint sofort beim App-Launch, zeigt in Echtzeit den Fortschritt der Initialisierungssequenz und schließt sich automatisch nach dem `app-ready`-Event. Das Design orientiert sich am dunklen Cyan-Farbschema der WebRadio-Oberfläche und integriert sich nahtlos in das bestehende `BootupDiagnostics`-System.
 
 ### ✨ Neue Funktionen
 
@@ -14,11 +14,28 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
   - Fortschrittsanzeige mit deutschen Statusmeldungen für alle 16 Initialisierungsschritte.
   - IPC-basierte Echtzeitkommunikation: `BootupDiagnostics.onChange()` → `splash:bootup-state` Event.
   - Fade-out-Animation beim Übergang zur Hauptanwendung.
-  - Fallback-Simulation (Dev-Modus ohne IPC) für einfaches Design-Testing.
+  - Expliziter Testmodus (`?simulate=1` bzw. `WEBRADIO_SPLASH_SIMULATE=1` im Dev-Build) für Design-Tests. Ohne ausdrückliche Aktivierung wird kein Fortschritt simuliert.
 - **`SplashWindow`-Klasse (`electron/core/app/SplashWindow.js`):** Eigenes rahmenloses Electron-Fenster (480 × 300 px), immer im Vordergrund, zentriert, ohne Taskleisten-Eintrag. Minimales Sicherheitsprofil (contextIsolation, kein nodeIntegration). Schließt sich per `close(delay)` mit konfigurierbarer Verzögerung.
-- **`preload-splash.js` (`electron/preload-splash.js`):** Dediziertes, minimales Preload ausschließlich für das Splash-Fenster. Exponiert nur `splashApi.onBootupState()` und `splashApi.getVersion()` über `contextBridge`.
+- **`preload-splash.js` (`electron/preload-splash.js`):** Dediziertes, minimales Preload ausschließlich für das Splash-Fenster. Exponiert über `contextBridge` nur `splashApi.onBootupState()`, `splashApi.getVersion()`, `splashApi.getDiagnostics()`, `splashApi.openLogFolder()`, `splashApi.openReport()`, `splashApi.closeSplash()` und `splashApi.quit()`.
 - **`WindowManager`-Integration (`electron/core/app/WindowManager.js`):** Neue Methoden `openSplash()`, `sendSplashBootupState()` und `closeSplash()` zur strukturierten Steuerung des Splash-Fensters.
-- **`Application.start()`-Integration (`electron/core/Application.js`):** Splash-Fenster öffnet sich als allererste Aktion vor jeder Schwerinitialisierung. `BootupDiagnostics.onChange`-Listener leitet alle Zustandsänderungen in Echtzeit an den Splash-Renderer weiter. Splash schließt sich 700 ms nach `app-ready`.
+- **`Application.start()`-Integration (`electron/core/Application.js`):** Splash-Fenster öffnet sich als allererste Aktion vor jeder Schwerinitialisierung; `start()` wartet begrenzt auf das Lade-Signal des Renderers, damit der Startbildschirm vor der Schwerinitialisierung sichtbar ist. `BootupDiagnostics.onChange`-Listener leitet alle Zustandsänderungen in Echtzeit an den Splash-Renderer weiter. Splash schließt sich 700 ms nach `app-ready`.
+
+### 🐛 Bug Fixes
+
+- **Kein vorgetäuschter Start (`renderer/splash.html`):** Die automatische Fortschrittssimulation wurde aus dem Normalbetrieb entfernt. Fehlt die Splash-IPC, zeigt der Renderer einen Fehlerzustand an, statt einen erfolgreichen Start zu animieren. Ein fehlgeschlagener Bootup-Schritt wird als solcher dargestellt (roter Fortschritt/Statustext), ohne Fade-out als Erfolgssignal.
+- **Version im Badge (`renderer/splash.html`):** Die hartkodierte Version `v1.0.7-beta.2` wurde entfernt; die Anzeige stammt ausschließlich aus `app.getVersion()` via `splash:get-version`. Schlägt die Abfrage fehl, bleibt das Badge leer.
+- **IPC-Lebensdauer (`electron/core/app/SplashWindow.js`, `electron/core/app/WindowManager.js`):** `splash:get-version` wird modulweit genau einmal registriert (defensives `ipcMain.removeHandler()` vor dem `handle()`), sodass eine erneute Initialisierung nicht mehr mit "Attempted to register a second handler" abbricht. Beim Schließen und über `dispose()`/`disposeSplash()` wird der Handler wieder entfernt.
+- **Verzögerte Initialisierung (`electron/core/app/SplashWindow.js`):** Bootup-Zustände, die vor `did-finish-load` eintreffen, gehen nicht mehr verloren; der zuletzt bekannte Zustand wird nach dem Laden nachgesendet.
+- **Fehlgeschlagener Splash-Ladevorgang (`ERR_FAILED (-2)`):** Wird das Splash-Fenster geschlossen, während `loadFile()` noch läuft, lehnt Electron das Laden mit `ERR_FAILED (-2)` und derselben `file:///…`-URL ab. Dieser Abbruch wurde bisher als echter Ladefehler protokolliert („Splash window failed to load“), obwohl Pfad, HTML und Preload in Ordnung waren. `SplashWindow` unterscheidet jetzt echte Ladefehler von einem selbst ausgelösten Abbruch (`_closing`/`_pendingClose`, `ERR_ABORTED`), wartet vor dem Schließen auf `did-finish-load` (höchstens 1 s) und sendet den letzten Bootup-Zustand nach. `Application.start()` wartet begrenzt (max. 1,2 s) auf das echte Lade-Signal, damit der Startbildschirm vor der Schwerinitialisierung sichtbar ist.
+- **Robuste Splash-Pfade (`electron/core/app/SplashWindow.js`):** `renderer/splash.html` und `electron/preload-splash.js` werden relativ zur App-Wurzel (`app.getAppPath()`, im Paket `app.asar`) mit `__dirname`-Fallback und `accessSync`-Prüfung aufgelöst. Der Start loggt beide aufgelösten Pfade samt Existenz und `isPackaged`; `preload-error`, `render-process-gone` und `did-fail-load` (Code, Beschreibung, URL) werden mit Diagnoseangaben protokolliert. Fehlt die Datei, startet die App weiter und meldet `ERR_FILE_NOT_FOUND (-6)` statt zu blockieren.
+- **Fehler- und Abbruchfälle (`electron/core/Application.js`, `electron/core/app/SplashWindow.js`):** Schlägt `loadFile()` fehl oder meldet `did-fail-load` einen Fehler, wird das Splash-Fenster geschlossen und der Fehler protokolliert, statt einen leeren Rahmen zu hinterlassen. Bei fehlgeschlagener Initialisierung wird der laufende Schritt als `failed` markiert; der Splash bleibt anschließend mit Diagnoseangaben offen (siehe unten). `Application.shutdown()` gibt Splash-Fenster, Timer und IPC-Handler auch bei vorzeitigem Beenden frei; `close()`-Timer werden bei Bedarf gelöscht.
+
+### 🩺 Diagnose bei abgebrochenem Start
+
+- **Diagnosebericht (`electron/core/diagnostics/BootFailureReport.js`):** Schlägt ein Initialisierungsschritt fehl, wird über den `CrashDumpWriter` ein bereinigter Bericht in den Crash-Ordner geschrieben: Fehler (Name, Meldung, Stack), fehlgeschlagener Bootup-Schritt, Bootup-Zusammenfassung, Plattform-/Laufzeitangaben sowie Pfade zu Logs, Logdatei und Berichten. Der Bericht ist damit Teil der bestehenden Crash-Report-Liste im Diagnosebereich der Einstellungen. Schreib- oder Pfadfehler brechen den Ablauf nicht ab.
+- **Splash-Fehlerzustand mit Logpfad (`renderer/splash.html`, `electron/preload-splash.js`, `electron/core/app/SplashWindow.js`):** Der Startbildschirm zeigt statt nur einer Fehlermeldung jetzt Bericht- und Logpfad sowie die Aktionen „Bericht öffnen“, „Logordner öffnen“, „Beenden“ und – sofern bereits ein Hauptfenster existiert – „Schließen“. Ein Fehlschlag einer Aktion wird im Fenster gemeldet. Der Splash wird im Fehlerfall nicht mehr automatisch geschlossen, damit die Angaben nutzbar bleiben.
+- **IPC-Härtung (`electron/core/app/SplashWindow.js`):** Die Kanäle `splash:get-diagnostics`, `splash:open-log-folder`, `splash:open-report`, `splash:close` und `splash:quit` folgen derselben Lebensdauer wie `splash:get-version` (genau einmal registriert, beim Schließen/`dispose()` entfernt). Der Renderer übergibt keine Pfade; der Main-Prozess öffnet ausschließlich selbst ermittelte Verzeichnisse bzw. den selbst geschriebenen Bericht (Prüfung auf den Berichtsordner).
+- **Startfehler explizit behandelt (`electron/main.js`):** Ein fehlgeschlagener `Application.start()` wird als `fatal` protokolliert, statt als unbehandelte Promise-Rejection zu erscheinen.
 
 ---
 
