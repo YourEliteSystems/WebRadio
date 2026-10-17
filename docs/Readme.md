@@ -1,47 +1,47 @@
 # 📻 WebRadio
 
-> A modern, extensible and open-source desktop web radio player built with Electron.
+> Ein moderner, erweiterbarer und quelloffener Webradio-Player für den Desktop, entwickelt mit Electron.
 
-WebRadio is designed to provide a fast, lightweight and customizable listening experience while offering a powerful plugin and theme ecosystem for developers and the community.
+WebRadio bietet ein schnelles, ressourcenschonendes und anpassbares Hörerlebnis. Für Entwickler und Community stellt das Projekt außerdem ein leistungsfähiges Plugin- und Theme-Ökosystem bereit.
 
-> **Current Status:** Active development. The source tree currently documents `v1.0.7-beta.2`; check the [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases) page for the latest published download.
-
----
-
-# ✨ Features
-
-* 🎵 Stream thousands of online radio stations
-* 🔌 Extensible plugin system
-* 🎨 Custom theme support
-* 🪟 Modern desktop application powered by Electron
-* ⚡ Fast startup and lightweight architecture
-* 🩺 Integrated diagnostics and logging
-* 💾 Centralized storage management
-* 🌍 Cross-platform design
+> **Aktueller Status:** Das Projekt wird aktiv entwickelt. Der aktuelle Quellcode-Stand dokumentiert `v1.0.7-beta.2`. Die tatsächlich veröffentlichten Downloads findest du auf der Seite [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases).
 
 ---
 
-# 🖥️ Platform Support
+# ✨ Funktionen
 
-| Platform | Status               |
-| -------- | -------------------- |
-| Windows  | Supported; main test platform |
-| Linux    | Published builds available; test coverage may vary |
-| macOS    | Not currently available |
+* 🎵 Tausende Online-Radiosender streamen
+* 🔌 Erweiterbares Plugin-System
+* 🎨 Unterstützung eigener Themes
+* 🪟 Moderne Desktop-Anwendung auf Basis von Electron
+* ⚡ Schneller Start und ressourcenschonende Architektur
+* 🩺 Integrierte Diagnose- und Protokollierungsfunktionen
+* 💾 Zentrale Speicherverwaltung
+* 🌍 Plattformübergreifendes Konzept
 
 ---
 
-# 🚀 Getting Started
+# 🖥️ Plattformunterstützung
 
-Clone the repository:
+| Plattform | Status |
+| -------- | ------ |
+| Windows | Unterstützt; wichtigste Testplattform |
+| Linux | Veröffentlichte Builds verfügbar; Testabdeckung kann variieren |
+| macOS | Derzeit nicht verfügbar |
+
+---
+
+# 🚀 Erste Schritte
+
+Klone das Repository:
 
 ```bash
 git clone https://github.com/YourEliteSystems/WebRadio.git
 ```
 
-**Prerequisites:** Node.js 26 or newer and npm 10 or newer. The packaged application does not require Node.js or npm on the target machine.
+**Voraussetzungen:** Node.js 26 oder neuer und npm 10 oder neuer. Auf dem Zielsystem werden Node.js und npm für die bereits paketierte Anwendung nicht benötigt.
 
-Install dependencies and start the development version:
+Installiere die Abhängigkeiten und starte die Entwicklungsumgebung:
 
 ```bash
 npm ci
@@ -50,67 +50,66 @@ npm run dev
 
 ---
 
-# 📚 Documentation
+# 📚 Dokumentation
 
-Developer documentation is available in the `docs/` directory.
+Die Entwicklerdokumentation befindet sich im Verzeichnis `docs/`.
 
-Topics include:
+Sie umfasst unter anderem:
 
-* Architecture
-* Plugin SDK
-* Theme SDK
-* API Reference
-* Examples
-* Contributing
+* Architektur
+* Plugin-SDK
+* Theme-SDK
+* API-Referenz
+* Beispiele
+* Hinweise zur Mitwirkung am Projekt
 
 ---
 
 # 🛣️ Roadmap
 
-Current focus:
+Aktuelle Schwerpunkte:
 
-* Core stabilization
-* Documentation
-* UI improvements
-* Plugin SDK
-* Theme SDK
+* Stabilisierung des Kerns
+* Dokumentation
+* Verbesserungen der Benutzeroberfläche
+* Plugin-SDK
+* Theme-SDK
 
-Future releases will introduce additional user experience improvements and new extension capabilities.
-
----
-
-# 🤝 Contributing
-
-Contributions are welcome.
-
-Before opening an issue or pull request, please read the repository's [Contributing Guide](https://github.com/YourEliteSystems/WebRadio/blob/main/CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), [Security Policy](SECURITY.md) and [Privacy Notice](PRIVACY.md).
+Künftige Versionen sollen weitere Verbesserungen der Benutzerfreundlichkeit und zusätzliche Erweiterungsmöglichkeiten bieten.
 
 ---
 
-# 📄 License
+# 🤝 Mitwirken
 
-This project is released under the Apache License 2.0.
+Beiträge zum Projekt sind willkommen.
 
-See the `LICENSE` file for the full license text.
+Bevor du ein Issue oder einen Pull Request erstellst, lies bitte den [Leitfaden für Beiträge](https://github.com/YourEliteSystems/WebRadio/blob/main/CONTRIBUTING.md), den [Verhaltenskodex](CODE_OF_CONDUCT.md), die [Sicherheitsrichtlinie](SECURITY.md) und die [Datenschutzhinweise](PRIVACY.md).
 
 ---
 
-# ❤️ Built with passion
+# 📄 Lizenz
 
-WebRadio is developed as an open-source project with a strong focus on clean architecture, maintainability and extensibility.
+Dieses Projekt wird unter der Apache-Lizenz 2.0 veröffentlicht.
 
-If you like the project, consider giving it a ⭐ on GitHub.
+Den vollständigen Lizenztext findest du in der Datei `LICENSE`.
+
+---
+
+# ❤️ Mit Leidenschaft entwickelt
+
+WebRadio ist ein Open-Source-Projekt mit besonderem Fokus auf eine klare Architektur, Wartbarkeit und Erweiterbarkeit.
+
+Wenn dir das Projekt gefällt, kannst du es auf GitHub mit einem ⭐ unterstützen.
 
 ---
 
 ## 🔒 Datenschutz und externe Datenflüsse
 
-WebRadio ist eine lokale Desktop-Anwendung, aber einige Features nutzen externe Server oder Plattform-APIs.
+WebRadio ist eine lokale Desktop-Anwendung, aber einige Funktionen nutzen externe Server oder Plattform-APIs.
 
-- Radio-Browser-Inhalte stammen aus der Radio-Browser-API.
+- Inhalte von Radio Browser stammen aus der Radio-Browser-API.
 - Updates und Release-Informationen stammen aus offiziellen GitHub-Releases.
 - Discord Rich Presence wird genutzt, wenn die entsprechende Funktion aktiviert ist.
 - Integrationen können zusätzliche Berechtigungen oder externe Dienste nutzen.
 
-Weitere Details und offene Punkte:
-[Datenschutz und Datenflüsse](./PRIVACY.md).
+Weitere Details und offene Punkte findest du unter [Datenschutz und Datenflüsse](./PRIVACY.md).
