@@ -2,66 +2,16 @@
 
 This guide covers the setup and build process for different platforms.
 
-## MacOS Support
+## macOS status
 
-### Prerequisites
-- MacOS 10.15 (Catalina) or later
-- Xcode Command Line Tools
-- Node.js 20+
-- npm 10+
+macOS builds are **not currently published or supported as release downloads**. The repository's current npm scripts do not provide a dedicated `dist:mac` command, so the historical macOS build commands and code-signing examples have been removed from this guide.
 
-### Icon Setup
-
-MacOS requires `.icns` format icons. Convert your existing `.ico` file:
-
-```bash
-# On MacOS:
-# 1. Create iconset directory
-mkdir -p assets/icons/tray.iconset
-
-# 2. Convert icon to different sizes (requires ImageMagick or similar)
-# You can use online converters or tools like:
-# - https://cloudconvert.com/ico-to-icns
-# - iconutil (built-in MacOS tool)
-
-# 3. Using iconutil (if you have the individual PNGs):
-iconutil -c icns assets/icons/tray.iconset -o assets/icons/tray.icns
-```
-
-### Building for MacOS
-
-```bash
-# Build DMG for Intel (x64)
-npm run dist:mac
-
-# Build for Apple Silicon (arm64) - requires MacOS with Apple Silicon
-npm run dist:mac -- --mac --arm64
-
-# Build universal binary (requires both architectures)
-npm run dist:mac -- --mac --universal
-```
-
-### MacOS-Specific Features
-
-- **Window Controls**: MacOS uses native window controls (red/yellow/green buttons)
-- **Menu Bar**: Integration with MacOS menu bar
-- **Code Signing**: Required for distribution outside App Store
-
-### Code Signing
-
-```bash
-# Install electron-builder code-signing tools
-npm install --save-dev @electron/osx-sign
-
-# Add to electron-builder.yml:
-mac:
-  identity: "Developer ID Application: Your Name"
-```
+If you want to help bring macOS support back, please open a GitHub issue or discussion first so the current packaging configuration, native dependencies, signing and release process can be assessed before promising support.
 
 ## Linux Support
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 26+
 - npm 10+
 - Build tools (for native modules)
 - Arch-spezifisch (für .pkg.tar.zst): `pacman`, `makepkg`, `fakeroot`, `squashfs-tools`, `unzip`
@@ -108,9 +58,12 @@ chmod +x WebRadio-*-linux-x86_64.AppImage
 ./WebRadio-*-linux-x86_64.AppImage
 ```
 
-#### Debian/Ubuntu
+#### Debian/Ubuntu (`.deb`)
+
+A `.deb` build script exists, but a `.deb` package is **not attached to every published release**. Only use this installation method when the selected [GitHub Release](https://github.com/YourEliteSystems/WebRadio/releases) actually includes a `.deb` asset.
+
 ```bash
-sudo dpkg -i webradio_*_amd64.deb
+sudo dpkg -i ./webradio_*_amd64.deb
 sudo apt-get install -f   # ggf. fehlende Abhängigkeiten nachziehen
 ```
 
@@ -221,69 +174,19 @@ npm test -- --platform=windows
 
 ## CI/CD Integration
 
-### GitHub Actions Example
-
-```yaml
-name: Build Multi-Platform
-
-on:
-  push:
-    tags: ['v*']
-
-jobs:
-  build:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-    
-    runs-on: ${{ matrix.os }}
-    
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-      
-      - run: npm install
-      - run: npm run build
-      
-      - run: npm run dist
-        if: matrix.os == 'windows-latest'
-      
-      - run: npm run dist:mac
-        if: matrix.os == 'macos-latest'
-      
-      - run: npm run dist:linux
-        if: matrix.os == 'ubuntu-latest'
-      
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.os }}-build
-          path: dist/*
-```
+The repository's current build and release workflows are the source of truth for automated builds. See [GitHub Actions workflows](https://github.com/YourEliteSystems/WebRadio/tree/main/.github/workflows) and the [Contributing Guide](../CONTRIBUTING.md) rather than copying an independent workflow example that may drift from the project configuration.
 
 ## Troubleshooting
 
-### MacOS Issues
+### macOS
 
-**"App is damaged" error:**
-- This is a Gatekeeper issue
-- Right-click → Open → Accept
-- Or disable Gatekeeper for testing: `sudo spctl --master-disable`
-
-**Code signing errors:**
-- Ensure you have a valid Apple Developer certificate
-- Check certificate identity in electron-builder.yml
+macOS packages are not currently published. Do not treat the historical macOS signing and Gatekeeper notes as supported installation instructions.
 
 ### Linux Issues
 
-**Missing dependencies:**
-```bash
-# Install FFmpeg
-sudo apt-get install ffmpeg  # Debian/Ubuntu
-sudo dnf install ffmpeg       # Fedora
-sudo pacman -S ffmpeg         # Arch
-```
+**Audio playback or FFmpeg errors:**
+
+Packaged builds bundle the FFmpeg binary. You normally do not need to install system-wide FFmpeg just to run the packaged application. For development builds, include the operating system, architecture and relevant application logs when reporting an issue.
 
 **AppImage won't run:**
 ```bash
