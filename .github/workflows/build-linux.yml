@@ -67,7 +67,7 @@ jobs:
       # Der WebRadio-Build selbst (AppImage) wurde bereits im vorherigen
       # Job erzeugt und wird hier heruntergeladen und eingebettet.
       - name: AppImage herunterladen
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webradio-linux-appimage
           path: dist
