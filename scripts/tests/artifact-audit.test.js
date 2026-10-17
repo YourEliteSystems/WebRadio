@@ -140,9 +140,9 @@ test("PKGBUILD: arch=('x86_64')", () => {
     assert.ok(/arch=\('x86_64'\)/.test(s));
 });
 
-test("PKGBUILD: license=('MIT')", () => {
+test("PKGBUILD: license=('Apache-2.0')", () => {
     const s = readPkgbuild();
-    assert.ok(/license=\('MIT'\)/.test(s));
+    assert.ok(/license=\('Apache-2.0'\)/.test(s));
 });
 
 test("PKGBUILD: pkgver wird beim Build korrekt ersetzt", () => {
@@ -531,7 +531,7 @@ test("Wayland-Dokumentation erwähnt XWayland", () => {
 test("Wayland-Dokumentation erwähnt keine projektspezifischen Einschränkungen", () => {
     const doc = path.join(ROOT, "docs", "CROSS_PLATFORM_SETUP.md");
     const content = fs.readFileSync(doc, "utf8");
-    assert.ok(/No project-specific Wayland limitations/i.test(content), 
+    assert.ok(/No project-specific Wayland limitations|Derzeit sind keine projektspezifischen Einschränkungen für Wayland bekannt/i.test(content), 
         "Erklärung zu projektspezifischen Einschränkungen fehlt");
 });
 
