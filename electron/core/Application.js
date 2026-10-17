@@ -107,6 +107,19 @@ class Application {
             return;
         }
 
+        // ── Splash Screen ─────────────────────────────
+        // Splash oeffnen bevor irgendeine schwere Initialisierung laeuft.
+        // Ein minimaler WindowManager wird temporaer erstellt, damit der
+        // Splash-IPC-Handler registriert werden kann. Der echte
+        // WindowManager wird weiter unten in initializeWindow() gesetzt.
+        const tempWm = new WindowManager(!app.isPackaged);
+        tempWm.openSplash();
+
+        // Leite alle BootupDiagnostics-Aenderungen an den Splash-Renderer weiter.
+        const splashStateUnsubscribe = BootupDiagnostics.onChange((state) => {
+            tempWm.sendSplashBootupState(state);
+        });
+
         BootupDiagnostics.markStart("core-init");
 
         logger.separator();
@@ -177,6 +190,10 @@ class Application {
 
         BootupDiagnostics.markComplete("core-init");
         BootupDiagnostics.markComplete("app-ready");
+
+        // ── Splash Screen schliessen ──────────────────
+        splashStateUnsubscribe();
+        tempWm.closeSplash(700);
 
         logger.info("WebRadio successfully started.");
 

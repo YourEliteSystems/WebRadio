@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:;">
+  <title>WebRadio – Starting</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cyan: #00d4e8; --cyan-dim: #00b4c4;
+      --cyan-glow: rgba(0,212,232,0.25); --bg-deep: #080c12;
+      --text-primary: #e8f4f8; --text-muted: rgba(180,210,220,0.6);
+      --border: rgba(0,212,232,0.18);
+    }
+    html, body { width:100%; height:100%; overflow:hidden; background:transparent; -webkit-user-select:none; user-select:none; -webkit-app-region:drag; }
+    .splash {
+      width:100%; height:100%;
+      background:var(--bg-deep);
+      border:1px solid var(--border);
+      border-radius:16px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      position:relative; overflow:hidden;
+      font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+    }
+    .orb { position:absolute; border-radius:50%; filter:blur(60px); pointer-events:none; animation:orb-drift 8s ease-in-out infinite alternate; }
+    .orb-1 { width:260px;height:260px; background:radial-gradient(circle,rgba(0,212,232,0.12) 0%,transparent 70%); top:-60px; left:-60px; }
+    .orb-2 { width:200px;height:200px; background:radial-gradient(circle,rgba(0,150,200,0.10) 0%,transparent 70%); bottom:-40px; right:-40px; animation-delay:3s; }
+    .orb-3 { width:150px;height:150px; background:radial-gradient(circle,rgba(0,212,232,0.08) 0%,transparent 70%); bottom:20px; left:30%; animation-delay:5s; }
+    @keyframes orb-drift { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(15px,10px) scale(1.08)} }
+    .grid { position:absolute; inset:0; background-image:linear-gradient(rgba(0,212,232,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,232,0.04) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+    .content { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:28px; }
+    .logo-area { display:flex; flex-direction:column; align-items:center; gap:16px; }
+    .radio-icon { width:80px; height:80px; position:relative; display:flex; align-items:center; justify-content:center; }
+    .radio-icon svg { width:52px; height:52px; filter:drop-shadow(0 0 12px var(--cyan)); }
+    .radio-ring { position:absolute; inset:0; border-radius:50%; border:1.5px solid var(--cyan); opacity:0; animation:ring-pulse 2.5s ease-out infinite; }
+    .radio-ring:nth-child(2){animation-delay:0.8s} .radio-ring:nth-child(3){animation-delay:1.6s}
+    @keyframes ring-pulse { 0%{transform:scale(0.7);opacity:0.7} 100%{transform:scale(1.6);opacity:0} }
+    .app-name { font-size:32px; font-weight:700; letter-spacing:0.06em; color:var(--text-primary); text-shadow:0 0 30px var(--cyan-glow); animation:fade-in 0.8s ease both; }
+    .app-name span { background:linear-gradient(135deg,var(--cyan) 0%,#60e8f0 50%,var(--cyan-dim) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .app-tagline { font-size:12px; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); animation:fade-in 1s ease 0.3s both; }
+    @keyframes fade-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .progress-section { width:280px; display:flex; flex-direction:column; gap:10px; animation:fade-in 0.8s ease 0.5s both; }
+    .progress-track { width:100%; height:3px; background:rgba(0,212,232,0.12); border-radius:2px; overflow:hidden; position:relative; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--cyan-dim),var(--cyan),#a0f0f8); border-radius:2px; width:0%; transition:width 0.4s cubic-bezier(0.4,0,0.2,1); position:relative; }
+    .progress-fill::after { content:''; position:absolute; top:0; right:-20px; width:20px; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent); animation:shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { 0%{opacity:0} 50%{opacity:1} 100%{opacity:0} }
+    .status-text { font-size:11px; color:var(--text-muted); letter-spacing:0.05em; text-align:center; min-height:16px; transition:opacity 0.3s ease; }
+    .version-badge { position:absolute; bottom:18px; right:20px; font-size:10px; color:rgba(0,212,232,0.35); letter-spacing:0.08em; }
+    .corner { position:absolute; width:16px; height:16px; opacity:0.4; }
+    .corner-tl{top:12px;left:12px;border-top:1.5px solid var(--cyan);border-left:1.5px solid var(--cyan)}
+    .corner-tr{top:12px;right:12px;border-top:1.5px solid var(--cyan);border-right:1.5px solid var(--cyan)}
+    .corner-bl{bottom:12px;left:12px;border-bottom:1.5px solid var(--cyan);border-left:1.5px solid var(--cyan)}
+    .corner-br{bottom:12px;right:12px;border-bottom:1.5px solid var(--cyan);border-right:1.5px solid var(--cyan)}
+    .fade-overlay { position:absolute; inset:0; background:var(--bg-deep); opacity:0; pointer-events:none; z-index:100; border-radius:16px; transition:opacity 0.5s ease; }
+    .fade-overlay.active{opacity:1}
+    .bars { display:flex; align-items:flex-end; gap:3px; height:20px; }
+    .bar { width:3px; border-radius:2px; background:var(--cyan); opacity:0.7; animation:bar-bounce 1.2s ease-in-out infinite alternate; }
+    .bar:nth-child(1){height:8px;animation-delay:0.0s} .bar:nth-child(2){height:14px;animation-delay:0.1s}
+    .bar:nth-child(3){height:20px;animation-delay:0.2s} .bar:nth-child(4){height:12px;animation-delay:0.15s}
+    .bar:nth-child(5){height:6px;animation-delay:0.3s}
+    @keyframes bar-bounce { from{transform:scaleY(0.4);opacity:0.4} to{transform:scaleY(1);opacity:0.85} }
+  </style>
+</head>
+<body>
+  <div class="splash" id="splash">
+    <div class="grid"></div>
+    <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+    <div class="corner corner-tl"></div><div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div><div class="corner corner-br"></div>
+    <div class="content">
+      <div class="logo-area">
+        <div class="radio-icon">
+          <div class="radio-ring"></div><div class="radio-ring"></div><div class="radio-ring"></div>
+          <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="26" y1="6" x2="14" y2="16" stroke="#00d4e8" stroke-width="2" stroke-linecap="round"/>
+            <rect x="6" y="16" width="40" height="28" rx="5" fill="rgba(0,212,232,0.1)" stroke="#00d4e8" stroke-width="1.8"/>
+            <line x1="12" y1="22" x2="12" y2="36" stroke="#00d4e8" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <line x1="16" y1="22" x2="16" y2="36" stroke="#00d4e8" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <line x1="20" y1="22" x2="20" y2="36" stroke="#00d4e8" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+            <circle cx="34" cy="29" r="7" fill="rgba(0,212,232,0.08)" stroke="#00d4e8" stroke-width="1.8"/>
+            <circle cx="34" cy="29" r="3" fill="#00d4e8" opacity="0.8"/>
+            <circle cx="44" cy="20" r="2" fill="#00d4e8" opacity="0.9">
+              <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.8s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </div>
+        <div>
+          <div class="app-name"><span>WebRadio</span></div>
+          <div class="app-tagline">World Radio Streaming</div>
+        </div>
+      </div>
+      <div class="bars">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div>
+      </div>
+      <div class="progress-section">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="status-text" id="status-text">Wird gestartet&#8230;</div>
+      </div>
+    </div>
+    <div class="version-badge" id="version-badge">v1.0.7-beta.2</div>
+    <div class="fade-overlay" id="fade-overlay"></div>
+  </div>
+  <script>
+    var progressFill = document.getElementById('progress-fill');
+    var statusText   = document.getElementById('status-text');
+    var fadeOverlay  = document.getElementById('fade-overlay');
+    var versionBadge = document.getElementById('version-badge');
+    var STEP_LABELS = {
+      'core-init':'Anwendung wird initialisiert\u2026',
+      'storage-init':'Speicher wird vorbereitet\u2026',
+      'diagnostics-init':'Diagnose-System startet\u2026',
+      'window-created':'Benutzeroberfl\u00e4che wird aufgebaut\u2026',
+      'ipc-init':'Kommunikation wird hergestellt\u2026',
+      'navigation-init':'Navigation wird geladen\u2026',
+      'packages-init':'Pakete werden geladen\u2026',
+      'plugins-init':'Plugins werden initialisiert\u2026',
+      'player-init':'Player wird gestartet\u2026',
+      'integrations-init':'Integrationen werden verbunden\u2026',
+      'themes-init':'Design wird geladen\u2026',
+      'shortcuts-init':'Tastenk\u00fcrzel werden registriert\u2026',
+      'tray-init':'Systembereich wird eingerichtet\u2026',
+      'updater-init':'Update-Dienst startet\u2026',
+      'services-init':'Dienste werden gestartet\u2026',
+      'discord-adapter-init':'Discord wird verbunden\u2026',
+      'app-ready':'Bereit!'
+    };
+    var STEP_ORDER = [
+      'storage-init','diagnostics-init','window-created','ipc-init','navigation-init',
+      'packages-init','plugins-init','player-init','integrations-init','themes-init',
+      'shortcuts-init','tray-init','updater-init','services-init','discord-adapter-init','app-ready'
+    ];
+    var currentProgress = 5;
+    function setProgress(pct, label) {
+      currentProgress = Math.max(currentProgress, pct);
+      progressFill.style.width = currentProgress + '%';
+      if (label) statusText.textContent = label;
+    }
+    function computeProgress(steps) {
+      if (!steps || !steps.length) return 5;
+      var done = STEP_ORDER.filter(function(name) {
+        var s = steps.find(function(x){return x.name===name;});
+        return s && s.status==='completed';
+      });
+      return Math.min(Math.round((done.length/STEP_ORDER.length)*90)+5, 95);
+    }
+    function onBootupState(state) {
+      if (!state) return;
+      var pct = computeProgress(state.steps||[]);
+      var label = state.current ? (STEP_LABELS[state.current]||state.current) : null;
+      setProgress(pct, label);
+      if (state.ready || state.completed) {
+        setProgress(100, 'Bereit!');
+        setTimeout(function(){ fadeOverlay.classList.add('active'); }, 400);
+      }
+    }
+    if (window.splashApi) {
+      if (window.splashApi.getVersion) {
+        window.splashApi.getVersion().then(function(v){ if(v) versionBadge.textContent='v'+v; }).catch(function(){});
+      }
+      window.splashApi.onBootupState(function(state){ onBootupState(state); });
+    } else {
+      var sim=5, simSteps=STEP_ORDER.slice();
+      var interval=setInterval(function(){
+        if(!simSteps.length){ clearInterval(interval); setProgress(100,'Bereit!'); setTimeout(function(){fadeOverlay.classList.add('active');},400); return; }
+        var name=simSteps.shift();
+        sim=Math.min(sim+Math.round(90/STEP_ORDER.length),95);
+        setProgress(sim, STEP_LABELS[name]||name);
+      },300);
+    }
+  </script>
+</body>
+</html>

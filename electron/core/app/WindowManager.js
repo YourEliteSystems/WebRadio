@@ -1,13 +1,36 @@
 const { createMainWindow } = require("./MainWindow");
 const { createSettingsWindow } = require("./SettingsWindow");
+const SplashWindow = require("./SplashWindow");
 
 class WindowManager {
   constructor(isDev) {
     this.isDev = isDev;
 
-    this.mainWindow = null;
+    this.mainWindow    = null;
     this.settingsWindow = null;
+    this.splashWindow  = new SplashWindow();
   }
+
+  // ─────────────────────────────────────────────────────────
+  // Splash
+  // ─────────────────────────────────────────────────────────
+
+  openSplash() {
+    this.splashWindow.open();
+    return this.splashWindow;
+  }
+
+  sendSplashBootupState(state) {
+    this.splashWindow.sendBootupState(state);
+  }
+
+  closeSplash(delay = 600) {
+    this.splashWindow.close(delay);
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Main Window
+  // ─────────────────────────────────────────────────────────
 
   createMainWindow() {
     if (this.mainWindow) {
@@ -23,6 +46,10 @@ class WindowManager {
     return this.mainWindow;
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Settings Window
+  // ─────────────────────────────────────────────────────────
+
   openSettings() {
     if (this.settingsWindow) {
       this.settingsWindow.focus();
@@ -37,6 +64,10 @@ class WindowManager {
 
     return this.settingsWindow;
   }
+
+  // ─────────────────────────────────────────────────────────
+  // Getters
+  // ─────────────────────────────────────────────────────────
 
   getMainWindow() {
     return this.mainWindow;

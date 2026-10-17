@@ -4,7 +4,26 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7-beta.3] – 2026-10-17
+
+> Beta-Version 1.0.7-beta.3: Implementiert einen professionellen Boot-up-Screen (Splash-Window) für die Electron-Anwendung. Der Startbildschirm erscheint sofort beim App-Launch, zeigt in Echtzeit den Fortschritt der Initialisierungssequenz und schließt sich automatisch nach dem `app-ready`-Event. Das Design orientiert sich am dunklen Cyan-Farbschema der WebRadio-Oberfläche und integriert sich nahtlos in das bestehende `BootupDiagnostics`-System.
+
+### ✨ Neue Funktionen
+
+- **Boot-up-Screen (`renderer/splash.html`, `electron/core/app/SplashWindow.js`, `electron/preload-splash.js`):** Professioneller Startbildschirm mit animiertem Radio-Icon (SVG, Cyan-Akzente), pulsierenden Ringen, animierten Schallwellen-Bars, Raster-Hintergrund (Grid), Verlaufs-Fortschrittsbalken mit Shimmer-Effekt, Eck-Akzenten und Versionsbadge.
+  - Fortschrittsanzeige mit deutschen Statusmeldungen für alle 16 Initialisierungsschritte.
+  - IPC-basierte Echtzeitkommunikation: `BootupDiagnostics.onChange()` → `splash:bootup-state` Event.
+  - Fade-out-Animation beim Übergang zur Hauptanwendung.
+  - Fallback-Simulation (Dev-Modus ohne IPC) für einfaches Design-Testing.
+- **`SplashWindow`-Klasse (`electron/core/app/SplashWindow.js`):** Eigenes rahmenloses Electron-Fenster (480 × 300 px), immer im Vordergrund, zentriert, ohne Taskleisten-Eintrag. Minimales Sicherheitsprofil (contextIsolation, kein nodeIntegration). Schließt sich per `close(delay)` mit konfigurierbarer Verzögerung.
+- **`preload-splash.js` (`electron/preload-splash.js`):** Dediziertes, minimales Preload ausschließlich für das Splash-Fenster. Exponiert nur `splashApi.onBootupState()` und `splashApi.getVersion()` über `contextBridge`.
+- **`WindowManager`-Integration (`electron/core/app/WindowManager.js`):** Neue Methoden `openSplash()`, `sendSplashBootupState()` und `closeSplash()` zur strukturierten Steuerung des Splash-Fensters.
+- **`Application.start()`-Integration (`electron/core/Application.js`):** Splash-Fenster öffnet sich als allererste Aktion vor jeder Schwerinitialisierung. `BootupDiagnostics.onChange`-Listener leitet alle Zustandsänderungen in Echtzeit an den Splash-Renderer weiter. Splash schließt sich 700 ms nach `app-ready`.
+
+---
+
 ## [v1.0.7-beta.2] – 2026-10-17
+
 
 > Beta-Version 1.0.7-beta.2: Umfassendes Sicherheits-, Stabilitäts- und Qualitäts-Release. Behebt kritische Path-Traversal-Schwachstellen im Diagnostics-Subsystem, schützt die Shell-IPC vor beliebiger Dateiausführung unter Windows, eliminiert DOM-XSS-Vektoren in Renderer-Komponenten und verschlüsselt OAuth-Tokens im MediaHub-Dienst mittels AES-256-GCM. Korrigiert einen kritischen Importfehler in packageHandlers.js, wodurch EventBus-Broadcasts für Package-Ereignisse wieder an alle Fenster propagiert werden. Führt automatisierte CodeQL-Sicherheitsanalysen und Dependency-Audits in GitHub Actions ein, integriert Dependabot, schließt die deutsche Übersetzung der Dokumentation ab und bindet zuvor ungenutzte Testsuiten (Volume und Icon-Rendering) in die Standard-Testkette ein.
 
