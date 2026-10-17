@@ -183,16 +183,18 @@ Der Renderer greift über `useUnifiedPlayer` und die Player-API darauf zu.
 
 Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumgebung**.
 
-| Plattform | Download | Format |
+| Plattform | Download | Aktuell veröffentlichte Formate |
 | --- | --- | --- |
-| 🪟 **Windows** | [Releases](../../releases) | NSIS Installer / Portable |
-| 🐧 **Linux** | [Releases](../../releases) | AppImage / .deb |
-| 🐧 **Arch Linux** | [Releases](../../releases) | .pkg.tar.zst |
+| 🪟 **Windows** | [Releases](../../releases) | Windows-Installer (EXE); weitere Formate je nach Release |
+| 🐧 **Linux** | [Releases](../../releases) | AppImage |
+| 🐧 **Arch Linux** | [Releases](../../releases) | `.pkg.tar.zst` |
 | 🍎 **macOS** | Derzeit nicht verfügbar | Noch in Vorbereitung |
+
+**Hinweis zu `.deb`:** Ein Build-Skript ist im Repository vorhanden, aber `.deb` ist nicht in jedem veröffentlichten Release enthalten. Verlasse dich bei Downloads auf die tatsächlich angehängten Dateien des jeweiligen Releases.
 
 ### Aktuelle Version und Release-Kanäle
 
-Die derzeit im Projekt dokumentierte Version ist **v1.0.7-beta.2**. Sie ist eine Vorabversion und keine Stable-Freigabe. Verwende für Downloads ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
+Der Quellstand dokumentiert derzeit **v1.0.7-beta.2**. Das zuletzt veröffentlichte GitHub-Beta-Release ist aktuell **[v1.0.7-beta.1](../../releases/tag/v1.0.7-beta.1)**. Diese Angaben können auseinanderliegen, wenn neuere Änderungen noch nicht als Release veröffentlicht wurden. **v1.0.7-beta.2 ist damit nicht automatisch herunterladbar.** Für Downloads gelten ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
 
 - **Stable** – verwenden, wenn ein entsprechender stabiler Release veröffentlicht wurde.
 - **Beta** – Vorabversionen zum Testen; Fehler und Änderungen sind möglich.
@@ -258,7 +260,7 @@ npm run dev
 | --- | --- |
 | Windows x64 | ✅ Haupt-Testplattform |
 | Linux x86_64 AppImage | ✅ Produktions-Build |
-| Linux x86_64 .deb | ✅ Produktions-Build |
+| Linux x86_64 .deb | 🟡 Build-Skript vorhanden; nicht in jedem Release veröffentlicht |
 | Arch Linux x86_64 | ✅ Produktions-Build |
 | macOS | Noch nicht verfügbar – in Vorbereitung |
 
