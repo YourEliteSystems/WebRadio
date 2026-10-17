@@ -27,6 +27,8 @@ jobs:
           - macos-latest
 
     runs-on: ${{ matrix.os }}
+    env:
+      UPDATE_CHANNEL: beta
 
     steps:
       - name: Repository auschecken
