@@ -40,6 +40,7 @@ jobs:
       - name: Linux AppImage bauen
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_CHANNEL: beta
         run: npx electron-builder --linux AppImage --x64 --publish=never
 
       - name: Build-Artefakte hochladen
