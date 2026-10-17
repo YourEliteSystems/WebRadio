@@ -137,8 +137,9 @@ nav:
       - Contributing: CONTRIBUTING.md
       - Security Policy: SECURITY.md
   - Documentation:
-      - Versioning: VERSIONING.md
-      - Download Statistics: DOWNLOAD_STATS.md
+      - Übersetzungsplan: TRANSLATION_PLAN.md
+      - Versionierung: VERSIONING.md
+      - Download-Statistik: DOWNLOAD_STATS.md
   - Datenschutz:
       - Datenschutz: PRIVACY.md
 
