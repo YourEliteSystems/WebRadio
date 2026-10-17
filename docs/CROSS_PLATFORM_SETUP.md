@@ -153,11 +153,13 @@ const isMacos = process.platform === 'darwin';
 
 ### Automated Testing
 
+The `npm test` script runs the project's configured automated test suite. It does not accept a platform selector; use real Windows or Linux environments for platform-specific manual checks.
+
 ```bash
-# Add platform-specific tests
-npm test -- --platform=linux
-npm test -- --platform=macos
-npm test -- --platform=windows
+npm test
+
+# Optional: run static analysis
+npm run lint
 ```
 
 ### Manual Testing Checklist
@@ -241,15 +243,15 @@ The current update layer is organized as a small core with supporting modules:
 | **Linux AppImage** | 🧪 Prepared | In-app download & replacement via AppImage updater (`latest-linux.yml`); automatic AppImage update tooling is prepared but not fully implemented |
 | **Linux deb** | ❌ Package Manager | Version check only; installation managed via `apt`/`dpkg` |
 | **Arch Linux** (`.pkg.tar.zst`) | ❌ Package Manager | Version check only; installation managed via `pacman -U` |
-| **macOS** | 🚧 Planned | electron-builder config ready; requires macOS signing for distribution |
+| **macOS** | ❌ Not available | No supported macOS release build or dedicated build script is currently provided |
 
 ### Release Workflow
 
-1. Update version in `package.json` (e.g. `1.0.6` for Stable or `1.0.6-beta.4` for Beta).
-2. Create and push tag:
+1. Update the version in `package.json` to the intended semantic version.
+2. Create and push a matching tag. For example, replace `X.Y.Z-beta.N` with the exact version from `package.json`:
    ```bash
-   git tag v1.0.6-beta.4
-   git push origin v1.0.6-beta.4
+   git tag vX.Y.Z-beta.N
+   git push origin vX.Y.Z-beta.N
    ```
 3. GitHub Actions (`.github/workflows/release.yml`) automatically:
    - Resolves the release context from the tag and `package.json`.
