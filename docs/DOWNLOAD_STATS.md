@@ -1,6 +1,6 @@
 # 📊 WebRadio Download Statistics
 
-> Automatisch aus den GitHub Release-Assets erzeugt. Stand: 2026-10-14T08:39:51.408Z.
+> Automatisch aus den GitHub Release-Assets erzeugt. Stand: 2026-10-17T07:44:48.286Z.
 
 Diese Statistik zählt bewusst nur Installations-/Distributionspakete. Update-Metadaten (.yml/.json), Blockmaps, Checksums und Builder-Debug-Dateien werden ausgeschlossen.
 
