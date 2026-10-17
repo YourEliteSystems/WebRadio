@@ -46,6 +46,9 @@ class CredentialManager {
     // Daten verschlüsseln
     encrypt(data) {
         try {
+            if (!this.encryptionKey) {
+                this.loadOrGenerateKey();
+            }
             const iv = crypto.randomBytes(16);
             const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(this.encryptionKey, "hex"), iv);
             
@@ -68,6 +71,9 @@ class CredentialManager {
     // Daten entschlüsseln
     decrypt(encryptedData) {
         try {
+            if (!this.encryptionKey) {
+                this.loadOrGenerateKey();
+            }
             const iv = Buffer.from(encryptedData.iv, "hex");
             const authTag = Buffer.from(encryptedData.authTag, "hex");
             const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(this.encryptionKey, "hex"), iv);

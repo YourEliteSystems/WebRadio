@@ -9,6 +9,7 @@ const http = require("http");
 const path = require("path");
 
 const LogManager = require("../diagnostics/logging/LogManager");
+const CredentialManager = require("./CredentialManager");
 
 const logger = LogManager.getLogger("MediaHubOAuth");
 
@@ -21,12 +22,22 @@ function base64url(value) {
   return value.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 function read() {
-  try { return JSON.parse(fs.readFileSync(TOKEN_FILE(), "utf8")); } catch { return null; }
+  try {
+    const raw = fs.readFileSync(TOKEN_FILE(), "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.iv && parsed.authTag && parsed.data) {
+      return CredentialManager.decrypt(parsed);
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 function write(tokens) {
   const file = TOKEN_FILE();
   fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(file, JSON.stringify(tokens, null, 2), { mode: 0o600 });
+  const payload = CredentialManager.encrypt(tokens);
+  fs.writeFileSync(file, JSON.stringify(payload, null, 2), { mode: 0o600 });
 }
 async function post(params) {
   const response = await fetch("https://oauth2.googleapis.com/token", {

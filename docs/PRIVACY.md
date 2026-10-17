@@ -26,25 +26,29 @@ WebRadio ist eine lokale Desktop-Anwendung. Viele Funktionen arbeiten ohne einen
 
 ## Telemetrie und Diagnose
 
-- Die Anwendung enthält Diagnose-, Logging- und Crash-Handling-Funktionen.
-- Welche Informationen dabei erfasst werden, soll nachvollziehbar sein und sollte in der Anwendung selbst oder in dieser Datenschutzseite offengelegt werden.
-- Wenn Telemetrie oder optionale Diagnosefunktionen vorhanden sind, muss ihre Aktivierung und ihr Umfang klar beschrieben sein.
+- WebRadio erhebt und überträgt **keinerlei Telemetriedaten, Nutzungsstatistiken oder Tracking** an externe Server.
+- Es sind keine Telemetrie-Dienste (wie Sentry, Aptabase oder Google Analytics) in der Anwendung integriert.
+- Diagnose-Logs und Crash-Berichte verbleiben ausschließlich **lokal auf dem Gerät** des Nutzers (im Verzeichnis `userData/logs` und `userData/crash`) und werden niemals automatisch übertragen.
+- Sensible Daten (wie Tokens, Passwörter und Secrets) werden durch integrierte Filter vor dem Schreiben in Crash-Dumps oder Logs automatisch maskiert (`[REDACTED]`).
 
 ## Integrationen
 
-- Einige Funktionen, wie etwa Medien- oder Dienst-Integrationen, können zusätzliche Berechtigungen oder externe Dienste nutzen.
-- Je nach Integration kann es zusätzliche Datenflows geben.
-- Die konkreten Integrationen und ihre Datenverarbeitung sind in der jeweiligen Integrationsdokumentation zu beschreiben.
+- Einige Funktionen, wie etwa optionale Medien- oder Dienst-Integrationen (z. B. MediaHub / Google YouTube), können zusätzliche Berechtigungen oder externe Dienste nutzen.
+- Authentifizierungs-Tokens für Google OAuth werden auf dem lokalen System verschlüsselt (AES-256-GCM) abgelegt und niemals im Klartext gespeichert.
+- Die konkreten Integrationen und ihre Datenverarbeitung sind in der jeweiligen Integrationsdokumentation beschrieben.
 
 ## Drittanbieter-Komponenten
 
-- Die Anwendung setzt auf Drittanbieter-Bibliotheken und gegebenenfalls auf mitgelieferte Werkzeuge wie FFmpeg.
-- Die genauen Lizenz- und Quellenangaben für diese Komponenten sollten separat dokumentiert werden, bevor die Datenschutz- und Lizenzseiten als vollständig gelten.
+- Die Anwendung setzt auf Drittanbieter-Bibliotheken und mitgelieferte Werkzeuge wie FFmpeg (`ffmpeg-static`, GPL-3.0-or-later).
+- FFmpeg verarbeitet Audiostreams lokal auf dem Rechner; es findet keine Übertragung an Server der FFmpeg-Entwickler statt.
 
-## Offene Punkte
+## Zusammenfassung der externen Datenflüsse
 
-- Eine vollständige Liste der übertragenen Daten, der genutzten externen Endpunkte und der optionalen Telemetrie sollte erst veröffentlicht werden, wenn die tatsächliche Implementierung abschließend geprüft wurde.
-- Maskierungen, Logging-Filter und Crash-Berichtsfunktionen sind im aktuellen Stand als potenziell relevant zu behandeln, solange sie nicht abschließend dokumentiert sind.
+1. **Radio-Browser API:** Abruf von Senderlisten und Sendersuche über öffentliche Mirrors (z. B. `api.radio-browser.info`).
+2. **Audio-Streams:** Direkter Empfang von PCM-Audiodaten der jeweils vom Nutzer ausgewählten Radiostation.
+3. **GitHub Releases API:** Optionale Prüfung auf Anwendungs-Updates sowie Abruf von Versionsinformationen.
+4. **Discord Rich Presence (opt-in):** Lokale IPC-Kommunikation mit dem installierten Discord-Desktop-Client zur Anzeige des aktuellen Senders/Titels.
+5. **Google OAuth (opt-in):** Nur im MediaHub-Plugin bei ausdrücklicher Anmeldung durch den Nutzer zur Wiedergabe eigener YouTube-Favoriten.
 
 ## Kontakt
 

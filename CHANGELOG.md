@@ -4,6 +4,30 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7-beta.2] – 2026-10-17
+
+> Beta-Version 1.0.7-beta.2: Sicherheits- und Qualitäts-Update. Behebt Path-Traversal-Schwachstellen im Diagnostics-Subsystem (LogReader und CrashReportReader), schützt shell:openPath vor unbefugter Dateiausführung, sichert PluginView gegen XSS-Vektoren ab und verschlüsselt OAuth-Tokens im MediaHub-Dienst mittels AES-256-GCM. Korrigiert einen kritischen Importfehler in packageHandlers.js, wodurch EventBus-Broadcasts für installierte/aktivierte Packages an Renderer-Fenster wieder zuverlässig funktionieren. Bindet zuvor ausgelassene Testsuiten (Volume und Icon-Rendering) in die Standard-Testkette ein und korrigiert den Artefakt-Pfad im CI-Workflow.
+
+### 🔒 Sicherheit & Härtung
+
+- **Path-Traversal-Schutz (`LogReader`, `CrashReportReader`):** Strikte Pfad- und Dateinamen-Validierung via `_resolveSafePath()`. Verhindert das Auslesen und Löschen beliebiger Systemdateien über IPC; Dateinamen müssen reine Basisnamen sein und auf `.log` bzw. `.json` enden.
+- **RCE-Schutz bei `shell:openPath` (`windowHandlers.js`):** Absicherung der IPC-Methode gegen die Ausführung beliebiger Dateien/Binaries unter Windows. Es werden ausschließlich nachweisbar existierende Verzeichnisse (`stat.isDirectory()`) geöffnet.
+- **DOM-XSS-Prävention (`PluginView.jsx`, `PluginSlot.jsx`):** Sichere DOM-Erzeugung (`textContent`) für Fehlermeldungen und Fallback-Texte bei nicht registrierten Views; Beseitigung unescapeter HTML-Interpolationen; Bereinigung von Klassenattributen.
+- **Verschlüsselte OAuth-Tokens (`MediaHubOAuth.js`):** OAuth-Zugangs- und Refresh-Tokens werden mit AES-256-GCM über den `CredentialManager` verschlüsselt in `mediahub-oauth.json` gespeichert (inklusive abwärtskompatibler Migration bestehender Klartext-Tokens).
+- **Datenschutzerklärung (`docs/PRIVACY.md`):** Eindeutige Klarstellung zur vollständigen Abwesenheit von Telemetrie-, Analyse- oder Nutzer-Tracking-Diensten.
+
+### 🐛 Bug Fixes
+
+- **Package-Event-Broadcasts (`packageHandlers.js`):** Destructuring-Fehler behoben (`const { eventBus }` → `const eventBus`). Package-Events (`package:installed`, `package:updated`, `package:enabled`, `package:disabled`, `package:removed`) werden nun ordnungsgemäß über IPC an alle Anwendungsfenster propagiert.
+
+### 🧪 Tests & Build-Infrastruktur
+
+- **Vollständige Testsuite (`package.json`):** `icon-rendering.test.js` und `volume.test.js` in das `test`-Skript aufgenommen (nun 34 Testdateien mit 100 % Erfolgsquote).
+- **Neue Sicherheitstests:** Zusätzliche automatisierte Tests für Path-Traversal-Blockaden in `diagnostics.test.js` und Event-Abonnements in `package-integration.test.js`.
+- **CI-Artefakt-Upload (`ci.yml`):** Upload-Pfad auf `renderer/dist/` korrigiert, passend zum Build-Ergebnis von `npm run build`.
+
+---
+
 ## [v1.0.7-beta.1] – 2026-10-06
 
 > Beta-Version 1.0.7-beta.1: Führt eine strikte Trennung zwischen Package-Installation und Runtime-Discovery/Ausführung ein. PluginLoader und ThemeLoader arbeiten jetzt unabhängig von PackageRegistry und install.json. Manuell installierte Plugins/Themes funktionieren ohne Registry-Einträge. Package-Installation startet keine Runtime-Komponenten automatisch. Die Package-Architektur besteht aus PackageDiscovery, PackageValidator, PackageInstaller, PackageRegistry und PackageManager als Installationsebene, während PluginLoader/PluginManager/PluginRuntime und ThemeLoader/ThemeManager die Runtime-Ebene bilden. Dokumentation wurde umfassend aktualisiert (Package System, ReadTheDocs-Integration, Discord-Link). Download-Statistik-System mit GitHub API-Integration und automatischem Workflow hinzugefügt. Alle Package-System-Tests bestehen (60/60).

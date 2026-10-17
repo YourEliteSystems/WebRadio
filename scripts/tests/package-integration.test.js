@@ -21,11 +21,20 @@ const fakeApp = {
   isPackaged: false
 };
 
+const fakeIpcMain = {
+  handle: () => {},
+  on: () => {}
+};
+
+const fakeBrowserWindow = {
+  getAllWindows: () => []
+};
+
 require.cache["electron-stub"] = {
   id: "electron-stub",
   filename: "electron-stub",
   loaded: true,
-  exports: { app: fakeApp }
+  exports: { app: fakeApp, ipcMain: fakeIpcMain, BrowserWindow: fakeBrowserWindow }
 };
 
 const PACKAGE_TYPES = { plugin: "plugin", theme: "theme" };
@@ -213,6 +222,19 @@ test("Installationsfehler werden als strukturierte Fehler klassifiziert", () => 
   const err = new InstallationError("Package not found in registry");
   assert.ok(err instanceof InstallationError);
   assert.ok(err.message.includes("not found"));
+});
+
+test("registerPackageHandlers registriert EventBus-Listener für Package-Broadcasts", () => {
+  const registerPackageHandlers = loadPackageHandlers();
+  const eventBus = require("../../electron/core/eventBus");
+  const countBefore = eventBus.listenerCount("package:installed");
+  registerPackageHandlers();
+  const countAfter = eventBus.listenerCount("package:installed");
+  assert.ok(countAfter > countBefore, "Listener auf package:installed muss registriert worden sein");
+  assert.ok(eventBus.listenerCount("package:updated") > 0);
+  assert.ok(eventBus.listenerCount("package:enabled") > 0);
+  assert.ok(eventBus.listenerCount("package:disabled") > 0);
+  assert.ok(eventBus.listenerCount("package:removed") > 0);
 });
 
 // ─────────────────────────────────────────────────────────────

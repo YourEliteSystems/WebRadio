@@ -250,7 +250,7 @@ function registerPackageHandlers() {
   });
 
   try {
-    const { eventBus } = require("../eventBus");
+    const eventBus = require("../eventBus");
 
     eventBus.on("package:installed", (payload) => {
       broadcastPackageEvent("package:installed", payload);

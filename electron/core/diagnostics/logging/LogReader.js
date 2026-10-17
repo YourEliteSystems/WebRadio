@@ -54,14 +54,33 @@ class LogReader {
 
     }
 
+    _resolveSafePath(fileName) {
+        if (typeof fileName !== "string" || !fileName.trim()) {
+            return null;
+        }
+
+        const trimmed = fileName.trim();
+        const baseName = path.basename(trimmed);
+
+        if (baseName !== trimmed || !trimmed.endsWith(".log") || trimmed.startsWith(".")) {
+            return null;
+        }
+
+        const resolvedDir = path.resolve(this.logDirectory);
+        const resolvedPath = path.resolve(this.logDirectory, baseName);
+
+        if (!resolvedPath.startsWith(resolvedDir + path.sep)) {
+            return null;
+        }
+
+        return resolvedPath;
+    }
+
     read(fileName) {
 
-        const filePath = path.join(
-            this.logDirectory,
-            fileName
-        );
+        const filePath = this._resolveSafePath(fileName);
 
-        if (!fs.existsSync(filePath)) {
+        if (!filePath || !fs.existsSync(filePath)) {
             return null;
         }
 
@@ -71,12 +90,9 @@ class LogReader {
 
     delete(fileName) {
 
-        const filePath = path.join(
-            this.logDirectory,
-            fileName
-        );
+        const filePath = this._resolveSafePath(fileName);
 
-        if (!fs.existsSync(filePath)) {
+        if (!filePath || !fs.existsSync(filePath)) {
             return false;
         }
 

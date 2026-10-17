@@ -27,14 +27,15 @@ export default function PluginSlot({ id }) {
     slotPlugins.forEach((renderFn, pluginId) => {
       try {
         const node = renderFn();
+        const safePluginId = String(pluginId || '').replace(/[^a-zA-Z0-9_-]/g, '-');
         if (node instanceof Node) {
           const wrapper = document.createElement('div');
-          wrapper.className = `plugin-slot-item plugin-${pluginId}`;
+          wrapper.className = `plugin-slot-item plugin-${safePluginId}`;
           wrapper.appendChild(node);
           container.appendChild(wrapper);
         } else if (typeof node === 'string') {
           const wrapper = document.createElement('div');
-          wrapper.className = `plugin-slot-item plugin-${pluginId}`;
+          wrapper.className = `plugin-slot-item plugin-${safePluginId}`;
           wrapper.innerHTML = node;
           container.appendChild(wrapper);
         }
@@ -43,11 +44,12 @@ export default function PluginSlot({ id }) {
       }
     });
 
-  }, [slotPlugins]);
+  }, [slotPlugins, id]);
 
   if (slotPlugins.size === 0) return null;
 
+  const safeSlotId = String(id || '').replace(/[^a-zA-Z0-9_-]/g, '-');
   return (
-    <div className={`plugin-slot slot-${id}`} ref={containerRef}></div>
+    <div className={`plugin-slot slot-${safeSlotId}`} ref={containerRef}></div>
   );
 }

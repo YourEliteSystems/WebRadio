@@ -26,6 +26,8 @@ const CrashDumpWriter = require("../../electron/core/diagnostics/CrashDumpWriter
 const DiagnosticsManager = require("../../electron/core/diagnostics/DiagnosticsManager");
 const CrashHandler = require("../../electron/core/diagnostics/CrashHandler");
 const eventBus = require("../../electron/core/eventBus");
+const LogReader = require("../../electron/core/diagnostics/logging/LogReader");
+const CrashReportReader = require("../../electron/core/diagnostics/crash/CrashReportReader");
 
 console.log("==========================================");
 console.log("🧪 Starte Diagnostics & Bootup Tests");
@@ -474,6 +476,51 @@ test("step() generische Methode delegiert korrekt", () => {
     const steps = BootupDiagnostics.getSteps();
     const failStep = steps.find(s => s.name === "fail-step");
     assert.strictEqual(failStep.status, "failed");
+});
+
+// ─────────────────────────────────────────────
+// 9. LogReader & CrashReportReader Security Checks
+// ─────────────────────────────────────────────
+console.log("\n[9] LogReader & CrashReportReader Security Checks");
+
+test("LogReader blockiert Path Traversal und unerlaubte Dateiendungen", () => {
+    // Path traversal Versuche
+    assert.strictEqual(LogReader.read("../../package.json"), null);
+    assert.strictEqual(LogReader.read("..\\package.json"), null);
+    assert.strictEqual(LogReader.read("../../../windows/win.ini"), null);
+    assert.strictEqual(LogReader.delete("../../package.json"), false);
+    assert.strictEqual(LogReader.delete("..\\package.json"), false);
+
+    // Falsche Dateiendungen
+    assert.strictEqual(LogReader.read("test.txt"), null);
+    assert.strictEqual(LogReader.read("test.json"), null);
+    assert.strictEqual(LogReader.delete("test.exe"), false);
+
+    // Ungültige Typen / leere Eingaben
+    assert.strictEqual(LogReader.read(null), null);
+    assert.strictEqual(LogReader.read(""), null);
+    assert.strictEqual(LogReader.read(123), null);
+    assert.strictEqual(LogReader.delete(null), false);
+    assert.strictEqual(LogReader.delete(""), false);
+});
+
+test("CrashReportReader blockiert Path Traversal und unerlaubte Dateiendungen", () => {
+    // Path traversal Versuche
+    assert.strictEqual(CrashReportReader.read("../../package.json"), null);
+    assert.strictEqual(CrashReportReader.read("..\\package.json"), null);
+    assert.strictEqual(CrashReportReader.delete("../../package.json"), false);
+    assert.strictEqual(CrashReportReader.delete("..\\package.json"), false);
+
+    // Falsche Dateiendungen
+    assert.strictEqual(CrashReportReader.read("test.log"), null);
+    assert.strictEqual(CrashReportReader.read("test.txt"), null);
+    assert.strictEqual(CrashReportReader.delete("test.log"), false);
+
+    // Ungültige Typen / leere Eingaben
+    assert.strictEqual(CrashReportReader.read(null), null);
+    assert.strictEqual(CrashReportReader.read(""), null);
+    assert.strictEqual(CrashReportReader.delete(null), false);
+    assert.strictEqual(CrashReportReader.delete(""), false);
 });
 
 console.log("\n==========================================");
