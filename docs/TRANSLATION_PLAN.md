@@ -41,7 +41,7 @@ Die MkDocs-Navigation, die Theme-Sprache und die Theme-Umschalter wurden ebenfal
 
 ### Noch gesondert prüfen
 
-- `docs/PRIVACY.md) ist bereits weitgehend deutschsprachig. Vor einer Überarbeitung müssen die Aussagen zu Telemetrie, Diagnose und Integrationen gegen den aktuellen Implementierungsstand geprüft werden.
+- `docs/PRIVACY.md` ist bereits weitgehend deutschsprachig. Vor einer Überarbeitung müssen die Aussagen zu Telemetrie, Diagnose und Integrationen gegen den aktuellen Implementierungsstand geprüft werden.
 - `docs/DOWNLOAD_STATS.md` wird automatisch aus GitHub-Release-Daten erzeugt. Übersetzungen an dieser Datei sollten daher im erzeugenden Workflow bzw. Skript vorgenommen werden, nicht nur in der generierten Ausgabe.
 
 ## Vollständiges Dateiinventar
