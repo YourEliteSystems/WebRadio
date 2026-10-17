@@ -1,69 +1,69 @@
-# WebRadio API Reference
+# WebRadio API-Referenz
 
-Welcome to the WebRadio API Reference.
+Willkommen bei der API-Referenz von WebRadio.
 
-This reference documents the current plugin-facing APIs and clearly marks planned or not-yet-implemented services.
+Diese Referenz dokumentiert die aktuellen APIs für Plugins und kennzeichnet geplante oder noch nicht implementierte Dienste ausdrücklich.
 
-Unlike the Plugin SDK and Theme SDK, which focus on learning and practical examples, the API Reference serves as the official technical specification for the WebRadio SDK.
-
----
-
-# Purpose
-
-The API Reference provides detailed information about every public class, interface and service exposed by WebRadio.
-
-For each API you will find:
-
-* Overview
-* Responsibilities
-* Constructors
-* Properties
-* Methods
-* Parameters
-* Return values
-* Events
-* Permissions
-* Examples
-* Best practices
-
-This documentation is intended to be used alongside the Plugin SDK.
+Während das Plugin-SDK und das Theme-SDK das Lernen und praktische Beispiele in den Mittelpunkt stellen, dient die API-Referenz als offizielle technische Spezifikation des WebRadio-SDK.
 
 ---
 
-# Who Is This For?
+# Zweck
 
-The API Reference is intended for developers who already understand the basics of WebRadio development and need detailed information about a specific API.
+Die API-Referenz beschreibt detailliert alle öffentlichen Klassen, Schnittstellen und Dienste, die WebRadio bereitstellt.
 
-If you are new to WebRadio development, it is recommended to complete the Plugin SDK before using this reference.
+Zu jeder API findest du:
+
+- Überblick
+- Zuständigkeiten
+- Konstruktoren
+- Eigenschaften
+- Methoden
+- Parameter
+- Rückgabewerte
+- Ereignisse
+- Berechtigungen
+- Beispiele
+- bewährte Vorgehensweisen
+
+Diese Dokumentation sollte zusammen mit dem Plugin-SDK verwendet werden.
 
 ---
 
-# API Categories
+# Für wen ist die Referenz gedacht?
 
-The WebRadio SDK is organized into several categories.
+Die API-Referenz richtet sich an Entwickler, die bereits die Grundlagen der WebRadio-Entwicklung kennen und detaillierte Informationen zu einer bestimmten API benötigen.
+
+Wenn du neu in der WebRadio-Entwicklung bist, empfiehlt es sich, zuerst das Plugin-SDK durchzuarbeiten.
+
+---
+
+# API-Kategorien
+
+Das WebRadio-SDK ist in mehrere Kategorien unterteilt.
 
 ```text
 Application
 
 ↓
 
-Plugin System
+Plugin-System
 
 ↓
 
-Theme System
+Theme-System
 
 ↓
 
-Storage
+Speicher
 
 ↓
 
-Events
+Ereignisse
 
 ↓
 
-Settings
+Einstellungen
 
 ↓
 
@@ -71,7 +71,7 @@ Navigation
 
 ↓
 
-Audio & Radio Services
+Audio- und Radio-Dienste
 
 ↓
 
@@ -79,151 +79,151 @@ Player (Unified Player)
 
 ↓
 
-Update & Runtime Diagnostics
+Update- und Laufzeitdiagnose
 
 ↓
 
-Utilities
+Hilfsfunktionen
 ```
 
-Each category is documented separately.
+Jede Kategorie wird separat dokumentiert.
 
 ---
 
-# Core Managers
+# Zentrale Manager
 
-* [Application](./Application.md)
-* [PluginManager](./PluginManager.md)
-* [ThemeManager](./ThemeManager.md)
-* [StorageManager](../architecture/02-StorageManager.md)
-
----
-
-# Core Services
-
-* [StreamManager](./StreamManager.md)
-* [RadioBrowserService](./RadioBrowserService.md)
+- [Application](./Application.md)
+- [PluginManager](./PluginManager.md)
+- [ThemeManager](./ThemeManager.md)
+- [StorageManager](../architecture/02-StorageManager.md)
 
 ---
 
-# Platform and Update Core
+# Zentrale Dienste
 
-* [RuntimeDetector](../UPDATE_ARCHITECTURE.md)
-* [UpdateManager](../UPDATE_ARCHITECTURE.md)
-
----
-
-# Player API
-
-* [Unified Player](./UnifiedPlayer.md) – PlayerManager, providers, states, IPC and the renderer/plugin surface
+- [StreamManager](./StreamManager.md)
+- [RadioBrowserService](./RadioBrowserService.md)
 
 ---
 
-# Plugin HTTP Origin API
+# Plattform- und Update-Core
 
-* PluginHttpOrigin
-
----
-
-# Plugin Extension Points (current)
-
-* [Events](./Events.md)
-* [Storage](./Storage.md)
-* [Settings](./Settings.md)
-* [Navigation](../plugin-sdk/08-Navigation.md)
-* [UI](../plugin-sdk/09-UI.md)
-
-> Some API reference pages describe future-facing plugin services that are not yet implemented. Check each page's status before relying on a service.
+- [RuntimeDetector](../UPDATE_ARCHITECTURE.md)
+- [UpdateManager](../UPDATE_ARCHITECTURE.md)
 
 ---
 
-# Plugin Extension Points (planned, not yet implemented)
+# Player-API
 
-* [Hooks](./Hooks.md)
-* [Commands](./Commands.md)
-* [Menus](./Menus.md)
-* [Notifications](./Notifications.md)
-* [Windows](./Windows.md)
+- [Unified Player](./UnifiedPlayer.md) – PlayerManager, Provider, Zustände, IPC sowie die Schnittstellen für Renderer und Plugins
 
 ---
 
-# Notes on API Reference Scope
+# Plugin-HTTP-Origin-API
 
-Some API reference pages describe future-facing plugin services that are not yet implemented.
-
-For the current plugin-facing surface, see:
-
-* Plugin SDK
-* Capabilities & Plugin HTTP Environment
-* Plugin API documentation in the SDK
+- PluginHttpOrigin
 
 ---
 
-# Documentation Format
+# Erweiterungspunkte für Plugins (aktuell)
 
-Every API document follows the same structure.
+- [Ereignisse](./Events.md)
+- [Speicher](./Storage.md)
+- [Einstellungen](./Settings.md)
+- [Navigation](../plugin-sdk/08-Navigation.md)
+- [Benutzeroberfläche](../plugin-sdk/09-UI.md)
+
+> Einige API-Referenzseiten beschreiben zukünftige Plugin-Dienste, die noch nicht implementiert sind. Prüfe den Status der jeweiligen Seite, bevor du dich auf einen Dienst verlässt.
+
+---
+
+# Geplante Erweiterungspunkte (noch nicht implementiert)
+
+- [Hooks](./Hooks.md)
+- [Befehle](./Commands.md)
+- [Menüs](./Menus.md)
+- [Benachrichtigungen](./Notifications.md)
+- [Fenster](./Windows.md)
+
+---
+
+# Umfang der API-Referenz
+
+Einige API-Referenzseiten beschreiben zukünftige Plugin-Dienste, die noch nicht implementiert sind.
+
+Informationen zu den aktuell verfügbaren Plugin-Schnittstellen findest du hier:
+
+- Plugin-SDK
+- Capabilities und Plugin-HTTP-Umgebung
+- Plugin-API-Dokumentation im SDK
+
+---
+
+# Aufbau der Dokumentation
+
+Jedes API-Dokument folgt derselben Struktur.
 
 ```text
-Overview
+Überblick
 
-Responsibilities
+Zuständigkeiten
 
-Constructor
+Konstruktor
 
-Properties
+Eigenschaften
 
-Methods
+Methoden
 
-Events
+Ereignisse
 
-Permissions
+Berechtigungen
 
-Examples
+Beispiele
 
-Best Practices
+Bewährte Vorgehensweisen
 
-Related APIs
+Verwandte APIs
 ```
 
-Using a consistent format makes the documentation easier to navigate.
+Ein einheitlicher Aufbau erleichtert die Navigation durch die Dokumentation.
 
 ---
 
-# Stability
+# Stabilität
 
-Only documented APIs are considered public.
+Nur dokumentierte APIs gelten als öffentlich.
 
-Plugins should never depend on:
+Plugins sollten sich niemals auf Folgendes verlassen:
 
-* Internal classes
-* Private methods
-* Undocumented properties
-* Internal implementation details
+- interne Klassen
+- private Methoden
+- undokumentierte Eigenschaften
+- interne Implementierungsdetails
 
-Using only public APIs ensures compatibility with future WebRadio releases.
-
----
-
-# Versioning
-
-Every documented API belongs to a specific WebRadio SDK version.
-
-Future releases may introduce:
-
-* New methods
-* New services
-* Additional events
-* New extension points
-
-Whenever possible, changes will remain backwards compatible.
+Die ausschließliche Verwendung öffentlicher APIs verbessert die Kompatibilität mit zukünftigen WebRadio-Versionen.
 
 ---
 
-# Code Examples
+# Versionierung
 
-Most API documents include practical examples.
+Jede dokumentierte API gehört zu einer bestimmten Version des WebRadio-SDK.
 
-Example:
+Künftige Versionen können Folgendes ergänzen:
+
+- neue Methoden
+- neue Dienste
+- zusätzliche Ereignisse
+- neue Erweiterungspunkte
+
+Änderungen sollen nach Möglichkeit abwärtskompatibel bleiben.
+
+---
+
+# Codebeispiele
+
+Die meisten API-Dokumente enthalten praktische Beispiele.
+
+Beispiel:
 
 ```javascript
 const logger = context.logger;
@@ -231,36 +231,36 @@ const logger = context.logger;
 logger.info("Plugin started.");
 ```
 
-Examples are intentionally simple and focus on demonstrating the API.
+Die Beispiele sind bewusst einfach gehalten und konzentrieren sich auf die Darstellung der API.
 
 ---
 
-# Conventions
+# Konventionen
 
-Throughout this reference:
+In dieser Referenz gelten folgende Konventionen:
 
-* JavaScript examples use modern syntax.
-* Public classes use PascalCase.
-* Methods use camelCase.
-* Constants use UPPER_CASE.
-* Event names use dot notation where applicable.
+- JavaScript-Beispiele verwenden moderne Syntax.
+- Öffentliche Klassen verwenden PascalCase.
+- Methoden verwenden camelCase.
+- Konstanten verwenden UPPER_CASE.
+- Ereignisnamen verwenden, sofern zutreffend, Punktnotation.
 
-These conventions are used consistently across the entire SDK.
-
----
-
-# Related Documentation
-
-The API Reference complements the following documentation:
-
-* Architecture
-* Plugin SDK
-* Theme SDK
-
-Together, these documents provide a complete overview of WebRadio development.
+Diese Konventionen werden im gesamten SDK einheitlich verwendet.
 
 ---
 
-# Next Step
+# Verwandte Dokumentation
 
-Begin with **Application.md** to understand the central application lifecycle and the role of the Application class within WebRadio.
+Die API-Referenz ergänzt folgende Dokumentation:
+
+- Architektur
+- Plugin-SDK
+- Theme-SDK
+
+Zusammen bieten diese Dokumente einen vollständigen Überblick über die Entwicklung für WebRadio.
+
+---
+
+# Nächster Schritt
+
+Beginne mit **Application.md**, um den zentralen Lebenszyklus der Anwendung und die Rolle der Klasse Application zu verstehen.
