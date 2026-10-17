@@ -140,7 +140,8 @@ function makeFakeAutoUpdater() {
 
 // Update behavior tests must not depend on the host runner's OS/package type.
 function setSupportedTestProvider(manager) {
-    manager._provider = {
+    const target = manager._mgr || manager;
+    target._provider = {
         getProviderType: () => "windows-nsis",
         getReason: () => ""
     };
