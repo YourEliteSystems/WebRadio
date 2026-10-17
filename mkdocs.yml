@@ -5,7 +5,7 @@
 # Versioned docs: Managed by ReadTheDocs (based on Git tags/branches)
 
 site_name: WebRadio
-site_description: Open-source desktop WebRadio application for Windows and Linux, built with Electron and React.
+site_description: Quelloffene Webradio-Desktopanwendung für Windows und Linux, entwickelt mit Electron und React.
 site_url: https://webradio.readthedocs.io/
 repo_url: https://github.com/YourEliteSystems/WebRadio
 repo_name: YourEliteSystems/WebRadio
@@ -25,7 +25,7 @@ exclude_docs: |
 
 theme:
   name: material
-  language: en
+  language: de
   features:
     - navigation.sections
     - navigation.top
@@ -40,14 +40,14 @@ theme:
       accent: indigo
       toggle:
         icon: material/brightness-7
-        name: Switch to dark mode
+        name: Zum dunklen Design wechseln
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: indigo
       accent: indigo
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: Zum hellen Design wechseln
 
 markdown_extensions:
   - attr_list
@@ -60,83 +60,83 @@ markdown_extensions:
 # Navigation is built exclusively from files that exist in docs/.
 # Missing pages are not linked anywhere.
 nav:
-  - Home: index.md
-  - Getting Started: Readme.md
-  - Architecture:
-      - Overview: architecture/readme.md
-      - Architecture Guide: architecture.md
-      - Application: architecture/01-Application.md
-      - StorageManager: architecture/02-StorageManager.md
-      - WindowManager: architecture/03-WindowManager.md
-      - Diagnostics: architecture/04-Diagnostics.md
-      - IPC: architecture/05-IPC.md
-      - ThemeManager: architecture/06-ThemeManager.md
-      - PluginManager: architecture/07-PluginManager.md
-      - Package System: architecture/11-PackageSystem.md
-      - MediaKeys: architecture/08-MediaKeys.md
-      - Tray: architecture/09-Tray.md
-      - Updater: architecture/10-Updater.md
-  - API Reference:
-      - Overview: api-reference/README.md
-      - Application: api-reference/Application.md
+  - Startseite: index.md
+  - Erste Schritte: Readme.md
+  - Architektur:
+      - Überblick: architecture/readme.md
+      - Architekturleitfaden: architecture.md
+      - Anwendung: architecture/01-Application.md
+      - Speicherverwaltung: architecture/02-StorageManager.md
+      - Fensterverwaltung: architecture/03-WindowManager.md
+      - Diagnose: architecture/04-Diagnostics.md
+      - Interprozesskommunikation (IPC): architecture/05-IPC.md
+      - Theme-Verwaltung: architecture/06-ThemeManager.md
+      - Plugin-Verwaltung: architecture/07-PluginManager.md
+      - Paketsystem: architecture/11-PackageSystem.md
+      - Medientasten: architecture/08-MediaKeys.md
+      - Infobereich: architecture/09-Tray.md
+      - Aktualisierungen: architecture/10-Updater.md
+  - API-Referenz:
+      - Überblick: api-reference/README.md
+      - Anwendung: api-reference/Application.md
       - Plugin: api-reference/Plugin.md
-      - PluginContext: api-reference/PluginContext.md
-      - PluginManager: api-reference/PluginManager.md
+      - Plugin-Kontext: api-reference/PluginContext.md
+      - Plugin-Verwaltung: api-reference/PluginManager.md
       - Theme: api-reference/Theme.md
-      - ThemeManager: api-reference/ThemeManager.md
-      - Settings: api-reference/Settings.md
-      - Storage: api-reference/Storage.md
-      - Events: api-reference/Events.md
+      - Theme-Verwaltung: api-reference/ThemeManager.md
+      - Einstellungen: api-reference/Settings.md
+      - Speicher: api-reference/Storage.md
+      - Ereignisse: api-reference/Events.md
       - Hooks: api-reference/Hooks.md
-      - Commands: api-reference/Commands.md
-      - Menus: api-reference/Menus.md
-      - Notifications: api-reference/Notifications.md
-      - Permissions: api-reference/Permissions.md
-      - Windows: api-reference/Windows.md
-      - StreamManager: api-reference/StreamManager.md
-      - Unified Player: api-reference/UnifiedPlayer.md
+      - Befehle: api-reference/Commands.md
+      - Menüs: api-reference/Menus.md
+      - Benachrichtigungen: api-reference/Notifications.md
+      - Berechtigungen: api-reference/Permissions.md
+      - Fenster: api-reference/Windows.md
+      - Stream-Verwaltung: api-reference/StreamManager.md
+      - Einheitlicher Player: api-reference/UnifiedPlayer.md
       - RadioBrowserService: api-reference/RadioBrowserService.md
-      - Logger: api-reference/Logger.md
-  - Plugin SDK:
-      - Overview: plugin-sdk/README.md
-      - Getting Started: plugin-sdk/01-GettingStarted.md
-      - Plugin Manifest: plugin-sdk/02-Manifest.md
-      - Project Structure: plugin-sdk/03-ProjectStructure.md
-      - Plugin Lifecycle: plugin-sdk/04-Lifecycle.md
-      - Plugin Context: plugin-sdk/05-Context.md
-      - Plugin API: plugin-sdk/06-PluginAPI.md
-      - Storage: plugin-sdk/06-Storage.md
-      - Events: plugin-sdk/07-Events.md
+      - Protokollierung: api-reference/Logger.md
+  - Plugin-SDK:
+      - Überblick: plugin-sdk/README.md
+      - Erste Schritte: plugin-sdk/01-GettingStarted.md
+      - Plugin-Manifest: plugin-sdk/02-Manifest.md
+      - Projektstruktur: plugin-sdk/03-ProjectStructure.md
+      - Plugin-Lebenszyklus: plugin-sdk/04-Lifecycle.md
+      - Plugin-Kontext: plugin-sdk/05-Context.md
+      - Plugin-API: plugin-sdk/06-PluginAPI.md
+      - Speicher: plugin-sdk/06-Storage.md
+      - Ereignisse: plugin-sdk/07-Events.md
       - Hooks: plugin-sdk/08-Hooks.md
-      - Navigation Extension API: plugin-sdk/08-Navigation.md
-      - UI Integration: plugin-sdk/09-UI.md
-      - Best Practices: plugin-sdk/10-BestPractices.md
-      - Hello World: plugin-sdk/11-HelloWorld.md
-      - FAQ: plugin-sdk/12-FAQ.md
-      - Capabilities & Plugin HTTP: plugin-sdk/13-Capabilities.md
-  - Theme SDK:
-      - Overview: theme-sdk/README.md
-      - Getting Started: theme-sdk/01-GettingStarted.md
-      - Theme Manifest: theme-sdk/02-ThemeManifest.md
-      - Directory Structure: theme-sdk/03-DirectoryStructure.md
-      - CSS Variables: theme-sdk/04-CSSVariables.md
-      - Components: theme-sdk/05-Components.md
+      - Navigationserweiterungs-API: plugin-sdk/08-Navigation.md
+      - UI-Integration: plugin-sdk/09-UI.md
+      - Bewährte Vorgehensweisen: plugin-sdk/10-BestPractices.md
+      - Hallo Welt: plugin-sdk/11-HelloWorld.md
+      - Häufige Fragen (FAQ): plugin-sdk/12-FAQ.md
+      - Fähigkeiten und Plugin-HTTP: plugin-sdk/13-Capabilities.md
+  - Theme-SDK:
+      - Überblick: theme-sdk/README.md
+      - Erste Schritte: theme-sdk/01-GettingStarted.md
+      - Theme-Manifest: theme-sdk/02-ThemeManifest.md
+      - Verzeichnisstruktur: theme-sdk/03-DirectoryStructure.md
+      - CSS-Variablen: theme-sdk/04-CSSVariables.md
+      - Komponenten: theme-sdk/05-Components.md
       - Assets: theme-sdk/06-Assets.md
-      - Best Practices: theme-sdk/07-BestPractices.md
-      - Hello Theme: theme-sdk/08-HelloTheme.md
-      - FAQ: theme-sdk/09-FAQ.md
-  - Integrations:
-      - Integration SDK: IntegrationSDK.md
-      - Verified Integrations: VERIFIED_INTEGRATIONS.md
-  - Updates:
-      - Update Architecture: UPDATE_ARCHITECTURE.md
-  - Cross Platform:
-      - Cross-Platform Setup: CROSS_PLATFORM_SETUP.md
-  - Project Governance:
-      - Code of Conduct: CODE_OF_CONDUCT.md
-      - Contributing: CONTRIBUTING.md
-      - Security Policy: SECURITY.md
-  - Documentation:
+      - Bewährte Vorgehensweisen: theme-sdk/07-BestPractices.md
+      - Hallo Theme: theme-sdk/08-HelloTheme.md
+      - Häufige Fragen (FAQ): theme-sdk/09-FAQ.md
+  - Integrationen:
+      - Integrations-SDK: IntegrationSDK.md
+      - Geprüfte Integrationen: VERIFIED_INTEGRATIONS.md
+  - Aktualisierungen:
+      - Aktualisierungsarchitektur: UPDATE_ARCHITECTURE.md
+  - Plattformübergreifende Einrichtung:
+      - Einrichtung auf mehreren Plattformen: CROSS_PLATFORM_SETUP.md
+  - Projektregeln:
+      - Verhaltenskodex: CODE_OF_CONDUCT.md
+      - Mitwirken: CONTRIBUTING.md
+      - Sicherheitsrichtlinie: SECURITY.md
+  - Dokumentation:
       - Übersetzungsplan: TRANSLATION_PLAN.md
       - Versionierung: VERSIONING.md
       - Download-Statistik: DOWNLOAD_STATS.md
