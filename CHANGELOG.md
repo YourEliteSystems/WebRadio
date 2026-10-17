@@ -6,25 +6,51 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ## [v1.0.7-beta.2] – 2026-10-17
 
-> Beta-Version 1.0.7-beta.2: Sicherheits- und Qualitäts-Update. Behebt Path-Traversal-Schwachstellen im Diagnostics-Subsystem (LogReader und CrashReportReader), schützt shell:openPath vor unbefugter Dateiausführung, sichert PluginView gegen XSS-Vektoren ab und verschlüsselt OAuth-Tokens im MediaHub-Dienst mittels AES-256-GCM. Korrigiert einen kritischen Importfehler in packageHandlers.js, wodurch EventBus-Broadcasts für installierte/aktivierte Packages an Renderer-Fenster wieder zuverlässig funktionieren. Bindet zuvor ausgelassene Testsuiten (Volume und Icon-Rendering) in die Standard-Testkette ein und korrigiert den Artefakt-Pfad im CI-Workflow.
+> Beta-Version 1.0.7-beta.2: Umfassendes Sicherheits-, Stabilitäts- und Qualitäts-Release. Behebt kritische Path-Traversal-Schwachstellen im Diagnostics-Subsystem, schützt die Shell-IPC vor beliebiger Dateiausführung unter Windows, eliminiert DOM-XSS-Vektoren in Renderer-Komponenten und verschlüsselt OAuth-Tokens im MediaHub-Dienst mittels AES-256-GCM. Korrigiert einen kritischen Importfehler in packageHandlers.js, wodurch EventBus-Broadcasts für Package-Ereignisse wieder an alle Fenster propagiert werden. Führt automatisierte CodeQL-Sicherheitsanalysen und Dependency-Audits in GitHub Actions ein, integriert Dependabot, schließt die deutsche Übersetzung der Dokumentation ab und bindet zuvor ungenutzte Testsuiten (Volume und Icon-Rendering) in die Standard-Testkette ein.
 
 ### 🔒 Sicherheit & Härtung
 
-- **Path-Traversal-Schutz (`LogReader`, `CrashReportReader`):** Strikte Pfad- und Dateinamen-Validierung via `_resolveSafePath()`. Verhindert das Auslesen und Löschen beliebiger Systemdateien über IPC; Dateinamen müssen reine Basisnamen sein und auf `.log` bzw. `.json` enden.
-- **RCE-Schutz bei `shell:openPath` (`windowHandlers.js`):** Absicherung der IPC-Methode gegen die Ausführung beliebiger Dateien/Binaries unter Windows. Es werden ausschließlich nachweisbar existierende Verzeichnisse (`stat.isDirectory()`) geöffnet.
-- **DOM-XSS-Prävention (`PluginView.jsx`, `PluginSlot.jsx`):** Sichere DOM-Erzeugung (`textContent`) für Fehlermeldungen und Fallback-Texte bei nicht registrierten Views; Beseitigung unescapeter HTML-Interpolationen; Bereinigung von Klassenattributen.
-- **Verschlüsselte OAuth-Tokens (`MediaHubOAuth.js`):** OAuth-Zugangs- und Refresh-Tokens werden mit AES-256-GCM über den `CredentialManager` verschlüsselt in `mediahub-oauth.json` gespeichert (inklusive abwärtskompatibler Migration bestehender Klartext-Tokens).
-- **Datenschutzerklärung (`docs/PRIVACY.md`):** Eindeutige Klarstellung zur vollständigen Abwesenheit von Telemetrie-, Analyse- oder Nutzer-Tracking-Diensten.
+- **Path-Traversal-Schutz (`LogReader`, `CrashReportReader`):** Strikte Pfad- und Dateinamen-Validierung via `_resolveSafePath()`. Verhindert das unbefugte Auslesen und Löschen beliebiger Systemdateien über IPC; Dateinamen müssen reine Basisnamen sein und auf `.log` bzw. `.json` enden.
+- **RCE-Schutz bei `shell:openPath` (`windowHandlers.js`):** Absicherung der IPC-Methode gegen die Ausführung beliebiger Dateien oder ausführbarer Binaries (`.exe`, `.bat`, Skripte) unter Windows. Es werden ausschließlich nachweislich existierende Verzeichnisse (`stat.isDirectory()`) an das Betriebssystem übergeben.
+- **DOM-XSS-Prävention (`PluginView.jsx`, `PluginSlot.jsx`):** Sichere DOM-Erzeugung (`document.createElement()`, `textContent`) für Fehlermeldungen und Fallback-Texte bei nicht registrierten Views; Beseitigung unescapeter HTML-Interpolationen von `viewId` und `err.message`; Bereinigung von dynamischen CSS-Klassenattributen.
+- **Verschlüsselte OAuth-Tokens (`MediaHubOAuth.js`):** Google OAuth-Zugangs- und Refresh-Tokens werden mit AES-256-GCM über den `CredentialManager` verschlüsselt in `mediahub-oauth.json` abgelegt (inklusive automatischer und transparenter Abwärtskompatibilität für bestehende Klartext-Tokens).
+- **CodeQL Security Scanning (`.github/workflows/codeql.yml`):** Automatisierte GitHub CodeQL-Sicherheitsanalyse für JavaScript und TypeScript bei Pushes und Pull Requests auf `main` und `develop` sowie per wöchentlichem Zeitplan.
+- **Plugin Threat Model (`docs/THREAT_MODEL.md`):** Umfassende Dokumentation des Plugin-Sicherheitsmodells, der Vertrauensgrenzen, Restrisiken und Härtungsprioritäten.
+- **Datenschutzerklärung (`docs/PRIVACY.md`):** Eindeutige Klarstellung zur vollständigen Abwesenheit von Telemetrie-, Analyse- oder Nutzer-Tracking-Diensten sowie vollständige Auflistung aller 5 real existierenden externen Datenflüsse.
 
 ### 🐛 Bug Fixes
 
-- **Package-Event-Broadcasts (`packageHandlers.js`):** Destructuring-Fehler behoben (`const { eventBus }` → `const eventBus`). Package-Events (`package:installed`, `package:updated`, `package:enabled`, `package:disabled`, `package:removed`) werden nun ordnungsgemäß über IPC an alle Anwendungsfenster propagiert.
+- **Package-Event-Broadcasts (`packageHandlers.js`):** Destructuring-Import korrigiert (`const { eventBus }` → `const eventBus`). Sämtliche Package-Events (`package:installed`, `package:updated`, `package:enabled`, `package:disabled`, `package:removed`) werden nun ordnungsgemäß über IPC an alle Anwendungsfenster propagiert.
+- **Linux CI Test-Annahmen (`artifact-audit.test.js`, `updater.test.js`):** Verpackungs- und Lizenz-Assertions an die Apache-2.0-Projektlizenz angepasst und Updater-Verhaltenstests unabhängig vom Pakettyp des CI-Host-Systems gemacht.
+- **Workflow-Call-Korrektur (`build.yml`):** Ungültigen wiederverwendbaren Workflow-Aufruf für Linux-Pakete bereinigt.
+- **Package-Lock Konsistenz (`package-lock.json`):** Versionsnummer mit `package.json` synchronisiert (`1.0.7-beta.2`).
 
 ### 🧪 Tests & Build-Infrastruktur
 
-- **Vollständige Testsuite (`package.json`):** `icon-rendering.test.js` und `volume.test.js` in das `test`-Skript aufgenommen (nun 34 Testdateien mit 100 % Erfolgsquote).
-- **Neue Sicherheitstests:** Zusätzliche automatisierte Tests für Path-Traversal-Blockaden in `diagnostics.test.js` und Event-Abonnements in `package-integration.test.js`.
-- **CI-Artefakt-Upload (`ci.yml`):** Upload-Pfad auf `renderer/dist/` korrigiert, passend zum Build-Ergebnis von `npm run build`.
+- **Konsolidierte Testsuite (`package.json`):** `icon-rendering.test.js` und `volume.test.js` in das `test`-Skript aufgenommen (nun 34 Testsuiten mit 100 % Erfolgsquote).
+- **Automatisierte Sicherheitstests:** Neue Testfälle zur Verifikation der Path-Traversal-Abwehr in `diagnostics.test.js` und zur Überprüfung der Package-Event-Abonnements in `package-integration.test.js` ergänzt.
+- **CI-Artefakt-Upload (`ci.yml`):** Upload-Pfad auf `renderer/dist/` korrigiert, passend zum tatsächlichen Build-Ergebnis von `npm run build`.
+- **Dependency-Audit (`.github/workflows/dependency-audit.yml`):** Regelmäßige Überprüfung der npm-Abhängigkeiten auf bekannte Schwachstellen via `npm audit`.
+- **Dependabot-Integration (`.github/dependabot.yml`):** Automatische Aktualisierungsprüfungen für npm-Abhängigkeiten und GitHub Actions eingerichtet.
+- **CI-Performance & Concurrency (`ci.yml`, `build.yml`):** Concurrency-Gruppen zur Vermeidung redundanter CI-Läufe und erweiterte Build-Matrix konfiguriert.
+
+### 📦 Packaging & Lizenzen
+
+- **Lizenzinventar (`THIRD_PARTY_NOTICES.md`):** Vollständige Dokumentation aller direkten Drittanbieter-Lizenzen, Zuordnung der Lizenzen und Kennzeichnung noch ausstehender Nachweise für transitive Abhängigkeiten.
+- **Arch Linux Paketierung (`build-linux-arch.js`):** PKGBUILD-Lizenzmetadaten auf `Apache-2.0` korrigiert und vereinheitlicht.
+- **Update-Kanal für Linux-Builds (`build-linux.yml`):** Umgebungsvariable `UPDATE_CHANNEL` explizit für konsistente Builder-Ergebnisse gesetzt.
+
+### 📚 Dokumentation & Lokalisierung
+
+- **Vollständige deutsche Übersetzung:** Architekturübersichten, Plugin-SDK-Dokumentation, Einrichtungs-Leitfäden für Plattformen sowie Installationsanleitungen vollständig ins Deutsche übersetzt (`docs/architecture/`, `docs/plugin-sdk/`, `docs/guides/`).
+- **Read the Docs & MkDocs:** Navigationspfade in `mkdocs.yml` für Third-Party-Dienste und Threat Model aktualisiert; Versions- und Build-Metadaten für Read the Docs synchronisiert.
+- **Sicherheitsrichtlinie (`SECURITY.md`, `docs/SECURITY.md`):** Meldewege für Sicherheitslücken vereinfacht und auf private GitHub Security Advisories ausgerichtet.
+
+### 🧹 Code-Hygiene
+
+- **Jest-Bereinigung:** Nicht genutzte Konfigurationsdatei `jest.config.js` entfernt, da alle Tests über das native Node.js-Testsystem laufen.
+- **Veraltete Dokumente:** Nicht mehr benötigte historische Audit- und Migrationsdokumente entfernt oder bereinigt.
+- **Lokale Laufzeitdaten:** Git-Tracking für temporäre Runtime- und Logging-Daten entfernt.
 
 ---
 
