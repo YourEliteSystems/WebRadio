@@ -10,7 +10,9 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
 [![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
-**[⬇️ Downloads](../../releases) · [📊 Download Stats](./docs/DOWNLOAD_STATS.md) · [📚 Documentation](https://webradio.readthedocs.io/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [📖 Datenschutz](./docs/PRIVACY.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
+**[⬇️ Downloads](../../releases) · [📚 Dokumentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [📖 Datenschutz](./docs/PRIVACY.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
+
+> **Aktueller Entwicklungsstand: v1.0.7-beta.2.** WebRadio befindet sich in der Beta-Phase. Bitte prüfe die Release-Hinweise und sichere wichtige Einstellungen, bevor du eine Vorabversion im Alltag einsetzt.
 
 ---
 
@@ -186,19 +188,19 @@ Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumge
 | 🪟 **Windows** | [Releases](../../releases) | NSIS Installer / Portable |
 | 🐧 **Linux** | [Releases](../../releases) | AppImage / .deb |
 | 🐧 **Arch Linux** | [Releases](../../releases) | .pkg.tar.zst |
-| 🍎 **macOS** | [Releases](../../releases) | Vorbereitung |
+| 🍎 **macOS** | Derzeit nicht verfügbar | Noch in Vorbereitung |
 
-### Welche Version?
+### Aktuelle Version und Release-Kanäle
 
-- **Stable** → für den normalen täglichen Einsatz
-- **Beta** → neue Funktionen früher testen
-- **Alpha** → aktuelle Entwicklung ausprobieren
+Die derzeit im Projekt dokumentierte Version ist **v1.0.7-beta.2**. Sie ist eine Vorabversion und keine Stable-Freigabe. Verwende für Downloads ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
 
-> Die verfügbaren Artefakte und Release Notes findest du immer direkt im jeweiligen **GitHub Release**.
->
-> **Hinweis zu Release-Artefakten:** Derzeit gibt es im Repository noch ältere Build-Artefakte aus früheren Release-Zyklen. Für eine saubere Historie sollten nur die aktuellen Release-Builds im offiziellen Release-Verzeichnis verlinkt werden.
->
-> 📊 **[Aktuelle Download-Statistik](./docs/DOWNLOAD_STATS.md)** – automatisch aus den GitHub-Release-Assets erzeugt.
+- **Stable** – verwenden, wenn ein entsprechender stabiler Release veröffentlicht wurde.
+- **Beta** – Vorabversionen zum Testen; Fehler und Änderungen sind möglich.
+- **Alpha** – frühe Entwicklungsstände, sofern als Release angeboten.
+
+Die Verfügbarkeit von Kanälen und Installationspaketen kann sich je nach Release unterscheiden. Nicht jede Plattform oder jeder Kanal muss für jede Version ein Artefakt enthalten.
+
+📊 **[Download-Statistik](./docs/DOWNLOAD_STATS.md)** – Statistiken zu den GitHub-Release-Assets.
 
 ---
 
@@ -258,7 +260,7 @@ npm run dev
 | Linux x86_64 AppImage | ✅ Produktions-Build |
 | Linux x86_64 .deb | ✅ Produktions-Build |
 | Arch Linux x86_64 | ✅ Produktions-Build |
-| macOS | Vorbereitung |
+| macOS | Noch nicht verfügbar – in Vorbereitung |
 
 ### Linux
 
