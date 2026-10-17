@@ -29,6 +29,9 @@ jobs:
         run: npm ci
 
       - name: Apply non-forced npm audit fixes
+        # npm audit fix can update compatible packages and still exit non-zero
+        # when fix-only-with-breaking-changes advisories remain.
+        continue-on-error: true
         run: npm audit fix
 
       - name: Commit lockfile changes to this branch
