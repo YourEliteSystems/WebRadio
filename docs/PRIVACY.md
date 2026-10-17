@@ -41,7 +41,7 @@ WebRadio ist eine lokale Desktop-Anwendung. Viele Funktionen arbeiten ohne einen
 
 - Die Anwendung verwendet Drittanbieter-Bibliotheken und mitgelieferte Werkzeuge wie `ffmpeg-static`. Das npm-Paket deklariert GPL-3.0-or-later; die Lizenz der konkreten mitgelieferten FFmpeg-Binärdatei muss anhand ihrer Build-Konfiguration separat geprüft werden.
 - FFmpeg verarbeitet Audiostreams lokal auf dem Rechner; der Audiostream wird dabei von der ausgewählten Radiostation empfangen, nicht an Server der FFmpeg-Entwickler übertragen.
-- Eine erste Übersicht der direkten Abhängigkeiten steht in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). Die vollständige Prüfung transitiver Abhängigkeiten und der Release-Binärdateien ist noch offen.
+- Eine erste Übersicht der direkten Abhängigkeiten steht in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Die vollständige Prüfung transitiver Abhängigkeiten und der Release-Binärdateien ist noch offen.
 
 ## Zusammenfassung der externen Datenflüsse
 
