@@ -7,7 +7,7 @@ pkgrel=1
 pkgdesc="Modern desktop radio player with plugin system"
 arch=('x86_64')
 url="https://github.com/YourEliteSystems/WebRadio"
-license=('MIT')
+license=('Apache-2.0')
 depends=('electron' 'ffmpeg' 'nss')
 makedepends=('npm' 'nodejs' 'git')
 source=("git+https://github.com/YourEliteSystems/WebRadio.git#tag=v${pkgver}")
