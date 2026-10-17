@@ -1,36 +1,34 @@
 # WebRadio
 
-Open-source desktop WebRadio application for Windows and Linux.
+Open-Source-Desktopanwendung für Webradio unter Windows und Linux.
 
-Built with Electron and React, WebRadio is a fast, lightweight and extensible
-desktop web radio player with a plugin system, a theme system and a unified
-player API.
+WebRadio basiert auf Electron und React und ist ein schneller, ressourcenschonender und erweiterbarer Webradio-Player für den Desktop. Er bietet ein Plugin-System, ein Theme-System und eine einheitliche Player-API.
 
-## Features
+## Funktionen
 
-- Worldwide radio discovery
-- Audio playback
-- Plugin system
-- Theme system
-- Unified Player API
-- Windows and Linux release builds
-- macOS is not currently available as a release build
+- Weltweite Suche nach Radiosendern
+- Audiowiedergabe
+- Plugin-System
+- Unterstützung eigener Themes
+- Einheitliche Player-API
+- Veröffentlichte Builds für Windows und Linux
+- Für macOS ist derzeit kein veröffentlichter Build verfügbar
 
-## Documentation
+## Dokumentation
 
-| Section | Description |
+| Bereich | Beschreibung |
 | ------- | ----------- |
-| [Getting Started](Readme.md) | Install, run and contribute |
-| [Architecture](architecture.md) | How WebRadio is structured internally |
-| [Plugin SDK](plugin-sdk/README.md) | Build plugins for WebRadio |
-| [Theme SDK](theme-sdk/README.md) | Build themes for WebRadio |
-| [API Reference](api-reference/README.md) | Public API specification |
-| [Integrations](IntegrationSDK.md) | Integration SDK and verified integrations |
-| [Updates](UPDATE_ARCHITECTURE.md) | Update system, channels and runtime detection |
-| [Cross Platform](CROSS_PLATFORM_SETUP.md) | Platform-specific setup notes |
+| [Erste Schritte](Readme.md) | Installation, Start und Mitwirkung am Projekt |
+| [Architektur](architecture.md) | Aufbau und interne Struktur von WebRadio |
+| [Plugin-SDK](plugin-sdk/README.md) | Plugins für WebRadio entwickeln |
+| [Theme-SDK](theme-sdk/README.md) | Themes für WebRadio erstellen |
+| [API-Referenz](api-reference/README.md) | Referenz der öffentlichen API |
+| [Integrationen](IntegrationSDK.md) | Integrations-SDK und geprüfte Integrationen |
+| [Aktualisierungen](UPDATE_ARCHITECTURE.md) | Aktualisierungssystem, Update-Kanäle und Laufzeiterkennung |
+| [Plattformübergreifende Einrichtung](CROSS_PLATFORM_SETUP.md) | Hinweise zur Einrichtung auf den unterstützten Plattformen |
 
-## Project
+## Projekt
 
-- Source code: [github.com/YourEliteSystems/WebRadio](https://github.com/YourEliteSystems/WebRadio)
-- License: Apache 2.0
-- Privacy: [Datenschutz und Datenflüsse](PRIVACY.md)
+- Quellcode: [github.com/YourEliteSystems/WebRadio](https://github.com/YourEliteSystems/WebRadio)
+- Lizenz: Apache 2.0
+- Datenschutz: [Datenschutz und Datenflüsse](PRIVACY.md)
