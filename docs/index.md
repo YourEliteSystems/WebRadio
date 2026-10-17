@@ -31,4 +31,5 @@ player API.
 ## Project
 
 - Source code: [github.com/YourEliteSystems/WebRadio](https://github.com/YourEliteSystems/WebRadio)
-- License: MIT
+- License: Apache 2.0
+- Privacy: [Datenschutz und Datenflüsse](PRIVACY.md)

@@ -139,6 +139,8 @@ nav:
   - Documentation:
       - Versioning: VERSIONING.md
       - Download Statistics: DOWNLOAD_STATS.md
+  - Datenschutz:
+      - Datenschutz: PRIVACY.md
 
 # Warn (and fail under `mkdocs build --strict`) about broken links or
 # navigation entries that do not point to a real file. Nothing is silenced.

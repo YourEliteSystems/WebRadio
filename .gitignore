@@ -24,5 +24,8 @@ data/*
 *.log
 *.zip
 
+# Release checksum runs locally without committing the generated file.
+scripts/release/SHA256SUMS.txt
+
 # Sentry Config File
 .sentryclirc

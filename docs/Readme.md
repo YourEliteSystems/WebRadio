@@ -4,7 +4,7 @@
 
 WebRadio is designed to provide a fast, lightweight and customizable listening experience while offering a powerful plugin and theme ecosystem for developers and the community.
 
-> **Current Status:** Active Development (v1.0.7-alpha.5)
+> **Current Status:** Active Development (v1.0.7-beta.2)
 
 ---
 
@@ -26,8 +26,8 @@ WebRadio is designed to provide a fast, lightweight and customizable listening e
 | Platform | Status               |
 | -------- | -------------------- |
 | Windows  | ✅ Fully Supported    |
-| Linux    | 🧪 Currently Testing |
-| macOS    | 🚧 Planned           |
+| Linux    | ✅ Produktions-Build (Windows ist die Haupt-Testplattform) |
+| macOS    | Vorbereitung |
 
 ---
 
@@ -91,6 +91,7 @@ Please read:
 * CONTRIBUTING.md
 * CODE_OF_CONDUCT.md
 * SECURITY.md
+* PRIVACY.md
 
 before opening an Issue or Pull Request.
 
@@ -98,9 +99,9 @@ before opening an Issue or Pull Request.
 
 # 📄 License
 
-This project is released under the MIT License.
+This project is released under the Apache License 2.0.
 
-See the `LICENSE` file for details.
+See the `LICENSE` file for the full license text.
 
 ---
 
@@ -109,3 +110,17 @@ See the `LICENSE` file for details.
 WebRadio is developed as an open-source project with a strong focus on clean architecture, maintainability and extensibility.
 
 If you like the project, consider giving it a ⭐ on GitHub.
+
+---
+
+## 🔒 Datenschutz und externe Datenflüsse
+
+WebRadio ist eine lokale Desktop-Anwendung, aber einige Features nutzen externe Server oder Plattform-APIs.
+
+- Radio-Browser-Inhalte stammen aus der Radio-Browser-API.
+- Updates und Release-Informationen stammen aus offiziellen GitHub-Releases.
+- Discord Rich Presence wird genutzt, wenn die entsprechende Funktion aktiviert ist.
+- Integrationen können zusätzliche Berechtigungen oder externe Dienste nutzen.
+
+Weitere Details und offene Punkte:
+[Datenschutz und Datenflüsse](./PRIVACY.md).

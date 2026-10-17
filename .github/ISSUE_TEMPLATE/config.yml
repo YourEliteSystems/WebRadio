@@ -1,6 +1,10 @@
 blank_issues_enabled: false
 
 contact_links:
-  - name: WebRadio Documentation
-    url: https://github.com/YourEliteSystems/WebRadio/wiki
+  - name: WebRadio Dokumentation
+    url: https://webradio.readthedocs.io/
     about: Bitte zuerst die Dokumentation lesen.
+
+  - name: Issue-Vorlagen und Labels
+    url: https://github.com/YourEliteSystems/WebRadio/tree/main/.github/ISSUE_TEMPLATE
+    about: Vorlagen für Fehler, Features, Plugin-API und Refactoring.

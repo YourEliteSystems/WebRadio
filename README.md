@@ -4,13 +4,13 @@
 >
 > Ein moderner, plattformübergreifender Open-Source-Radioplayer für Windows und Linux – mit tausenden Sendern, leistungsstarker Audiowiedergabe, Themes und einem echten Plugin-System.
 
-[![Version](https://img.shields.io/badge/version-1.0.7--alpha.5-6366f1?style=for-the-badge)](./CHANGELOG.md)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)]()
+[![Version](https://img.shields.io/badge/version-1.0.7--beta.2-6366f1?style=for-the-badge)](./CHANGELOG.md)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-green?style=for-the-badge)](./LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
 [![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
-**[⬇️ Downloads](../../releases) · [📊 Download Stats](./docs/DOWNLOAD_STATS.md) · [📚 Documentation](https://webradio.readthedocs.io/de/latest/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
+**[⬇️ Downloads](../../releases) · [📊 Download Stats](./docs/DOWNLOAD_STATS.md) · [📚 Documentation](https://webradio.readthedocs.io/) · [🧩 Plugin SDK](./docs/plugin-sdk/README.md) · [📖 Datenschutz](./docs/PRIVACY.md) · [🐛 Issues](../../issues) · [💬 Discussions](../../discussions) · [🎮 Discord](https://discord.gg/6PfkRNYw)**
 
 ---
 
@@ -186,7 +186,7 @@ Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumge
 | 🪟 **Windows** | [Releases](../../releases) | NSIS Installer / Portable |
 | 🐧 **Linux** | [Releases](../../releases) | AppImage / .deb |
 | 🐧 **Arch Linux** | [Releases](../../releases) | .pkg.tar.zst |
-| 🍎 **macOS** | [Releases](../../releases) | derzeit vorbereitet |
+| 🍎 **macOS** | [Releases](../../releases) | Vorbereitung |
 
 ### Welche Version?
 
@@ -195,6 +195,8 @@ Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumge
 - **Alpha** → aktuelle Entwicklung ausprobieren
 
 > Die verfügbaren Artefakte und Release Notes findest du immer direkt im jeweiligen **GitHub Release**.
+>
+> **Hinweis zu Release-Artefakten:** Derzeit gibt es im Repository noch ältere Build-Artefakte aus früheren Release-Zyklen. Für eine saubere Historie sollten nur die aktuellen Release-Builds im offiziellen Release-Verzeichnis verlinkt werden.
 >
 > 📊 **[Aktuelle Download-Statistik](./docs/DOWNLOAD_STATS.md)** – automatisch aus den GitHub-Release-Assets erzeugt.
 
@@ -256,7 +258,7 @@ npm run dev
 | Linux x86_64 AppImage | ✅ Produktions-Build |
 | Linux x86_64 .deb | ✅ Produktions-Build |
 | Arch Linux x86_64 | ✅ Produktions-Build |
-| macOS | 💡 Vorbereitet |
+| macOS | Vorbereitung |
 
 ### Linux
 
@@ -312,9 +314,10 @@ Wenn du WebRadio nicht nur benutzen, sondern **erweitern** möchtest:
 | [📘 API Reference](./docs/api-reference/README.md) | Öffentliche APIs |
 | [🔌 Integration SDK](./docs/IntegrationSDK.md) | Offizielle Integrationen |
 | [🔄 Update-Architektur](./docs/UPDATE_ARCHITECTURE.md) | Update-System |
-| [🤝 Contributing](./CONTRIBUTING.md) | Beiträge und Pull Requests |
-| [⚖️ Code of Conduct](./CODE_OF_CONDUCT.md) | Community-Regeln |
-| [🔐 Security Policy](./SECURITY.md) | Sicherheitsmeldungen |
+| [📖 Datenschutz](./docs/PRIVACY.md) | Datenschutz und Datenflüsse |
+| [🤝 CONTRIBUTING](./CONTRIBUTING.md) | Beiträge und Pull Requests |
+| [⚖️ CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) | Community-Regeln |
+| [🔐 SECURITY](./SECURITY.md) | Sicherheitsmeldungen |
 | [🗺️ Roadmap](./ROADMAP.md) | Geplante Entwicklung |
 
 ---
@@ -376,6 +379,12 @@ Updates stammen ausschließlich aus den offiziellen GitHub-Releases.
 
 ---
 
+## 📄 Datenschutz
+
+Externe Datenflüsse werden im Dokumentationsverzeichnis unter [docs/PRIVACY.md](./docs/PRIVACY.md) beschrieben.
+
+---
+
 ## 🤝 Mitmachen
 
 WebRadio ist ein Open-Source-Projekt und lebt von Menschen, die es ausprobieren, testen, verbessern und erweitern.
@@ -411,6 +420,8 @@ Weitere Informationen:
 Die Lizenz dieses Projekts ist in [LICENSE](./LICENSE) beschrieben.
 
 © 2026 Your Elite Systems
+
+**Hinweis zur Lizenz:** Das Projekt ist unter der Apache License 2.0 veröffentlicht. Detaillierte Lizenzinformationen und mögliche Drittanbieter-Hinweise sind im `LICENSE`-File und der Datenschutz-/Dokumentationsdokumentation zu finden.
 
 ---
 
