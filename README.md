@@ -4,7 +4,7 @@
 >
 > Dein Internetradio für den Desktop: WebRadio vereint die Suche nach Sendern aus aller Welt, Favoriten und eine anpassbare Oberfläche in einer quelloffenen Anwendung für Windows und Linux.
 
-[![Version](https://img.shields.io/github/package-json/v/YourEliteSystems/WebRadio?filename=package.json&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
+[![Version](https://img.shields.io/github/v/release/YourEliteSystems/WebRadio?include_prereleases&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
 [![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
 [![Lizenz](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FYourEliteSystems%2FWebRadio%2Fmain%2Fpackage.json&query=%24.license&label=Lizenz&style=for-the-badge)](./LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
