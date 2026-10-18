@@ -37,6 +37,11 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 - **IPC-Härtung (`electron/core/app/SplashWindow.js`):** Die Kanäle `splash:get-diagnostics`, `splash:open-log-folder`, `splash:open-report`, `splash:close` und `splash:quit` folgen derselben Lebensdauer wie `splash:get-version` (genau einmal registriert, beim Schließen/`dispose()` entfernt). Der Renderer übergibt keine Pfade; der Main-Prozess öffnet ausschließlich selbst ermittelte Verzeichnisse bzw. den selbst geschriebenen Bericht (Prüfung auf den Berichtsordner).
 - **Startfehler explizit behandelt (`electron/main.js`):** Ein fehlgeschlagener `Application.start()` wird als `fatal` protokolliert, statt als unbehandelte Promise-Rejection zu erscheinen.
 
+### 📚 Dokumentation
+
+- **Native Versionierung (`docs/VERSIONING.md`, `mkdocs.yml`, `.readthedocs.yaml`):** Die Versionsdokumentation beschreibt jetzt das tatsächliche Verhalten von Read the Docs: `latest` folgt `main`, `stable` dem größten stabilen SemVer-Tag (Vorabversionen ausgeschlossen), neue Tags und Branches sind zunächst inaktiv und müssen über das Dashboard aktiviert werden. Enthalten sind die konkreten Dashboard-Schritte und empfohlenen Automatisierungsregeln; `.readthedocs.yaml` und `mkdocs.yml` verweisen darauf, dass Versionslisten und Regeln nicht im Repository liegen.
+- **Kanonische URLs pro Version (`mkdocs.yml`):** `site_url` nutzt `READTHEDOCS_CANONICAL_URL`, damit Canonical-Links und Sitemap jeder Version auf sich selbst zeigen statt immer auf `latest`. Lokal greift ein Fallback auf `/de/latest/`.
+
 ---
 
 ## [v1.0.7-beta.2] – 2026-10-17

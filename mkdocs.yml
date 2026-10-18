@@ -2,11 +2,19 @@
 # Documentation source: docs/ (Single Source of Truth)
 # Build locally: mkdocs build --strict
 # Serve locally:  mkdocs serve
-# Versioned docs: Managed by ReadTheDocs (based on Git tags/branches)
+#
+# Versioning: Read the Docs builds one site per version (branch or tag) under
+# https://webradio.readthedocs.io/de/<version>/ and injects its own version
+# selector (flyout). There is no version switcher in this file on purpose -
+# see docs/VERSIONING.md.
 
 site_name: WebRadio
 site_description: Quelloffene Webradio-Desktopanwendung für Windows und Linux, entwickelt mit Electron und React.
-site_url: https://webradio.readthedocs.io/
+# Canonical URL of the version being built. Read the Docs sets
+# READTHEDOCS_CANONICAL_URL per build (e.g. .../de/latest/), so canonical links
+# and the sitemap point at the right version instead of always at "latest".
+# The fallback keeps local builds working without Read the Docs.
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://webradio.readthedocs.io/de/latest/"]
 repo_url: https://github.com/YourEliteSystems/WebRadio
 repo_name: YourEliteSystems/WebRadio
 edit_uri: edit/main/docs/
@@ -20,8 +28,9 @@ exclude_docs: |
   internal/
   requirements.txt
 
-# Versioning is managed by ReadTheDocs - see .readthedocs.yaml
-# The version selector will be automatically added by ReadTheDocs
+# The version selector is provided by Read the Docs Addons at serve time.
+# It lists the active versions of this project; nothing has to be configured
+# here for it to appear. See docs/VERSIONING.md for activation and aliases.
 
 theme:
   name: material

@@ -5,6 +5,18 @@
 #   GitHub (YourEliteSystems/WebRadio, Branch "main")
 #     -> docs/  (Single Source of Truth)
 #       -> Read the Docs (MkDocs build)
+#
+# Versioning is provided by Read the Docs itself: every active branch or tag
+# version is built with this file and served under
+# https://webradio.readthedocs.io/de/<version>/. "latest" follows the default
+# branch (main), "stable" follows the greatest stable SemVer tag. This file
+# cannot declare which versions exist or are active - that is controlled by
+# the versions and automation rules in the Read the Docs dashboard
+# (Admin -> Automation Rules). See docs/VERSIONING.md for the exact rules and
+# for the manual steps.
+#
+# Note: tags that predate this file (and mkdocs.yml, e.g. v1.0.6) cannot be
+# built, because their checkout has no Read the Docs configuration at all.
 
 version: 2
 
@@ -12,6 +24,8 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.12"
+  # The html build job below overrides the default MkDocs html job. That is why
+  # `--strict` is passed explicitly: it mirrors mkdocs.fail_on_warning.
   jobs:
     build:
       html:
