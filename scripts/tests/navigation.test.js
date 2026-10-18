@@ -187,7 +187,7 @@ test("Plugin B kann Item von Plugin A nicht überschreiben", () => {
 test("Plugin B kann Item von Plugin A nicht via updateItem modifizieren", () => {
     assert.throws(() => {
         NavigationRegistry.updateItem("plugin-a-music", {
-            label: "Gehackt"
+            label: "Manipuliert"
         }, "plugin-b");
     }, /Keine Berechtigung/);
 });

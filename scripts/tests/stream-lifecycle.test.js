@@ -204,7 +204,7 @@ test("kein nachweisbarer Prozess mehr: Eskalation bleibt ohne Aktion", async () 
   const s = fresh();
   const cmd = await startSpawned(s, "http://a/five", 1005);
   s.stop();
-  // fluent-ffmpeg hat aufgeräumt, ohne dass wir end/error mitgekriegt haben.
+  // fluent-ffmpeg hat aufgeräumt, ohne dass wir end/error erhalten haben.
   delete cmd.ffmpegProc;
   await sleep(90);
   assert.strictEqual(s._killTimer, null, "Timer aufgelöst");

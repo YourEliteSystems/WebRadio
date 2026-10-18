@@ -58,6 +58,18 @@ jobs:
       - name: Build Project
         run: npm run build
 
+      - name: Install xvfb and Electron system libraries (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libdrm2 libgbm1
+          # Ubuntu 24.04+ uses libasound2t64 instead of libasound2
+          sudo apt-get install -y libasound2 || sudo apt-get install -y libasound2t64
+
+      - name: Run Electron Splash Smoke Test
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a npm run test:splash:electron
+
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest'

@@ -36,9 +36,14 @@ console.log("==========================================");
 
 // Der Splash ist im Test das einzige Fenster: Electron darf beim Schließen
 // nicht automatisch beenden, sonst endet der Test vorzeitig.
-app.on("window-all-closed", () => {});
+// WICHTIG: Das Event muss nach app.whenReady() registriert werden, da app im
+// Electron-Boot-Prozess erst dann verfügbar ist.
+
 
 app.whenReady().then(async () => {
+    // Event nach app.whenReady() registrieren
+    app.on("window-all-closed", () => {});
+
     // ── Normaler Ablauf ───────────────────────────────────────────────
     const splash = new SplashWindow();
     const win = splash.open();

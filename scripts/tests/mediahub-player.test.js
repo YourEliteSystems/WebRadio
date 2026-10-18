@@ -321,7 +321,7 @@ test("[3] Fehlendes oder zerstörtes Fenster wird sicher behandelt", () => {
         "Ohne windowManager muss false zurückgegeben werden");
 
     const unknown = createFreshProvider(createWindowMock().windowManager);
-    assert.strictEqual(unknown._sendCommand("player:command:hacks", { commandId: 1 }), false,
+    assert.strictEqual(unknown._sendCommand("player:command:invalid", { commandId: 1 }), false,
         "Unbekannte Kommandos müssen abgelehnt werden");
 });
 
@@ -476,7 +476,7 @@ testWithRenderer("[9] Ungültige, veraltete und unbekannte Kommandos werden igno
     ctx.dispatch({ providerId: "other", command: COMMAND_EVENTS.PLAY });              // falscher Provider
     ctx.dispatch({ providerId: "mediahub", command: COMMAND_EVENTS.PLAY }); // ohne commandId
     ctx.dispatch({ providerId: "mediahub", command: COMMAND_EVENTS.PLAY, commandId: 1, videoId: "", timestamp: Date.now() - 60000 });
-    ctx.dispatch({ providerId: "mediahub", command: "player:command:hack", commandId: 1, timestamp: Date.now() });
+    ctx.dispatch({ providerId: "mediahub", command: "player:command:invalid", commandId: 1, timestamp: Date.now() });
 
     assert.strictEqual(ctx.playerCalls.length, 0, "Kein Player-Aufruf bei ungültigen Kommandos");
     assert.strictEqual(ctx.reports.length, 0, "Kein erfundener Status bei ungültigen Kommandos");

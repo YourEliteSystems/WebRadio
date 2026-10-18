@@ -246,7 +246,7 @@ test("E2E: subscribe() liefert initialen State (§8, §9)", () => {
 
 test("E2E: Inaktiver Provider kann State nicht ueberschreiben (§20)", () => {
   const stateBefore = playerManager.getState().state;
-  playerManager.updateProviderState("some.other.provider", { state: "playing", title: "Hack" });
+  playerManager.updateProviderState("some.other.provider", { state: "playing", title: "Unautorisiert" });
   const stateAfter = playerManager.getState().state;
   assert.strictEqual(stateAfter, stateBefore, "Inaktiver Provider hat State veraendert");
 });
