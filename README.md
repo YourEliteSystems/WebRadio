@@ -4,9 +4,9 @@
 >
 > Dein Internetradio für den Desktop: WebRadio vereint die Suche nach Sendern aus aller Welt, Favoriten und eine anpassbare Oberfläche in einer quelloffenen Anwendung für Windows und Linux.
 
-[![Version](https://img.shields.io/github/v/release/YourEliteSystems/WebRadio?include_prereleases&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
+[![Version](https://img.shields.io/github/package-json/v/YourEliteSystems/WebRadio?filename=package.json&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
 [![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/releases)
-[![Lizenz](https://img.shields.io/github/license/YourEliteSystems/WebRadio?style=for-the-badge)](./LICENSE)
+[![Lizenz](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FYourEliteSystems%2FWebRadio%2Fmain%2Fpackage.json%26query%3D%2524.license%26label%3DLizenz%26style%3Dfor-the-badge)](./LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/YourEliteSystems/WebRadio/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/actions/workflows/ci.yml)
 [![GitHub Stars](https://img.shields.io/github/stars/YourEliteSystems/WebRadio?style=for-the-badge)](https://github.com/YourEliteSystems/WebRadio/stargazers)
 
