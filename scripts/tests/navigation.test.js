@@ -6,6 +6,9 @@ const NavigationValidator = require("../../electron/core/navigation/NavigationVa
 const NavigationManager = require("../../electron/core/navigation/NavigationManager");
 const PluginAPI = require("../../electron/core/plugins/PluginAPI");
 const PluginPermissions = require("../../electron/core/plugins/PluginPermissions");
+const playerManager = require("../../electron/core/player/PlayerManager");
+const CapabilityRegistry = require("../../electron/core/plugins/CapabilityRegistry");
+const PackageValidator = require("../../electron/core/packages/PackageValidator");
 
 console.log("==========================================");
 console.log("🧪 Starte Dynamische Navigation API Tests");
@@ -266,6 +269,113 @@ test("Plugin ohne 'navigation' Berechtigung wird blockiert", () => {
             label: "Unauth Item"
         });
     }, /benötigt die Berechtigung "navigation"/);
+});
+
+test("media-controls Permission und Capability sind zentral bekannt und manifestvalidiert", () => {
+    assert.ok(PluginPermissions.VALID_PERMISSIONS.includes("media-control"));
+    assert.ok(CapabilityRegistry.isKnown("media-controls"));
+    const legacyPermissions = PluginPermissions.validatePermissions(["player", "unknown-legacy-permission"]);
+    assert.deepStrictEqual(legacyPermissions, ["player"], "bestehende Permissions bleiben erhalten; unbekannte bleiben ungültig");
+    const unknownCapability = PluginPermissions.validateCapabilities(["media-controls-unknown"], ["media-control"]);
+    assert.deepStrictEqual(unknownCapability.denied, ["media-controls-unknown"]);
+    const valid = PackageValidator.validate({
+        id: "media-controls-plugin", name: "Media Controls", version: "1.0.0",
+        type: "plugin", main: "main.js", permissions: ["media-control"],
+        capabilities: ["media-controls"]
+    }, "plugin");
+    assert.strictEqual(valid.valid, true, valid.errors.join("; "));
+    const missingPermission = PackageValidator.validate({
+        id: "media-controls-denied", name: "Media Controls", version: "1.0.0",
+        type: "plugin", main: "main.js", permissions: [], capabilities: ["media-controls"]
+    }, "plugin");
+    assert.strictEqual(missingPermission.valid, false);
+});
+
+test("media-controls ist geschützt und kann ohne beide Grants nicht konfiguriert werden", () => {
+    assert.strictEqual(CapabilityRegistry.isProtected("media-controls"), true);
+    assert.deepStrictEqual(CapabilityRegistry.canGrant("media-controls", []), {
+        granted: false,
+        reason: "Missing permission: media-control"
+    });
+});
+
+test("media-controls erfordert Permission und Capability gemeinsam", () => {
+    const capabilityOnly = PluginAPI.create({
+        id: "media-capability-only",
+        permissions: [],
+        capabilities: ["media-controls"]
+    });
+    assert.throws(() => capabilityOnly.mediaControls.getState(), /media-control/);
+
+    const permissionOnly = PluginAPI.create({
+        id: "media-permission-only",
+        permissions: ["media-control"]
+    });
+    assert.throws(() => permissionOnly.mediaControls.getState(), /media-controls/);
+
+    const authorized = PluginAPI.create({
+        id: "media-authorized",
+        permissions: ["media-control"],
+        capabilities: ["media-controls"]
+    });
+    assert.strictEqual(authorized.mediaControls.getState().state, playerManager.getState().state);
+    assert.deepStrictEqual(authorized.mediaControls.getCapabilities().actions, playerManager.getMediaCapabilities().actions);
+    const state = authorized.mediaControls.getState();
+    assert.ok(!state.source || !Object.prototype.hasOwnProperty.call(state.source, "url"), "keine Stream-URL im Plugin-State");
+    assert.throws(() => PluginAPI.create({
+        id: "legacy-player-plugin", permissions: ["player"]
+    }).mediaControls.getState(), /media-control/);
+});
+
+test("media-control subscribers unsubscribe and are disposed on plugin unload", () => {
+    const authorized = PluginAPI.create({
+        id: "media-subscriber",
+        permissions: ["media-control"],
+        capabilities: ["media-controls"]
+    });
+    const initialCount = playerManager.subscribers.size;
+    const unsubscribe = authorized.mediaControls.subscribe(() => {});
+    assert.strictEqual(playerManager.subscribers.size, initialCount + 1);
+    unsubscribe();
+    assert.strictEqual(playerManager.subscribers.size, initialCount);
+
+    authorized.mediaControls.subscribe(() => {});
+    authorized.dispose();
+    assert.strictEqual(playerManager.subscribers.size, initialCount);
+});
+
+test("media-controls-Abonnenten erhalten Statusänderungen und können kontrolliert abbestellen", () => {
+    const authorized = PluginAPI.create({
+        id: "media-event-subscriber",
+        permissions: ["media-control"], capabilities: ["media-controls"]
+    });
+    const received = [];
+    const unsubscribe = authorized.mediaControls.subscribe((state) => received.push(state.state));
+    const provider = {
+        name: "Media test", type: "test",
+        getCapabilities: () => ({ play: true, pause: true, stop: true, next: false, previous: false }),
+        play: async () => {}, stop: async () => {}
+    };
+    playerManager.registerProvider("media-event-test", provider);
+    playerManager.setActiveProvider("media-event-test");
+    assert.ok(received.length >= 2, "initial snapshot plus state notification");
+    const previousLength = received.length;
+    unsubscribe();
+    playerManager.updateProviderState("media-event-test", { state: "playing" });
+    assert.strictEqual(received.length, previousLength, "nach unsubscribe kommen keine Events");
+    playerManager.unregisterProvider("media-event-test");
+    authorized.dispose();
+});
+
+test("media-controls lehnt ungültige Aktionen kontrolliert ab", async () => {
+    const authorized = PluginAPI.create({
+        id: "media-invalid-action",
+        permissions: ["media-control"],
+        capabilities: ["media-controls"]
+    });
+    const result = await authorized.mediaControls.requestAction("launch");
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.error.code, "INVALID_ACTION");
 });
 
 // ─────────────────────────────────────────────────────────────

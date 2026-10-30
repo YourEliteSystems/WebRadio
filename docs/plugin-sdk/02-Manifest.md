@@ -196,6 +196,45 @@ Future versions of the PluginManager may use this field to prevent incompatible 
 
 ---
 
+## capabilities
+
+Optional list of core capabilities the plugin requests. Capabilities are validated and granted by the core; a plugin cannot grant them itself. Unknown capabilities are rejected.
+
+```json
+{
+    "capabilities": ["web-session", "web-session-media"]
+}
+```
+
+See [Capabilities & Plugin HTTP Environment](13-Capabilities.md) for the current list and requirements.
+
+---
+
+## webSessionOrigins
+
+Required when a plugin requests `web-session`, `web-session-media` or `encrypted-media`. Lists the exact HTTPS origins the plugin's isolated web session may load.
+
+```json
+{
+    "capabilities": ["web-session", "web-session-media"],
+    "webSessionOrigins": [
+        "https://music.youtube.com",
+        "https://accounts.google.com"
+    ]
+}
+```
+
+Rules:
+
+* HTTPS only
+* exact origin (scheme + host + optional port), no path, query or fragment
+* no wildcards, no credentials
+* origins are not added at runtime
+
+A manifest that requests a web-session capability without valid origins is rejected during discovery and package validation.
+
+---
+
 # Validation
 
 Before a plugin is registered, the PluginValidator verifies the manifest.
@@ -208,8 +247,10 @@ Validation includes:
 * Duplicate IDs
 * Entry file
 * Compatibility
+* Known capabilities and their prerequisites
+* `webSessionOrigins` for web-session capabilities
 
-Plugins with invalid manifests are rejected.
+Plugins with invalid manifests are rejected. Changes to `permissions`, `capabilities` or `webSessionOrigins` change the plugin fingerprint, so a rescan reloads the plugin with the new rights.
 
 ---
 
@@ -248,7 +289,6 @@ These errors are reported by the Diagnostics subsystem.
 
 Future versions of WebRadio may introduce additional manifest fields, including:
 
-* Permissions
 * Dependencies
 * Optional Dependencies
 * Minimum API Version

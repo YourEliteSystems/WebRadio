@@ -69,6 +69,9 @@ class RadioProvider {
     this._onPlay     = this._handlePlay.bind(this);
     this._onStop     = this._handleStop.bind(this);
     this._onMetadata = this._handleMetadata.bind(this);
+    this._onStreamPlaying = this._handleStreamPlaying.bind(this);
+    this._onStreamError = this._handleStreamError.bind(this);
+    this._onStreamEnded = this._handleStreamEnded.bind(this);
 
     this._listening = false;
   }
@@ -103,11 +106,10 @@ class RadioProvider {
 
     if (!effective) {
       const diagnostics = this._buildDiagnostics("play");
+      const error = { code: "MISSING_URL", message: "play() ohne URL aufgerufen" };
       logger.warn(`play() ohne URL aufgerufen. ${diagnostics}`);
-      return {
-        success: false,
-        error: { code: "MISSING_URL", message: "play() ohne URL aufgerufen" }
-      };
+      this._reportState(PLAYER_STATES.ERROR, this._station, error);
+      return { success: false, error };
     }
 
     this._station   = station || this._station || null;
@@ -117,7 +119,11 @@ class RadioProvider {
 
     this._reportState(PLAYER_STATES.LOADING, this._station);
 
-    await streamManager.start(effective, this._station);
+    const result = await streamManager.start(effective, this._station);
+    if (result?.success === false) {
+      this._reportState(PLAYER_STATES.ERROR, this._station, result.error);
+      return result;
+    }
 
     return { success: true };
   }
@@ -143,7 +149,7 @@ class RadioProvider {
 
   /**
    * Gibt den aktuellen Capabilities-Snapshot zurück (§14).
-   * @returns {object}
+   * Radio-Sendernavigation wird im Renderer anhand der sichtbaren Liste ausgeführt.
    */
   getCapabilities() {
     return { ...PROVIDER_CAPABILITIES };
@@ -155,10 +161,10 @@ class RadioProvider {
   getState() {
     return {
       state:   this._state,
-      title:   this._title,
+      title:   this._title || this._station?.name || null,
       artist:  this._artist,
       artwork: this._station?.favicon || this._station?.logo || null,
-      source:  { ...SOURCE, url: this._streamUrl }
+      source:  { ...SOURCE, url: this._streamUrl, name: this._station?.name || null }
     };
   }
 
@@ -175,6 +181,9 @@ class RadioProvider {
     eventBus.on("play",     this._onPlay);
     eventBus.on("stop",     this._onStop);
     eventBus.on("metadata", this._onMetadata);
+    eventBus.on("stream:playing", this._onStreamPlaying);
+    eventBus.on("stream:error", this._onStreamError);
+    eventBus.on("stream:ended", this._onStreamEnded);
     this._listening = true;
     logger.info("RadioProvider aktiviert");
   }
@@ -188,6 +197,9 @@ class RadioProvider {
     eventBus.off("play",     this._onPlay);
     eventBus.off("stop",     this._onStop);
     eventBus.off("metadata", this._onMetadata);
+    eventBus.off("stream:playing", this._onStreamPlaying);
+    eventBus.off("stream:error", this._onStreamError);
+    eventBus.off("stream:ended", this._onStreamEnded);
     this._listening = false;
     logger.info("RadioProvider deaktiviert");
   }
@@ -214,7 +226,27 @@ class RadioProvider {
     this._title   = null;
     this._artist  = null;
 
+    // play wird beim Anfordern eines Streams emittiert, nicht nachweislich
+    // beim Empfang von Audio. Bis zum ersten PCM-Chunk bleibt der Status loading.
+    this._reportState(PLAYER_STATES.LOADING, this._station);
+  }
+
+  _handleStreamPlaying(data) {
+    if (data?.url) this._streamUrl = data.url;
+    if (data?.station) this._station = data.station;
     this._reportState(PLAYER_STATES.PLAYING, this._station);
+  }
+
+  _handleStreamError(error) {
+    this._title = null;
+    this._artist = null;
+    this._reportState(PLAYER_STATES.ERROR, this._station, error || { code: "STREAM_ERROR", message: "Stream fehlgeschlagen." });
+  }
+
+  _handleStreamEnded() {
+    this._title = null;
+    this._artist = null;
+    this._reportState(PLAYER_STATES.STOPPED, this._station);
   }
 
   /**
@@ -227,14 +259,14 @@ class RadioProvider {
   _handleStop() {
     this._title   = null;
     this._artist  = null;
-    this._reportState(PLAYER_STATES.STOPPED, null);
+    this._reportState(PLAYER_STATES.STOPPED, this._station);
   }
 
   _handleMetadata(metadata) {
     if (!metadata) return;
     this._title  = metadata.Song    || metadata.StreamTitle || null;
     this._artist = metadata.Artist  || null;
-    this._reportState(PLAYER_STATES.PLAYING, this._station);
+    this._reportState(this._state, this._station);
   }
 
   // ─────────────────────────────────────────────
@@ -251,15 +283,16 @@ class RadioProvider {
     return `Diagnose: play(${method}) fehlgeschlagen, commandId=${this._commandId}, providerId=${PROVIDER_ID}, sessionId=${this._sessionId}`;
   }
 
-  _reportState(state, station) {
+  _reportState(state, station, error = null) {
     this._state = state;
 
     playerManager.updateProviderState(PROVIDER_ID, {
       state:   this._state,
-      title:   this._title   || station?.name || null,
-      artist:  this._artist  || null,
+      title:   this._title || station?.name || null,
+      artist:  this._artist || null,
       artwork: station?.favicon || station?.logo || null,
-      source:  SOURCE
+      source:  { ...SOURCE, url: this._streamUrl, name: station?.name || null },
+      error
     });
   }
 }

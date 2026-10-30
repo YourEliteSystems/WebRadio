@@ -141,8 +141,9 @@ export async function playStream(url, station = null) {
   }
   gainNode.gain.cancelScheduledValues(ctx.currentTime);
   gainNode.gain.setValueAtTime(currentVolume, ctx.currentTime);
-  await window.radioAPI.startStream(url, station);
+  const result = await window.radioAPI.startStream(url, station);
   flushAudioBuffer();
+  return result;
 }
 
 export async function stopPlayer() {

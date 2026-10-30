@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import StationGrid from './components/StationGrid.jsx';
 import PlayerBar from './components/PlayerBar.jsx';
@@ -116,50 +116,173 @@ export default function App() {
 
   const isFavorite = nowPlayingStation && favorites.some(f => f.url === (nowPlayingStation.url_resolved || nowPlayingStation.url));
 
-  // Media Control Listeners – nur einmalig registrieren
-  // Der Medientasten-/Tray-Stop stoppt IMMER den aktiven Provider.
-  // Bei aktivem MediaHub wird ausschließlich die Unified Player API bedient
-  // (YouTube), der Radio-Provider wird nicht zusätzlich gestoppt.
-  useEffect(() => {
-    if (!window.media || !window.media.onStop) return;
+  const handlePlayCurrent = useCallback(() => {
+    if (nowPlayingStation) {
+      handlePlay(nowPlayingStation.url_resolved || nowPlayingStation.url, nowPlayingStation);
+    }
+  }, [handlePlay, nowPlayingStation]);
 
-    const unsub = window.media.onStop(() => {
-      if (!window.playerAPI || !window.playerAPI.stop) {
-        handleStop();
+  const mediaActionBusy = useRef(false);
+  const runSystemMediaAction = useCallback(async (action) => {
+    if (mediaActionBusy.current || !window.playerAPI) return;
+    mediaActionBusy.current = true;
+    try {
+      const state = await window.playerAPI.getState();
+      const radioActive = state?.source?.type === 'radio' || state?.source?.id === 'radio';
+      if (action === 'toggle') {
+        if (radioActive && state.state === 'playing') {
+          await handleStop();
+        } else if (radioActive && state.state === 'loading') {
+          return;
+        } else if (radioActive && (state.state === 'stopped' || state.state === 'error')) {
+          handlePlayCurrent();
+        } else {
+          await window.playerAPI.toggle();
+        }
         return;
       }
-
-      window.playerAPI.getState()
-        .catch(() => null)
-        .then((state) => {
-          const radioActive = !state || !state.source || state.source.id === 'radio';
-          if (radioActive) {
-            // Radio-Pfad: Legacy-Aufruf räumt zusätzlich die lokale
-            // Audioschiene (Buffer, AudioContext) auf.
-            handleStop();
-            return;
-          }
-          // MediaHub-Pfad: nur den aktiven (YouTube-) Provider stoppen.
-          return window.playerAPI.stop()
-            .catch((err) => console.warn('Media-Stop fehlgeschlagen:', err));
+      if (action === 'play' || action === 'pause') {
+        if (radioActive && action === 'pause') {
+          if (state.state === 'playing' || state.state === 'loading') await handleStop();
+          return;
+        }
+        if (radioActive && action === 'play') {
+          if (state.state === 'loading' || state.state === 'playing') return;
+          handlePlayCurrent();
+          return;
+        }
+        if (!radioActive) {
+          await window.playerAPI.requestMediaAction(action);
+          return;
+        }
+      }
+      if (action === 'stop') {
+        if (radioActive) await handleStop();
+        else await window.playerAPI.stop();
+        return;
+      }
+      if ((action === 'next' || action === 'previous') && radioActive) {
+        const currentUrl = state.source?.url || nowPlayingStation?.url_resolved || nowPlayingStation?.url;
+        const index = stations.findIndex((candidate) => {
+          const url = candidate.url_resolved || candidate.url;
+          try { return new URL(url).href === new URL(currentUrl).href; } catch { return url === currentUrl; }
         });
-    });
+        if (stations.length < 2 || index < 0) return;
+        const direction = action === 'next' ? 1 : -1;
+        const candidate = stations[(index + direction + stations.length) % stations.length];
+        handlePlay(candidate.url_resolved || candidate.url, candidate);
+        return;
+      }
+      if (radioActive && action === 'pause') await handleStop();
+      else if (radioActive && action === 'play') handlePlayCurrent();
+      else if (action === 'pause') await window.playerAPI.pause();
+      else if (action === 'play') await window.playerAPI.play();
+    } catch (err) {
+      console.warn(`System-Medienaktion '${action}' fehlgeschlagen:`, err);
+    } finally {
+      mediaActionBusy.current = false;
+    }
+  }, [handleStop, handlePlayCurrent, handlePlay, nowPlayingStation, stations]);
 
-    return () => {
-      if (typeof unsub === 'function') unsub();
+  // System-Medienaktionen laufen durch dieselbe Player-API/Audio-Engine.
+  useEffect(() => {
+    if (!window.media || !window.playerAPI) return;
+    const unsubscribers = [
+      window.media.onPlayPause?.(() => runSystemMediaAction('toggle')),
+      window.media.onStop?.(() => runSystemMediaAction('stop')),
+      window.media.onNext?.(() => runSystemMediaAction('next')),
+      window.media.onPrevious?.(() => runSystemMediaAction('previous'))
+    ].filter((unsubscribe) => typeof unsubscribe === 'function');
+
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [runSystemMediaAction]);
+
+  // Chromium veröffentlicht Metadaten und Remote-Aktionen über navigator.mediaSession.
+  // Das Betriebssystem kann je nach Plattform/Umgebung nur einen Teil davon anzeigen.
+  useEffect(() => {
+    const session = typeof navigator !== 'undefined' ? navigator.mediaSession : null;
+    if (!session || !window.playerAPI) return;
+
+    let updateSequence = 0;
+    const updateSession = async (state) => {
+      const sequence = ++updateSequence;
+      let mediaState = state;
+      try {
+        const authoritativeMediaState = await window.playerAPI.getMediaState();
+        if (authoritativeMediaState) mediaState = authoritativeMediaState;
+      } catch { /* optional media metadata query */ }
+      if (sequence !== updateSequence) return;
+      const hasMedia = Boolean(mediaState?.source && mediaState.state !== 'idle');
+      try {
+        session.metadata = hasMedia && typeof window.MediaMetadata === 'function'
+          ? new window.MediaMetadata({
+              title: mediaState.source?.name || mediaState.title || mediaState.provider?.name || 'WebRadio',
+              artist: mediaState.artist || 'WebRadio',
+              album: mediaState.provider?.name || 'WebRadio',
+              artwork: mediaState.artwork ? [{ src: mediaState.artwork }] : []
+            })
+          : null;
+        session.playbackState = mediaState?.state === 'playing'
+          ? 'playing'
+          : mediaState?.state === 'paused' ? 'paused' : 'none';
+      } catch (err) {
+        console.warn('Media-Session-Metadaten konnten nicht aktualisiert werden:', err);
+      }
+
+      let capabilities = null;
+      try { capabilities = await window.playerAPI.getMediaCapabilities(); } catch { /* optional API */ }
+      if (sequence !== updateSequence) return;
+      // IPC-State-Pushes lassen die private Stream-URL bewusst weg; die sichtbare
+      // Senderauswahl ist die autoritative Navigation für Radio.
+      const currentRadioUrl = mediaState?.source?.url || nowPlayingStation?.url_resolved || nowPlayingStation?.url;
+      const stationIndex = stations.findIndex((station) => {
+        const url = station.url_resolved || station.url;
+        try { return new URL(url).href === new URL(currentRadioUrl).href; } catch { return url === currentRadioUrl; }
+      });
+      const radioNavigationAvailable = mediaState?.source?.type === 'radio' && stations.length > 1 && stationIndex >= 0;
+      capabilities = {
+        ...capabilities,
+        actions: {
+          ...capabilities?.actions,
+          next: Boolean(radioNavigationAvailable),
+          previous: Boolean(radioNavigationAvailable)
+        }
+      };
+      const handlers = {
+        play: 'play',
+        pause: 'pause',
+        nexttrack: 'next',
+        previoustrack: 'previous'
+      };
+      for (const [mediaAction, action] of Object.entries(handlers)) {
+        try {
+          const actionReady = action === 'play'
+            ? ['stopped', 'paused', 'error'].includes(mediaState.state)
+            : action === 'pause' ? ['playing', 'loading'].includes(mediaState.state) : true;
+          const isSupported = hasMedia && actionReady && capabilities?.actions?.[action];
+          session.setActionHandler(mediaAction, isSupported ? () => runSystemMediaAction(action) : null);
+        } catch {
+          // Browser/Electron build or OS does not expose this action.
+        }
+      }
     };
-  }, [handleStop]);
+
+    const unsubscribe = window.playerAPI.onStateChanged(updateSession);
+    window.playerAPI.getState().then(updateSession).catch(() => {});
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+      for (const action of ['play', 'pause', 'nexttrack', 'previoustrack']) {
+        try { session.setActionHandler(action, null); } catch { /* unsupported action */ }
+      }
+      updateSequence++;
+      try { session.metadata = null; session.playbackState = 'none'; } catch { /* shutdown */ }
+    };
+  }, [runSystemMediaAction, stations]);
 
   // Load initial popular stations
   useEffect(() => {
     search('Top');
   }, [search]);
-
-  const handlePlayCurrent = () => {
-    if (nowPlayingStation) {
-      handlePlay(nowPlayingStation.url_resolved || nowPlayingStation.url, nowPlayingStation);
-    }
-  };
 
   const handleWindowControl = (action) => {
     if (window.windowControls && window.windowControls[action]) {

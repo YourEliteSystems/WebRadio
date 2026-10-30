@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const PluginPermissions = require("../plugins/PluginPermissions");
 const CapabilityRegistry = require("../plugins/CapabilityRegistry");
+const PluginWebSessionManager = require("../plugins/PluginWebSessionManager");
 const LogManager = require("../diagnostics/logging/LogManager");
 const {
   PACKAGE_TYPES,
@@ -41,6 +42,21 @@ function isAbsolutePathSuspicious(filePath) {
     if (pattern.test(filePath)) return true;
   }
   return false;
+}
+
+/**
+ * Liefert die Capability-Ablehnungen, die ein Manifest tatsächlich
+ * ungültig machen. Eine bekannte, aber vom Core als nicht verfügbar
+ * markierte Capability (derzeit `encrypted-media`) wird nie gewährt, macht
+ * das Manifest aber nicht unbrauchbar: Plugins dürfen sie als optionale
+ * Anforderung deklarieren und die Verfügbarkeit zur Laufzeit abfragen.
+ */
+function blockingCapabilityDenials(capabilities, permissions) {
+  const capabilityResult = validateCapabilityRequest(capabilities, permissions || []);
+  return capabilityResult.denied.filter(({ capability }) => {
+    const definition = CapabilityRegistry.getDefinition(capability);
+    return definition?.security?.available !== false;
+  });
 }
 
 function validateSecurityConstraints(data, type) {
@@ -82,11 +98,16 @@ function validateSecurityConstraints(data, type) {
   }
 
   if (data.capabilities) {
-    const capabilityResult = validateCapabilityRequest(data.capabilities, data.permissions || []);
-    if (!capabilityResult.valid && capabilityResult.denied.length > 0) {
-      const reasons = capabilityResult.denied.map((d) => `${d.capability}: ${d.reason}`).join("; ");
+    const blocking = blockingCapabilityDenials(data.capabilities, data.permissions);
+    if (blocking.length > 0) {
+      const reasons = blocking.map((d) => `${d.capability}: ${d.reason}`).join("; ");
       errors.push(`unacceptable capabilities: ${reasons}`);
     }
+  }
+
+  if (type === PACKAGE_TYPES.plugin) {
+    const webSessionValidation = PluginWebSessionManager.validateManifest(data);
+    errors.push(...webSessionValidation.errors);
   }
 
   return errors;
@@ -154,9 +175,9 @@ function validatePlugin(data) {
   }
 
   if (data.capabilities) {
-    const capabilityResult = validateCapabilityRequest(data.capabilities, data.permissions || []);
-    if (!capabilityResult.valid) {
-      const deniedText = capabilityResult.denied.map((d) => `${d.capability}: ${d.reason}`).join("; ");
+    const blocking = blockingCapabilityDenials(data.capabilities, data.permissions);
+    if (blocking.length > 0) {
+      const deniedText = blocking.map((d) => `${d.capability}: ${d.reason}`).join("; ");
       errors.push(`unacceptable capabilities: ${deniedText}`);
     }
   }

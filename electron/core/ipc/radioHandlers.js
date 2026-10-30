@@ -10,7 +10,7 @@ function registerRadioHandlers(windowManager) {
   );
 
   ipcMain.handle("radio:start", async (_, url, station) => {
-    await streamManager.start(url, station);
+    return streamManager.start(url, station);
   });
 
   ipcMain.handle("radio:stop", async () => {

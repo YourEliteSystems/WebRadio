@@ -12,7 +12,7 @@ Plugins should request only the permissions they actually require.
 
 The Permissions service is responsible for:
 
-* Defining plugin permissions
+* Defining plugin permissions (including the optional `media-control` permission)
 * Validating requested permissions
 * Restricting access to protected APIs
 * Improving application security
@@ -161,6 +161,23 @@ await context.permissions.request(
 Whether runtime permission requests are supported depends on the current platform and application configuration.
 
 ---
+
+## System media controls
+
+The optional `media-control` permission, together with the `media-controls` capability, allows a plugin to read Unified Player state, subscribe to state changes, inspect supported actions, and request `play`, `pause`, `next`, or `previous`. It does not expose Electron objects, IPC, FFmpeg, or audio resources. Missing either declaration denies each media-controls API call. Example:
+
+```json
+{
+  "permissions": ["media-control"],
+  "capabilities": ["media-controls"]
+}
+```
+
+See [Unified Player](./UnifiedPlayer.md#plugin-media-controls-api) for API methods, unsupported-action behavior, and platform limitations.
+
+## Web sessions
+
+The Web Session API adds **no permission**. It is controlled by the `web-session` and `web-session-media` capabilities plus the `webSessionOrigins` allowlist, because there is no existing permission that semantically covers an isolated browser session, and a broad `network` permission would grant far more than needed. Existing manifests without these capabilities keep their current behavior. Every `context.webSession` call re-checks the capability and origins; the plugin never receives cookies, headers or tokens. See [Capabilities & Plugin HTTP Environment](../plugin-sdk/13-Capabilities.md#web-session).
 
 # Protected APIs
 

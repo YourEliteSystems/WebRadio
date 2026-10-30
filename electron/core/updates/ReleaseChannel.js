@@ -40,7 +40,7 @@ const CHANNELS = Object.freeze({
  *
  * @example
  *   resolveChannel("1.0.7-alpha.1") // "alpha"
- *   resolveChannel("1.0.7-beta.2")  // "beta"
+ *   resolveChannel("1.0.7-beta.3")  // "beta"
  *   resolveChannel("1.0.7")         // "stable"
  *
  * @public

@@ -217,12 +217,41 @@ contextBridge.exposeInMainWorld("windowControls", {
 });
 
 contextBridge.exposeInMainWorld("media", {
-  onPlayPause: (cb) => ipcRenderer.on("media-play-pause", cb),
-  onStop: (cb) => ipcRenderer.on("media-stop", cb),
-  onNext: (cb) => ipcRenderer.on("media-next", cb),
-  onVolumeUp:   (cb) => ipcRenderer.on("media-volume-up",   (_, ...args) => cb(...args)),
-  onVolumeDown: (cb) => ipcRenderer.on("media-volume-down", (_, ...args) => cb(...args)),
-  onMute:       (cb) => ipcRenderer.on("media-volume-mute", (_, ...args) => cb(...args)),
+  onPlayPause: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on("media-play-pause", handler);
+    return () => ipcRenderer.removeListener("media-play-pause", handler);
+  },
+  onStop: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on("media-stop", handler);
+    return () => ipcRenderer.removeListener("media-stop", handler);
+  },
+  onNext: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on("media-next", handler);
+    return () => ipcRenderer.removeListener("media-next", handler);
+  },
+  onPrevious: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on("media-previous", handler);
+    return () => ipcRenderer.removeListener("media-previous", handler);
+  },
+  onVolumeUp: (cb) => {
+    const handler = (_event, ...args) => cb(...args);
+    ipcRenderer.on("media-volume-up", handler);
+    return () => ipcRenderer.removeListener("media-volume-up", handler);
+  },
+  onVolumeDown: (cb) => {
+    const handler = (_event, ...args) => cb(...args);
+    ipcRenderer.on("media-volume-down", handler);
+    return () => ipcRenderer.removeListener("media-volume-down", handler);
+  },
+  onMute: (cb) => {
+    const handler = (_event, ...args) => cb(...args);
+    ipcRenderer.on("media-volume-mute", handler);
+    return () => ipcRenderer.removeListener("media-volume-mute", handler);
+  }
 });
 
 // THEME API
@@ -333,6 +362,7 @@ contextBridge.exposeInMainWorld("playerAPI", {
 
   // Capabilities
   getCapabilities: () => ipcRenderer.invoke("player:getCapabilities"),
+  getMediaCapabilities: () => ipcRenderer.invoke("player:getMediaCapabilities"),
 
   // State Subscription – gibt Unsubscribe-Funktion zurück (kein Memory Leak)
   subscribe: (callback) => {

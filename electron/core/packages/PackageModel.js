@@ -192,6 +192,10 @@ function normalizePluginManifest(manifest, dirName) {
     ? manifest.capabilities.filter((c) => typeof c === "string" && c.trim().length > 0).map((c) => c.trim())
     : [];
 
+  const webSessionOrigins = Array.isArray(manifest.webSessionOrigins)
+    ? [...manifest.webSessionOrigins]
+    : undefined;
+
   const optionalFields = {
     author: typeof manifest.author === "string" ? manifest.author.trim() : "",
     description: typeof manifest.description === "string" ? manifest.description.trim() : "",
@@ -212,6 +216,7 @@ function normalizePluginManifest(manifest, dirName) {
     renderer,
     permissions,
     capabilities,
+    ...(webSessionOrigins ? { webSessionOrigins } : {}),
     ...optionalFields
   };
 }

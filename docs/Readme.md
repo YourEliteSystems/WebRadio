@@ -4,7 +4,7 @@
 
 WebRadio bietet ein schnelles, ressourcenschonendes und anpassbares Hörerlebnis. Für Entwickler und Community stellt das Projekt außerdem ein leistungsfähiges Plugin- und Theme-Ökosystem bereit.
 
-> **Aktueller Status:** Das Projekt wird aktiv entwickelt. Der aktuelle Quellcode-Stand dokumentiert `v1.0.7-beta.2`. Die tatsächlich veröffentlichten Downloads findest du auf der Seite [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases).
+> **Aktueller Status:** Das Projekt wird aktiv entwickelt. Der aktuelle Quellcode-Stand dokumentiert `v1.0.7-beta.3`. Die tatsächlich veröffentlichten Downloads findest du auf der Seite [GitHub Releases](https://github.com/YourEliteSystems/WebRadio/releases).
 
 ---
 

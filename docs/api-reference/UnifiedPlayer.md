@@ -116,6 +116,7 @@ Registered through `context.player.registerProvider(spec)` (requires the `player
 | `setVolume(value)` | Clamps to `0.0` – `1.0` and notifies subscribers |
 | `getVolume()` / `setMuted(muted)` / `toggleMute()` | Volume and mute helpers |
 | `getCapabilities()` | Capabilities of the active provider, defaults otherwise |
+| `getMediaCapabilities()` / `requestMediaAction(action)` | Supported media actions and validated play/pause/next/previous requests |
 | `getState()` | Full state snapshot including capabilities |
 | `subscribe(callback)` | Invokes immediately and on every change; returns an unsubscribe function |
 | `updateProviderState(providerId, partialState)` | Partial state update; ignored for non-active providers |
@@ -130,7 +131,7 @@ Registered through `context.player.registerProvider(spec)` (requires the `player
 | `play()` / `pause()` / `stop()` / `toggle()` | `player:play`, `player:pause`, `player:stop`, `player:toggle` |
 | `setVolume(value)` | `player:setVolume` |
 | `getVolume()` / `setMuted(muted)` / `toggleMute()` | `player:getVolume`, `player:setMuted`, `player:toggleMute` |
-| `getCapabilities()` | `player:getCapabilities` |
+| `getCapabilities()` / `getMediaCapabilities()` | `player:getCapabilities`, `player:getMediaCapabilities` |
 | `subscribe(cb)` / `onStateChanged(cb)` | `player:stateChanged` (push) |
 | `onCommand(cb)` | `player:command` (push) |
 | `reportProviderState(id, state)` | `player:reportProviderState` |
@@ -163,6 +164,35 @@ handle.unregister();
 
 ---
 
+# System Media Session
+
+The main renderer publishes the active Unified Player state through Chromium's `navigator.mediaSession` when the API is available. It updates OS-facing metadata and playback state from PlayerManager notifications, and registers only actions supported by the active provider. Remote play/pause actions and hardware media keys call the existing provider controls; radio pause maps to stop because radio streams do not support pausing. Next/previous follow the current visible station list and are unavailable unless the current radio station is present in a list with at least two entries. Failed streams stay in `error` rather than appearing as playing. Plugins use the guarded `context.mediaControls` API instead of direct media-action IPC.
+
+Electron has no dedicated cross-platform main-process media-session API. `navigator.mediaSession` behavior and OS exposure vary by Chromium build and platform; Linux desktop integration is particularly environment-dependent, and this project has not verified OS media surfaces on its target platforms. Electron `globalShortcut` media keys are separate main-process registrations: they can fail when another application owns the key, macOS may require accessibility authorization, and Wayland behavior depends on the desktop portal. Treat hardware-key registration and OS media-session UI as best-effort, not as guaranteed cross-platform support.
+
+## Plugin media-controls API
+
+For the planned `v1.0.7-beta.3` plugin integration, plugins that need read-only media state and requested playback controls must declare both the `media-control` permission and the `media-controls` capability. The optional API is exposed as `context.mediaControls`. Its state projection omits the stream URL; callbacks receive an initial snapshot and subsequent changes:
+
+```json
+{
+  "permissions": ["media-control"],
+  "capabilities": ["media-controls"]
+}
+```
+
+```javascript
+const state = context.mediaControls.getState();
+const capabilities = context.mediaControls.getCapabilities();
+const unsubscribe = context.mediaControls.subscribe((nextState) => {
+  console.log(nextState.state, nextState.source?.name);
+});
+await context.mediaControls.requestAction("pause"); // play | pause | next | previous
+// Call unsubscribe() on teardown; PluginRuntime also disposes subscriptions.
+```
+
+Missing either grant throws a permission error. Unsupported actions and invalid action names return structured failures; subscriptions emit an initial snapshot and then state changes. `getCapabilities()` reports platform, the Media Session API name, and the active provider's supported actions.
+
 # IPC Surface
 
 | Channel | Direction | Purpose |
@@ -172,6 +202,7 @@ handle.unregister();
 | `player:setVolume` / `getVolume` / `setMuted` / `toggleMute` / `getCapabilities` | renderer → main | Volume, mute, capabilities |
 | `player:registerProvider` / `unregisterProvider` / `setActiveProvider` | renderer → main | Provider registry (`registerProvider(id, provider)`) |
 | `player:reportProviderState` | renderer → main | Renderer-side providers report their state |
+| `player:getMediaCapabilities` | renderer → main | Query active provider media-action support (main-window sender required) |
 | `player:stateChanged` | main → renderer | State push |
 | `player:command` | main → renderer | Generic player commands (e.g. MediaHub) |
 | `radio:start` / `radio:stop` | renderer → main | Direct radio control (`radio:start(url, station)`) |
@@ -182,14 +213,16 @@ handle.unregister();
 
 | Code | Raised by | Meaning |
 | ---- | --------- | ------- |
-| `NO_ACTIVE_PROVIDER` | `PlayerManager.play/pause/stop` | No provider is active |
+| `NO_ACTIVE_PROVIDER` | `PlayerManager` | No provider is active |
+| `UNSUPPORTED_ACTION` | `PlayerManager.requestMediaAction` | The active provider does not support the requested media action |
+| `INVALID_ACTION` | `context.mediaControls.requestAction` | Invalid action name |
 | `PROVIDER_ERROR` | `PlayerManager` | The provider threw; message is included |
 | `MISSING_URL` | `RadioProvider` / `StreamManager` | No usable stream URL |
 | `INVALID_VOLUME` | `player:setVolume` | Value outside `0.0` – `1.0` or not a number |
 | `INVALID_ARGUMENT` | provider registry | Non-string ID or non-object provider |
 | `INVALID_PROVIDER_ID` / `PROVIDER_NOT_FOUND` | `player:setActiveProvider` | Unknown provider |
 
-> **Note:** `PlayerManager.play()` does not forward the provider's return value to the renderer — `player:play` answers `{ success:true }` whenever a provider is active. Provider-level failures such as `MISSING_URL` are reported in the main-process log.
+> `player:play` forwards `PlayerManager.play()` results. Radio remains `loading` until FFmpeg supplies the first PCM chunk; a failed or missing stream is reported as `error`, not as successful playback. Media Session `play` is a no-op while already playing/loading, and `pause` is a no-op when already stopped, preventing duplicate stream commands.
 
 ---
 

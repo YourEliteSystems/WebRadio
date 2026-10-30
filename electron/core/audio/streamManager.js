@@ -61,6 +61,7 @@ class StreamManager {
     // bleiben stumm – veraltete Prozesse können den aktuellen Lauf nicht
     // mehr stören.
     this._runId = 0;
+    this._reportedPlayingRunId = null;
 
     // Referenz auf den zuletzt armierten Eskalationstimer. Ein noch
     // laufender Timer eines Vorgängerlaufs bleibt aktiv (er ist über seinen
@@ -182,18 +183,26 @@ class StreamManager {
         const message = (err && err.message) || String(err);
         if (isKillMessage(message)) return;
         if (runId !== this._runId) return;
+        finalize();
+        this.ffmpegCommand = null;
+        this.ffmpegStream = null;
         logger.error(`FFmpeg Fehler: ${message}`);
+        eventBus.emit("stream:error", { code: "STREAM_ERROR", message });
       })
       .on("end", () => {
         finalize();
         if (runId !== this._runId) return;
+        this.ffmpegCommand = null;
+        this.ffmpegStream = null;
         logger.info("FFmpeg Stream beendet");
+        eventBus.emit("stream:ended");
       })
       .on("error", finalize);
 
     this._commandState.set(command, state);
 
     this.ffmpegCommand = command;
+    this._reportedPlayingRunId = null;
 
     try {
       this.ffmpegStream = command.pipe();
@@ -201,6 +210,7 @@ class StreamManager {
       this.ffmpegCommand = null;
       finalize();
       logger.error(`FFmpeg-Stream konnte nicht gestartet werden: ${err.message}`);
+      eventBus.emit("stream:error", { code: "START_FAILED", message: err.message });
       return { success: false, error: { code: "START_FAILED", message: err.message } };
     }
 
@@ -221,6 +231,10 @@ class StreamManager {
 
       this.diag.chunksReceived++;
       this.diag.lastDataAt = Date.now();
+      if (this._reportedPlayingRunId !== runId) {
+        this._reportedPlayingRunId = runId;
+        eventBus.emit("stream:playing", { url: cleanUrl, station });
+      }
 
       if (chunk.byteLength % 4 !== 0) {
         logger.warn(`PCM-Chunk übersprungen (ungerade Byte-Länge): ${chunk.byteLength}`);

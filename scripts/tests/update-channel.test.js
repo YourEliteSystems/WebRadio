@@ -170,6 +170,9 @@ test("1.0.7-beta.1 -> beta (nicht alpha, nicht stable)", () => {
 test("1.0.7-beta.2 -> beta (nicht alpha, nicht stable)", () => {
   assert.strictEqual(detectChannelFromVersion("1.0.7-beta.2"), CHANNELS.BETA);
 });
+test("1.0.7-beta.3 -> beta (nicht alpha, nicht stable)", () => {
+  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.3"), CHANNELS.BETA);
+});
 
 test("1.0.7 -> stable", () => {
   assert.strictEqual(detectChannelFromVersion("1.0.7"), CHANNELS.STABLE);

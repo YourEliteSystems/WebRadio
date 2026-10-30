@@ -81,7 +81,35 @@ const CAPABILITIES = Object.freeze({
     requiresPermission: null,
     requiresCapability: null,
     security: { localhostOnly: true, accessLevel: "plugin" }
-  }
+  },
+  "media-controls": {
+    id: "media-controls",
+    description: "Plugin darf den System-Medienstatus lesen, abonnieren und Wiedergabeaktionen anfordern",
+    requiresPermission: "media-control",
+    requiresCapability: null,
+    security: { accessLevel: "media-control", actions: ["play", "pause", "next", "previous"] }
+  },
+  "web-session": {
+    id: "web-session",
+    description: "Plugin darf isolierte persistente Web-Sitzungen für deklarierte HTTPS-Origins verwenden",
+    requiresPermission: null,
+    requiresCapability: null,
+    security: { accessLevel: "isolated-web-session", requiresExplicitOrigins: true }
+  },
+  "web-session-media": {
+    id: "web-session-media",
+    description: "Plugin darf bereinigte Medienzustände isolierter Web-Sitzungen lesen und standardisierte Aktionen anfordern",
+    requiresPermission: null,
+    requiresCapability: "web-session",
+    security: { accessLevel: "isolated-web-session-media", actions: ["play", "pause", "stop", "seek", "setVolume"] }
+  },
+  "encrypted-media": {
+    id: "encrypted-media",
+    description: "Kennzeichnet optionale DRM-/EME-Anforderungen einer Web-Sitzung; derzeit nicht verfügbar",
+    requiresPermission: null,
+    requiresCapability: "web-session",
+    security: { accessLevel: "encrypted-media", available: false }
+  },
 });
 
 function isKnown(capabilityId) {
@@ -152,6 +180,9 @@ function canGrant(capabilityId, grantedPermissions = []) {
   const hasAllPermissions = permissions.includes("*");
 
   for (const chainId of getDependencyChain(capabilityId)) {
+    if (getDefinition(chainId).security?.available === false) {
+      return { granted: false, reason: `Capability unavailable: ${chainId}` };
+    }
     const requiredPermission = getDefinition(chainId).requiresPermission;
     if (!requiredPermission) continue;
     if (!hasAllPermissions && !permissions.includes(requiredPermission)) {
@@ -195,7 +226,7 @@ function getAllCapabilityIds() {
 
 function isProtected(capabilityId) {
   if (!isKnown(capabilityId)) return false;
-  const protectedIds = ["http-origin", "player"];
+  const protectedIds = ["http-origin", "player", "media-controls", "web-session", "web-session-media"];
   return protectedIds.includes(capabilityId);
 }
 

@@ -518,13 +518,16 @@ test("[11] Globale Controls steuern bei aktivem MediaHub nicht den Radio-Provide
     const usePlayerSrc = fs.readFileSync(USE_PLAYER_PATH, "utf8");
 
     // Medientasten-Stop: Unified API zuerst, Legacy-Radio-Stop nur bei Radio
-    const stopIdx = appSrc.indexOf("window.media.onStop");
-    assert.ok(stopIdx > 0, "Medientasten-Stop ist registriert");
-    const stopBlock = appSrc.slice(stopIdx, stopIdx + 900);
-    assert.ok(/!window\.playerAPI \|\| !window\.playerAPI\.stop/.test(stopBlock),
-        "Stop läuft über die Unified Player API");
-    assert.ok(/radioActive/.test(stopBlock), "Legacy-Radio-Stop ist an den aktiven Provider geknüpft");
-    assert.ok(/source\.id === 'radio'/.test(stopBlock), "Radio-Aktivität wird geprüft");
+    assert.ok(appSrc.includes("window.media.onStop?.(() => runSystemMediaAction('stop'))"),
+        "Medientasten-Stop ist am zentralen Aktionsdispatcher registriert");
+    const actionIdx = appSrc.indexOf("const runSystemMediaAction");
+    assert.ok(actionIdx > 0, "Zentraler Medienaktions-Dispatcher ist vorhanden");
+    const actionBlock = appSrc.slice(actionIdx, actionIdx + 5000);
+    assert.ok(/if \(action === 'stop'\)/.test(actionBlock), "Stop-Aktion wird zentral behandelt");
+    assert.ok(/if \(radioActive\) await handleStop\(\);\s*else await window\.playerAPI\.stop\(\);/.test(actionBlock),
+        "Stop wird nur beim Radio zusätzlich über den Legacy-Audiopfad ausgeführt");
+    assert.ok(/state\?\.source\?\.type === 'radio' \|\| state\?\.source\?\.id === 'radio'/.test(actionBlock),
+        "Aktiver Radio-Provider wird anhand des Player-States erkannt");
 
     // PlayerBar: Radio-Gain nur, wenn MediaHub nicht aktiv ist
     const volumeIdx = playerBarSrc.indexOf("const handleVolumeChange");

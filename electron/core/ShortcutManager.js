@@ -46,6 +46,10 @@ class ShortcutManager {
     }
 
     registerMediaShortcuts() {
+        // Kanonische Electron-Accelerator-Namen. Schreibweisen mit Leerzeichen
+        // (z. B. "Media Next Track") lösen in globalShortcut.register() eine
+        // Exception aus. Registrierung bleibt best-effort: OS/Portal-Konflikte
+        // sind möglich.
         this.registerGlobalShortcut("MediaPlayPause", () => {
             if (this.mainWindow && !this.mainWindow.isDestroyed()) {
                 this.mainWindow.webContents.send("media-play-pause");
@@ -61,6 +65,12 @@ class ShortcutManager {
         this.registerGlobalShortcut("MediaNextTrack", () => {
             if (this.mainWindow && !this.mainWindow.isDestroyed()) {
                 this.mainWindow.webContents.send("media-next");
+            }
+        });
+
+        this.registerGlobalShortcut("MediaPreviousTrack", () => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send("media-previous");
             }
         });
 
@@ -163,8 +173,17 @@ class ShortcutManager {
             return false;
         }
 
-        const success = globalShortcut.register(accelerator, callback);
-        
+        let success = false;
+
+        try {
+            success = globalShortcut.register(accelerator, callback);
+        } catch (err) {
+            // Ein unbekannter oder auf der Plattform nicht unterstützter
+            // Accelerator darf den Anwendungsstart nicht verhindern.
+            logger.error(`Global Shortcut konnte nicht registriert werden: ${accelerator} (${err.message})`);
+            return false;
+        }
+
         if (success) {
             this.registeredGlobalShortcuts.set(accelerator, callback);
             logger.debug(`Global Shortcut registriert: ${accelerator}`);

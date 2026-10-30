@@ -78,6 +78,7 @@ const radioProvider          = require("./player/RadioProvider");
 const mediaHubProvider        = require("./player/MediaHubProvider");
 const discordPresenceAdapter = require("./player/DiscordPresenceAdapter");
 const PluginHttpServer       = require("./plugins/PluginHttpServer");
+const PluginWebSessionManager = require("./plugins/PluginWebSessionManager");
 
 const LogManager = require("./diagnostics/logging/LogManager");
 const CrashHandler = require("./diagnostics/CrashHandler");
@@ -357,6 +358,7 @@ class Application {
         );
 
         this.windowManager.createMainWindow();
+        PluginWebSessionManager.setWindowManager(this.windowManager);
 
     }
 
@@ -426,6 +428,7 @@ class Application {
         await PluginHttpServer.stop();
 
         await PluginManager.shutdown();
+        PluginWebSessionManager.shutdown();
 
         logger.info("Plugins heruntergefahren");
     }

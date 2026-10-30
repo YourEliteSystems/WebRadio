@@ -195,8 +195,8 @@ class PlayerManager {
       return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein aktiver Provider." } };
     }
     try {
-      await this._safeProviderCall(this.activeProviderId, "play", ...args);
-      return { success: true };
+      const result = await this._safeProviderCall(this.activeProviderId, "play", ...args);
+      return result && result.success === false ? result : { success: true };
     } catch (err) {
       return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
     }
@@ -210,8 +210,10 @@ class PlayerManager {
       return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein aktiver Provider." } };
     }
     try {
-      await this._safeProviderCall(this.activeProviderId, "pause");
-      return { success: true };
+      const provider = this.getActiveProvider();
+      const method = typeof provider.pause === "function" ? "pause" : "stop";
+      const result = await this._safeProviderCall(this.activeProviderId, method);
+      return result && result.success === false ? result : { success: true };
     } catch (err) {
       return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
     }
@@ -225,11 +227,27 @@ class PlayerManager {
       return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein aktiver Provider." } };
     }
     try {
-      await this._safeProviderCall(this.activeProviderId, "stop");
-      return { success: true };
+      const result = await this._safeProviderCall(this.activeProviderId, "stop");
+      return result && result.success === false ? result : { success: true };
     } catch (err) {
       return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
     }
+  }
+
+  async next() {
+    if (!this.getActiveProvider() || !this._getProviderCapabilities(this.activeProviderId).next) {
+      return { success: false, error: { code: "UNSUPPORTED_ACTION", message: "Kein nächster Sender verfügbar." } };
+    }
+    const result = await this._safeProviderCall(this.activeProviderId, "next");
+    return result && result.success === false ? result : { success: true };
+  }
+
+  async previous() {
+    if (!this.getActiveProvider() || !this._getProviderCapabilities(this.activeProviderId).previous) {
+      return { success: false, error: { code: "UNSUPPORTED_ACTION", message: "Kein vorheriger Sender verfügbar." } };
+    }
+    const result = await this._safeProviderCall(this.activeProviderId, "previous");
+    return result && result.success === false ? result : { success: true };
   }
 
   /**
@@ -238,6 +256,7 @@ class PlayerManager {
    * @returns {{ success: boolean, error?: object }}
    */
   async toggle() {
+    if (!this.getActiveProvider()) return this.play();
     const state = this.currentState.state;
     if (state === PLAYER_STATES.LOADING) {
       logger.info("toggle() bei loading – kein zweiter Start.");
@@ -246,7 +265,10 @@ class PlayerManager {
     if (state === PLAYER_STATES.PLAYING) {
       return this.pause();
     }
-    return this.play();
+    if (state === PLAYER_STATES.PAUSED || state === PLAYER_STATES.STOPPED || state === PLAYER_STATES.ERROR) {
+      return this.play();
+    }
+    return { success: false, error: { code: "NO_MEDIA", message: "Kein Medium ausgewählt." } };
   }
 
   /**
@@ -296,6 +318,57 @@ class PlayerManager {
   }
 
   /**
+   * Gibt die für System-Medienaktionen verfügbaren Funktionen zurück.
+   * Radio-Pause wird als Stop ausgeführt; Sendernavigation ist providerabhängig.
+   */
+  getMediaCapabilities() {
+    const provider = this.getActiveProvider();
+    const capabilities = provider ? this._getProviderCapabilities(this.activeProviderId) : {};
+    return {
+      platform: process.platform,
+      mediaSessionApi: "navigator.mediaSession",
+      actions: {
+        play: Boolean(provider && capabilities.play),
+        pause: Boolean(provider && (capabilities.pause || capabilities.stop)),
+        previous: Boolean(provider && capabilities.previous),
+        next: Boolean(provider && capabilities.next)
+      }
+    };
+  }
+
+  /** Führt eine validierte Aktion über den aktiven Provider aus. */
+  async requestMediaAction(action) {
+    const actionNames = new Set(["play", "pause", "previous", "next"]);
+    if (!actionNames.has(action)) {
+      return { success: false, error: { code: "INVALID_ACTION", message: "Unbekannte Medienaktion." } };
+    }
+
+    const supported = this.getMediaCapabilities().actions[action];
+    if (!supported) {
+      return { success: false, error: { code: "UNSUPPORTED_ACTION", message: `Medienaktion '${action}' wird vom aktiven Player nicht unterstützt.` } };
+    }
+    try {
+      if (action === "play") {
+        if (this.currentState.state === PLAYER_STATES.LOADING || this.currentState.state === PLAYER_STATES.PLAYING) {
+          return { success: true };
+        }
+        return await this.play();
+      }
+      if (action === "pause") {
+        if (this.currentState.state !== PLAYER_STATES.PLAYING && this.currentState.state !== PLAYER_STATES.LOADING) {
+          return { success: true };
+        }
+        return await this.pause();
+      }
+      if (action === "next") return await this.next();
+      if (action === "previous") return await this.previous();
+    } catch (err) {
+      logger.error(`Medienaktion '${action}' fehlgeschlagen: ${err.message}`);
+      return { success: false, error: { code: "MEDIA_ACTION_FAILED", message: err.message } };
+    }
+  }
+
+  /**
    * Gibt die Capabilities des aktiven Providers zurück.
    * @returns {object}
    */
@@ -341,7 +414,7 @@ class PlayerManager {
 
     // Sofort mit aktuellem State aufrufen
     try {
-      callback({ ...this.currentState });
+      callback(this.getState());
     } catch (err) {
       logger.error(`Subscriber-Fehler beim initialen Aufruf: ${err.message}`);
     }
@@ -386,7 +459,7 @@ class PlayerManager {
   }
 
   _notifySubscribers(state) {
-    const snapshot = { ...state };
+    const snapshot = this.getState();
     for (const cb of this.subscribers) {
       try {
         cb(snapshot);
@@ -426,13 +499,16 @@ class PlayerManager {
    */
   async _safeProviderCall(id, method, ...args) {
     const provider = this.providers.get(id);
-    if (!provider) return;
-    if (typeof provider[method] !== "function") return;
+    if (!provider) return { success: false, error: { code: "NO_ACTIVE_PROVIDER", message: "Kein Provider verfügbar." } };
+    if (typeof provider[method] !== "function") {
+      return { success: false, error: { code: "UNSUPPORTED_ACTION", message: `Provider unterstützt ${method}() nicht.` } };
+    }
 
     try {
-      await provider[method](...args);
+      return await provider[method](...args);
     } catch (err) {
       logger.error(`Provider "${id}" – Fehler in ${method}(): ${err.message}`);
+      return { success: false, error: { code: "PROVIDER_ERROR", message: err.message } };
     }
   }
 }

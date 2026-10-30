@@ -132,6 +132,21 @@ test("play() ohne URL nimmt die zuletzt verwendete Quelle wieder auf", async () 
   p.deactivate();
 });
 
+test("PCM-Ankunft aktualisiert den autoritativen Status genau auf playing", async () => {
+  const p = freshProvider();
+  const streamManager = require("../../electron/core/audio/streamManager");
+  streamManager.setMainWindow({ isDestroyed: () => false, webContents: { send: () => {} } });
+  await p.play("http://station/pcm", { name: "PCM" });
+  assert.strictEqual(playerManager.getState().state, "loading");
+  streamManager.ffmpegStream.emit("data", Buffer.alloc(8));
+  assert.strictEqual(playerManager.getState().state, "playing");
+  streamManager.ffmpegStream.emit("data", Buffer.alloc(8));
+  assert.strictEqual(playerManager.getState().state, "playing", "Folge-Chunks ändern den Zustand nicht erneut");
+  streamManager.stop();
+  streamManager.setMainWindow(null);
+  p.deactivate();
+});
+
 test("kein Rekursion: play() löst genau EINEN FFmpeg-Start aus", async () => {
   const p = freshProvider();
   const before = commands.length;
@@ -150,7 +165,7 @@ test("radio:start (eventBus) merkt sich die URL für den player:play-Pfad", asyn
   eventBus.emit("play", { url: "http://station/via-ipc", station: { name: "IPC" } });
   assert.strictEqual(commands.length, before, "Handler startet nicht selbst");
   assert.strictEqual(p.getState().source.url, "http://station/via-ipc");
-  assert.strictEqual(p.getState().state, "playing");
+  assert.strictEqual(p.getState().state, "loading", "Anforderungs-Event ist kein Nachweis für PCM");
 
   const res = await p.play();
   assert.strictEqual(res.success, true);
@@ -202,14 +217,28 @@ test("player:play ohne Argumente startet die erinnerte Quelle", async () => {
   p.deactivate();
 });
 
-test("player:play ohne Quelle startet gar nichts (Diagnose bleibt im Log)", async () => {
+test("Streamfehler und Streamende verlassen loading mit korrektem Zustand", async () => {
+  const p = freshProvider();
+  await p.play("http://station/error", { name: "Error" });
+  eventBus.emit("stream:error", { code: "STREAM_ERROR", message: "offline" });
+  assert.strictEqual(playerManager.getState().state, "error");
+  assert.strictEqual(playerManager.getState().error.code, "STREAM_ERROR");
+  await p.play("http://station/ended", { name: "Ended" });
+  eventBus.emit("stream:ended");
+  assert.strictEqual(playerManager.getState().state, "stopped");
+  assert.strictEqual(playerManager.getState().error, null);
+  p.deactivate();
+});
+
+test("Fehlender Radiosender meldet kontrolliert einen Fehler", async () => {
   const p = freshProvider();
   const before = commands.length;
-
-  const res = await playerManager.play();
-
-  assert.strictEqual(res.success, true, "PlayerManager-Vertrag (Rückgabe wird nicht verändert)");
+  const result = await playerManager.play();
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.error.code, "MISSING_URL");
   assert.strictEqual(commands.length, before, "kein FFmpeg ohne Quelle");
+  assert.strictEqual(playerManager.getState().state, "error");
+  assert.strictEqual(playerManager.getState().error.code, "MISSING_URL");
   assert.ok(hasLog("play() ohne URL aufgerufen"), "Diagnose geloggt");
   p.deactivate();
 });
@@ -221,7 +250,9 @@ test("ungültige URL erreicht FFmpeg nicht", async () => {
 
   const res = await p.play("kein-url-ohne-schema");
 
-  assert.strictEqual(res.success, true, "Provider prüft nur Leerwerte");
+  assert.strictEqual(res.success, false, "ungültige Stream-URL wird als Fehlschlag weitergegeben");
+  assert.strictEqual(res.error.code, "MISSING_URL");
+  assert.strictEqual(playerManager.getState().state, "error");
   assert.strictEqual(commands.length, before, "StreamManager lehnt die URL ab");
   assert.ok(hasLog("ohne gültige Stream-URL"), "Diagnose im Log");
   p.deactivate();

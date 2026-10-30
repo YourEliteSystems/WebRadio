@@ -49,7 +49,7 @@ function test(name, fn) {
 async function callHandler(channel, ...args) {
   const handler = fakeIpcMain._handlers.get(channel);
   assert.ok(handler, `Handler fuer Channel "${channel}" nicht registriert`);
-  return handler({}, ...args);
+  return handler({ sender: mockWindow.webContents }, ...args);
 }
 
 const mockWindow = {
@@ -66,6 +66,18 @@ const pm = require("../../electron/core/player/PlayerManager");
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+test("System-Medienstatus ist auf den Main-Renderer begrenzt und Actions haben keinen Plugin-IPC-Bypass", async () => {
+  const capabilities = await fakeIpcMain._handlers.get("player:getMediaCapabilities")({ sender: mockWindow.webContents });
+  assert.ok(capabilities.actions);
+  const deniedQuery = await fakeIpcMain._handlers.get("player:getMediaCapabilities")({ sender: {} });
+  assert.strictEqual(deniedQuery, null);
+  assert.strictEqual(fakeIpcMain._handlers.has("player:requestMediaAction"), false);
+
+  assert.strictEqual(fakeIpcMain._handlers.has("player:getMediaState"), false,
+    "Media-Metadaten dürfen keinen zusätzlichen Renderer-IPC-Kanal benötigen");
+  assert.strictEqual(fakeIpcMain._handlers.has("player:getState"), true, "bestehender Player-State bleibt verfügbar");
+});
+
 test("Alle IPC-Channels sind registriert", () => {
   const expected = [
     PLAYER_CHANNELS.GET_STATE, PLAYER_CHANNELS.PLAY, PLAYER_CHANNELS.PAUSE,
@@ -73,7 +85,7 @@ test("Alle IPC-Channels sind registriert", () => {
     PLAYER_CHANNELS.GET_VOLUME, PLAYER_CHANNELS.SET_MUTED, PLAYER_CHANNELS.TOGGLE_MUTE,
     PLAYER_CHANNELS.GET_CAPABILITIES, PLAYER_CHANNELS.SET_ACTIVE_PROVIDER,
     PLAYER_CHANNELS.REGISTER_PROVIDER, PLAYER_CHANNELS.UNREGISTER_PROVIDER,
-    PLAYER_CHANNELS.REPORT_PROVIDER_STATE
+    PLAYER_CHANNELS.REPORT_PROVIDER_STATE, "player:getMediaCapabilities"
   ];
   for (const ch of expected) {
     assert.ok(fakeIpcMain._handlers.has(ch), `Channel fehlt: ${ch}`);

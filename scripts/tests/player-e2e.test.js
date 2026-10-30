@@ -56,7 +56,7 @@ registerPlayerHandlers(windowManager);
 async function rendererCall(channel, ...args) {
   const handler = ipcHandlers.get(channel);
   assert.ok(handler, `Kein Handler: ${channel}`);
-  return handler({}, ...args);
+  return handler({ sender: fakeWindow.webContents }, ...args);
 }
 
 console.log("==========================================");
@@ -167,6 +167,23 @@ test("E2E: play() → Provider.play() → State-Push 'playing' (§37)", async ()
   // Push wurde gesendet
   const playing = pushEvents.filter(e => e.channel === "player:stateChanged" && e.data.state === "playing");
   assert.ok(playing.length >= 1, "Kein playing-State-Push gefunden");
+});
+
+test("E2E: Medienaktionen verwenden den aktiven Provider und sind idempotent", async () => {
+  const capabilities = playerManager.getMediaCapabilities();
+  assert.strictEqual(capabilities.actions.play, true);
+  assert.strictEqual(capabilities.actions.next, false);
+  const unsupported = await playerManager.requestMediaAction("next");
+  assert.strictEqual(unsupported.success, false);
+  assert.strictEqual(unsupported.error.code, "UNSUPPORTED_ACTION");
+  const callsBefore = thirdPartyProvider._calls.filter((call) => call.method === "play").length;
+  await playerManager.requestMediaAction("play");
+  assert.strictEqual(thirdPartyProvider._calls.filter((call) => call.method === "play").length, callsBefore, "play bei schon laufender Quelle startet nicht doppelt");
+  const paused = await playerManager.requestMediaAction("pause");
+  assert.strictEqual(paused.success, true);
+  assert.strictEqual(playerManager.getState().state, "paused");
+  const invalid = await playerManager.requestMediaAction({ action: "stop" });
+  assert.strictEqual(invalid.error.code, "INVALID_ACTION");
 });
 
 test("E2E: Capabilities des Providers im State korrekt (§14)", async () => {

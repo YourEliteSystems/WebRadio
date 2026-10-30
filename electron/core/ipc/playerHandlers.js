@@ -59,8 +59,14 @@ function registerPlayerHandlers(windowManager) {
   };
 
   // ─── Query ──────────────────────────────────
-  ipcMain.handle(PLAYER_CHANNELS.GET_STATE, () => {
-    return playerManager.getState();
+  ipcMain.handle(PLAYER_CHANNELS.GET_STATE, (event) => {
+    const mainWindow = getWindow();
+    if (!mainWindow || event.sender !== mainWindow.webContents) return null;
+    const state = playerManager.getState();
+    return {
+      ...state,
+      source: state.source ? { id: state.source.id, type: state.source.type, name: state.source.name || null } : null
+    };
   });
 
   // ─── Controls ───────────────────────────────
@@ -112,8 +118,16 @@ function registerPlayerHandlers(windowManager) {
     return { success: true };
   });
 
-  ipcMain.handle(PLAYER_CHANNELS.GET_CAPABILITIES, () => {
+  ipcMain.handle(PLAYER_CHANNELS.GET_CAPABILITIES, (event) => {
+    const mainWindow = getWindow();
+    if (!mainWindow || event.sender !== mainWindow.webContents) return null;
     return playerManager.getCapabilities();
+  });
+
+  ipcMain.handle("player:getMediaCapabilities", (event) => {
+    const mainWindow = getWindow();
+    if (!mainWindow || event.sender !== mainWindow.webContents) return null;
+    return playerManager.getMediaCapabilities();
   });
 
   // ─── Provider Registration ──────────────────
@@ -192,7 +206,21 @@ function registerPlayerHandlers(windowManager) {
     if (!win || win.isDestroyed()) return;
 
     try {
-      win.webContents.send(PLAYER_CHANNELS.STATE_CHANGED, state);
+      const safeState = {
+        state: state.state,
+        title: state.title,
+        artist: state.artist,
+        artwork: state.artwork,
+        volume: state.volume,
+        muted: state.muted,
+        provider: state.provider,
+        source: state.source ? { id: state.source.id, type: state.source.type, name: state.source.name || null } : null,
+        capabilities: state.capabilities,
+        position: state.position,
+        duration: state.duration,
+        error: state.error
+      };
+      win.webContents.send(PLAYER_CHANNELS.STATE_CHANGED, safeState);
     } catch (err) {
       logger.warn(`State-Push fehlgeschlagen: ${err.message}`);
     }

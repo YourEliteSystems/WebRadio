@@ -249,25 +249,23 @@ export default function PlayerBar({
         />
         <div className="np-info">
           <div className="np-station">{displayName}</div>
-          {displaySubtitle && (
+          {displaySubtitle ? (
             <div className="np-subtitle">{displaySubtitle}</div>
+          ) : (
+            <div className="np-title">{effectiveTitle}</div>
           )}
-          <div className="np-title">{effectiveTitle}</div>
         </div>
         {/* Favoriten-Button nur bei Radio-Station */}
         {station && !hasUnifiedApi && (
           <button
-            className="player-btn"
+            className="np-favorite-btn"
             onClick={onToggleFavorite}
             title="Favorit"
             style={{
-              color: isFavorite ? '#ef4444' : 'var(--text-muted)',
-              marginLeft: '8px',
-              width: '32px',
-              height: '32px'
+              color: isFavorite ? '#ef4444' : 'var(--text-muted)'
             }}
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor"
+            <svg viewBox="0 0 24 24" stroke="currentColor"
               strokeWidth="2" fill={isFavorite ? 'currentColor' : 'none'}
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -277,17 +275,14 @@ export default function PlayerBar({
         {/* Favoriten-Button im Unified-Modus wenn Radio aktiv */}
         {hasUnifiedApi && playerState.source?.type === 'radio' && station && (
           <button
-            className="player-btn"
+            className="np-favorite-btn"
             onClick={onToggleFavorite}
             title="Favorit"
             style={{
-              color: isFavorite ? '#ef4444' : 'var(--text-muted)',
-              marginLeft: '8px',
-              width: '32px',
-              height: '32px'
+              color: isFavorite ? '#ef4444' : 'var(--text-muted)'
             }}
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor"
+            <svg viewBox="0 0 24 24" stroke="currentColor"
               strokeWidth="2" fill={isFavorite ? 'currentColor' : 'none'}
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>

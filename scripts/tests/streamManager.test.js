@@ -22,7 +22,8 @@ function chainable() {
         pipe() {
             kPipe++;
             return {
-                on() { return this; },
+                on(event, callback) { (this.listeners ||= {})[event] = callback; return this; },
+                emit(event, ...args) { this.listeners?.[event]?.(...args); return this; },
                 removeAllListeners() { kSRALL++; return this; },
                 destroy() { kDestroy++; }
             };
@@ -46,7 +47,8 @@ function reset() { kKill = kRALL = kPipe = kDestroy = kSRALL = 0; emits = []; }
 const win = { isDestroyed: () => false, webContents: { send: () => {} } };
 
 console.log("[1] Start/Stop");
-test("start erzeugt ffmpegCommand+pipe", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s", { name: "T" }); assert.ok(s.ffmpegCommand); assert.ok(s.ffmpegStream); assert.strictEqual(kPipe, 1); assert.strictEqual(s.currentStation.name, "T"); assert.strictEqual(emits.filter(e=>e.e==="play").length, 1); s.stop(); });
+test("start wartet bis zum ersten PCM-Chunk bevor stream:playing gemeldet wird", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s", { name: "T" }); assert.ok(s.ffmpegCommand); assert.ok(s.ffmpegStream); assert.strictEqual(kPipe, 1); assert.strictEqual(s.currentStation.name, "T"); assert.strictEqual(emits.filter(e=>e.e==="play").length, 1); assert.strictEqual(emits.filter(e=>e.e==="stream:playing").length, 0); s.stop(); });
+test("PCM-Ankunft meldet stream:playing genau einmal pro Stream", () => { reset(); let sent = 0; const s = new SM.StreamManager(); s.setMainWindow({ isDestroyed: () => false, webContents: { send: () => { sent++; } } }); s.start("http://x/pcm", { name: "PCM" }); const stream = s.ffmpegStream; stream.emit("data", Buffer.alloc(8)); stream.emit("data", Buffer.alloc(8)); assert.strictEqual(sent, 2); assert.strictEqual(emits.filter(e=>e.e==="stream:playing").length, 1); s.stop(); });
 test("stop killt ffmpeg+stream", () => { reset(); const s = new SM.StreamManager(); s.setMainWindow(win); s.start("http://x/s"); assert.ok(s.ffmpegCommand && s.ffmpegStream, "vor stop: Refs gesetzt"); const stopsBefore = emits.filter(e=>e.e==="stop").length; s.stop(); assert.strictEqual(s.ffmpegCommand, null); assert.strictEqual(s.ffmpegStream, null); assert.ok(kKill >= 1, "kill aufgerufen"); assert.ok(kDestroy >= 1, "stream destroy aufgerufen"); assert.ok(emits.filter(e=>e.e==="stop").length >= stopsBefore + 1, "stop-Event emittiert"); });
 
 console.log("[2] Restart/Station");

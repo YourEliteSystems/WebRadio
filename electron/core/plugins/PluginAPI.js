@@ -10,13 +10,19 @@ const LogManager = require("../diagnostics/logging/LogManager");
 const SettingsManager = require("../storage/SettingsManager");
 const playerManager = require("../player/PlayerManager");
 const PluginHttpServer = require("./PluginHttpServer");
+const PluginWebSessionManager = require("./PluginWebSessionManager");
 const { app } = require("electron");
 
-const PLUGIN_API_VERSION = "1.1.0";
+const PLUGIN_API_VERSION = "1.3.0";
 
 function create(meta = {}) {
   const pluginId = meta.id || "anonymous";
-  const permissions = meta.permissions || [];
+  const permissions = Array.isArray(meta.permissions) ? meta.permissions : [];
+  const capabilityValidation = PluginPermissions.validateCapabilities(meta.capabilities || [], permissions);
+  const grantedCapabilities = new Set(capabilityValidation.granted);
+  const playerSubscriptions = new Set();
+  const webSessionSubscriptions = new Set();
+  const webSessionSessions = new Set();
 
   function checkNavPermission() {
     if (!PluginPermissions.hasPermission(permissions, "navigation")) {
@@ -36,7 +42,42 @@ function create(meta = {}) {
     }
   }
 
-  return {
+  function getPublicMediaState() {
+    const state = playerManager.getState();
+    return {
+      ...state,
+      source: state.source ? { id: state.source.id, type: state.source.type, name: state.source.name || null } : null
+    };
+  }
+
+  function hasGrantedCapability(capabilityId) {
+    return grantedCapabilities.has(capabilityId);
+  }
+
+  function checkWebSessionPermission(capabilityId = "web-session") {
+    if (!hasGrantedCapability(capabilityId)) {
+      const msg = `[PluginAPI] Plugin "${pluginId}" benötigt die erforderlichen Permissions und die Capability "${capabilityId}".`;
+      LogManager.getLogger(`Plugin:${pluginId}`).warn(msg);
+      const error = new Error(msg);
+      error.code = "CAPABILITY_DENIED";
+      throw error;
+    }
+    if (!Array.isArray(meta.webSessionOrigins) || meta.webSessionOrigins.length === 0) {
+      const error = new Error(`[PluginAPI] Plugin "${pluginId}" benötigt deklarierte webSessionOrigins.`);
+      error.code = "ORIGINS_REQUIRED";
+      throw error;
+    }
+  }
+
+  function checkMediaControlsPermission() {
+    if (!PluginPermissions.hasPermission(permissions, "media-control") || !hasGrantedCapability("media-controls")) {
+      const msg = `[PluginAPI] Plugin "${pluginId}" benötigt die Berechtigung "media-control" und die Capability "media-controls", um System-Mediensteuerungen zu verwenden.`;
+      LogManager.getLogger(`Plugin:${pluginId}`).warn(msg);
+      throw new Error(msg);
+    }
+  }
+
+  const api = {
     plugin: meta,
     version: {
       pluginAPI: PLUGIN_API_VERSION,
@@ -260,8 +301,150 @@ function create(meta = {}) {
         checkPlayerPermission();
         playerManager.updateProviderState(providerId, state);
       }
+    },
+
+    webSession: {
+      create(options) {
+        checkWebSessionPermission();
+        if (!options || typeof options !== "object" || Array.isArray(options)) {
+          throw new TypeError("webSession.create erwartet ein Objekt.");
+        }
+        if (options.pluginId !== pluginId) {
+          const error = new Error("pluginId muss der Plugin-ID des aktuellen Kontexts entsprechen.");
+          error.code = "INVALID_ARGUMENT";
+          throw error;
+        }
+        const sessionId = options.sessionId;
+        if (typeof sessionId === "string" && webSessionSessions.has(sessionId)) {
+          const error = new Error("Diese Web-Sitzung ist in diesem Plugin-Kontext bereits verwaltet.");
+          error.code = "SESSION_EXISTS";
+          throw error;
+        }
+        const state = PluginWebSessionManager.create(pluginId, meta.webSessionOrigins, options);
+        if (typeof sessionId === "string") webSessionSessions.add(sessionId);
+        // Ohne `web-session-media` bleibt die Antwort auf die grobe
+        // Sitzungsidentität beschränkt; Metadaten und Aktionen erfordern
+        // getState()/onState()/command() mit der zusätzlichen Capability.
+        return { sessionId, state: state.state };
+      },
+      /**
+       * Meldet die tatsächlich verfügbaren Funktionen dieser Core-Version.
+       * Plugins, die eine nicht verfügbare Fähigkeit (z. B. DRM) benötigen,
+       * müssen ihren Provider verständlich deaktivieren.
+       */
+      getCapabilities() {
+        checkWebSessionPermission();
+        return {
+          commands: { ...PluginWebSessionManager.SUPPORTED_COMMANDS },
+          capabilities: ["web-session", "web-session-media", "encrypted-media"]
+            .filter((capabilityId) => hasGrantedCapability(capabilityId)),
+          encryptedMedia: hasGrantedCapability("encrypted-media"),
+          origins: [...meta.webSessionOrigins]
+        };
+      },
+      openLogin(sessionId) {
+        checkWebSessionPermission();
+        return PluginWebSessionManager.openLogin(pluginId, sessionId);
+      },
+      load(sessionId, targetUrl) {
+        checkWebSessionPermission();
+        return PluginWebSessionManager.load(pluginId, sessionId, targetUrl);
+      },
+      getState(sessionId) {
+        checkWebSessionPermission("web-session-media");
+        return PluginWebSessionManager.getState(pluginId, sessionId);
+      },
+      command(sessionId, command) {
+        checkWebSessionPermission("web-session-media");
+        return PluginWebSessionManager.command(pluginId, sessionId, command);
+      },
+      show(sessionId, bounds) {
+        checkWebSessionPermission();
+        return PluginWebSessionManager.show(pluginId, sessionId, bounds);
+      },
+      hide(sessionId) {
+        checkWebSessionPermission();
+        return PluginWebSessionManager.hide(pluginId, sessionId);
+      },
+      reload(sessionId) {
+        checkWebSessionPermission();
+        return PluginWebSessionManager.reload(pluginId, sessionId);
+      },
+      destroy(sessionId) {
+        checkWebSessionPermission();
+        const result = PluginWebSessionManager.destroy(pluginId, sessionId);
+        webSessionSessions.delete(sessionId);
+        return result;
+      },
+      onState(sessionId, callback) {
+        checkWebSessionPermission("web-session-media");
+        const unsubscribe = PluginWebSessionManager.onState(pluginId, sessionId, callback);
+        webSessionSubscriptions.add(unsubscribe);
+        return () => {
+          unsubscribe();
+          webSessionSubscriptions.delete(unsubscribe);
+        };
+      },
+      onNavigationRequired(sessionId, callback) {
+        checkWebSessionPermission();
+        const unsubscribe = PluginWebSessionManager.onNavigationRequired(pluginId, sessionId, callback);
+        webSessionSubscriptions.add(unsubscribe);
+        return () => {
+          unsubscribe();
+          webSessionSubscriptions.delete(unsubscribe);
+        };
+      },
+      onError(sessionId, callback) {
+        checkWebSessionPermission();
+        const unsubscribe = PluginWebSessionManager.onError(pluginId, sessionId, callback);
+        webSessionSubscriptions.add(unsubscribe);
+        return () => {
+          unsubscribe();
+          webSessionSubscriptions.delete(unsubscribe);
+        };
+      }
+    },
+
+    mediaControls: {
+      getState() {
+        checkMediaControlsPermission();
+        return getPublicMediaState();
+      },
+      getCapabilities() {
+        checkMediaControlsPermission();
+        return playerManager.getMediaCapabilities();
+      },
+      subscribe(callback) {
+        checkMediaControlsPermission();
+        if (typeof callback !== "function") throw new TypeError("mediaControls.subscribe erwartet eine Funktion");
+        const unsubscribe = playerManager.subscribe(() => callback(getPublicMediaState()));
+        playerSubscriptions.add(unsubscribe);
+        return () => {
+          unsubscribe();
+          playerSubscriptions.delete(unsubscribe);
+        };
+      },
+      requestAction(action) {
+        checkMediaControlsPermission();
+        if (typeof action !== "string" || !["play", "pause", "next", "previous"].includes(action)) {
+          return Promise.resolve({ success: false, error: { code: "INVALID_ACTION", message: "Ungültige Medienaktion." } });
+        }
+        return playerManager.requestMediaAction(action);
+      }
+    },
+
+    dispose() {
+      for (const unsubscribe of playerSubscriptions) unsubscribe();
+      playerSubscriptions.clear();
+      for (const unsubscribe of webSessionSubscriptions) unsubscribe();
+      webSessionSubscriptions.clear();
+      PluginWebSessionManager.hidePlugin(pluginId);
+      webSessionSessions.clear();
     }
+
   };
+
+  return api;
 }
 
 module.exports = {

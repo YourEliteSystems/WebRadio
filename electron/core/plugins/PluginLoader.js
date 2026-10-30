@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const StorageManager = require("../storage/StorageManager");
 const LogManager = require("../diagnostics/logging/LogManager");
+const PluginWebSessionManager = require("./PluginWebSessionManager");
 
 const logger = LogManager.getLogger("PluginLoader");
 
@@ -37,6 +38,12 @@ class PluginLoader {
             version: manifest.version,
             main: manifest.main,
             renderer: manifest.renderer,
+            // Berechtigungen und Capabilities bestimmen die Laufzeitrechte.
+            // Sie gehören deshalb in den Fingerprint, damit ein Rescan das
+            // Plugin bei geänderten Rechten tatsächlich neu lädt.
+            permissions: Array.isArray(manifest.permissions) ? manifest.permissions : [],
+            capabilities: Array.isArray(manifest.capabilities) ? manifest.capabilities : [],
+            webSessionOrigins: Array.isArray(manifest.webSessionOrigins) ? manifest.webSessionOrigins : [],
             path: plugin.path
         };
         const fingerprintStr = JSON.stringify(relevantFields);
@@ -76,6 +83,11 @@ class PluginLoader {
 
                 const manifest =
                     this.loadManifest(pluginPath);
+
+                const webSessionValidation = PluginWebSessionManager.validateManifest(manifest);
+                if (!webSessionValidation.valid) {
+                    throw new Error(webSessionValidation.errors.join("; "));
+                }
 
                 const plugin = {
                     ...manifest,

@@ -49,7 +49,7 @@ This flow is enforced by the core. It is not optional and it is not reconfigurab
 
 These are related but different concepts.
 
-- **Permissions** control access to core services such as events, storage, settings, navigation, UI, player and notifications.
+- **Permissions** control access to core services such as events, storage, settings, navigation, UI, player, media controls and notifications.
 - **Capabilities** control more specific runtime behavior, especially HTTP-origin behavior and provider-specific access.
 
 A capability may require a permission, but a permission does not automatically grant a capability.
@@ -58,7 +58,7 @@ For the current permission list, see the plugin manifest and Plugin API document
 
 ---
 
-## Known Capabilities (1.0.7-alpha.5)
+## Known Capabilities (planned for 1.0.7-beta.3)
 
 The following capabilities are currently defined by the core:
 
@@ -68,6 +68,10 @@ The following capabilities are currently defined by the core:
 - `youtube-iframe`
 - `youtube-api`
 - `player`
+- `media-controls` (planned for `v1.0.7-beta.3`)
+- `web-session` (planned for `v1.0.7-beta.3`)
+- `web-session-media` (planned for `v1.0.7-beta.3`)
+- `encrypted-media` (known, but never granted by this build)
 
 Unknown capabilities are always denied.
 
@@ -129,6 +133,88 @@ No external-origin access is implied by this capability.
 
 ---
 
+### media-controls
+
+Allows a plugin to read the current Unified Player state, subscribe to state changes, query supported media actions, and request play/pause/next/previous. It requires the separate `media-control` permission. Both declarations are checked on every API call; missing either one denies access. The API returns controlled state snapshots and structured unsupported/invalid-action errors. It does not expose Electron, IPC, FFmpeg or audio resources. Existing plugins that do not request this capability are unchanged.
+
+Manifest declaration:
+
+```json
+{
+  "permissions": ["media-control"],
+  "capabilities": ["media-controls"]
+}
+```
+
+See [Unified Player API](../api-reference/UnifiedPlayer.md#plugin-media-controls-api) for methods and platform limits.
+
+---
+
+### web-session
+
+Allows a plugin to create isolated, persistent web sessions for explicitly declared HTTPS origins. A session is an Electron `WebContentsView` with its own `persist:` partition, `contextIsolation`, `sandbox` and no Node integration. The plugin never receives cookies, passwords, session headers or tokens.
+
+The manifest must declare the allowed origins in `webSessionOrigins`:
+
+```json
+{
+  "capabilities": ["web-session", "web-session-media"],
+  "webSessionOrigins": [
+    "https://music.youtube.com",
+    "https://accounts.google.com"
+  ]
+}
+```
+
+Origin rules (enforced when the plugin is discovered and again for every navigation/load):
+
+- exact HTTPS origins only
+- no wildcards, no `http:`, no paths/query/fragments, no credentials
+- no origin is added at runtime; a manifest change requires a rescan/reload
+
+The core derives the partition name from plugin and session ID. A caller-supplied `partition` is accepted only if it matches that derived value; plugins should omit it.
+
+`web-session` is capability-only. It does not add a permission, so existing plugins without the capability are unchanged.
+
+Limitations:
+
+- `destroy()` closes the view but keeps the persistent partition, so a provider login survives an app restart. There is no settings UI yet to delete a stored partition separately.
+- Real provider logins and playback (for example Google/YouTube Music) were not verified during development; only the session mechanics and their automated tests are covered.
+
+---
+
+### web-session-media
+
+Allows a plugin to read sanitized media state and request standardized media commands for one of its existing sessions. It requires `web-session`; without it the capability is denied.
+
+Implemented commands: `play`, `pause`, `stop`. The reference also names `seek` and `setVolume`, but defines no arguments for them. WebRadio does not invent a payload: these commands currently return `COMMAND_ARGUMENTS_UNSPECIFIED` instead of guessing a target position or volume.
+
+State events are limited to:
+
+```text
+state, title, artist, album, artwork, duration, position, volume, audible
+```
+
+No cookies, URLs, headers, tokens, storage contents or raw IPC objects are included. Subscriptions deliver an initial snapshot, then changes; duplicate snapshots are suppressed. `destroy`/plugin unload removes listeners and pauses or hides the session.
+
+---
+
+### encrypted-media
+
+Marks an optional DRM/EME requirement. This Electron build ships no usable DRM/CDM support, so the capability is known but never granted.
+
+Declaring it does not invalidate the manifest; a provider that needs DRM must detect that and disable itself:
+
+```javascript
+if (!context.capabilities.has("encrypted-media")) {
+  // keep the DRM provider disabled and explain why
+}
+```
+
+`context.webSession.getCapabilities().encryptedMedia` reports the same value (`false`). A future Electron build with DRM support can enable the capability without changing the manifest format.
+
+---
+
 ## Capability Requirements
 
 A capability can depend on another capability or permission.
@@ -139,8 +225,10 @@ Examples from the current implementation:
 - `external-origin` requires `http-origin`
 - `youtube-iframe` requires `external-origin`
 - `youtube-api` requires `youtube-iframe`
+- `web-session-media` requires `web-session`
+- `encrypted-media` requires `web-session` and is additionally marked unavailable
 
-If the required base capability or permission is missing, the capability is denied.
+If the required base capability or permission is missing, the capability is denied. A capability marked `available: false` is never granted, regardless of its prerequisites.
 
 ---
 
@@ -273,7 +361,7 @@ This documentation does not claim more than the implementation provides.
 
 ## What Is Not Implemented Yet
 
-The following are **not** part of 1.0.7-alpha.5:
+The following are outside the planned scope of 1.0.7-beta.3:
 
 - Plugin Store
 - Theme Store

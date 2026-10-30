@@ -116,6 +116,7 @@ class PluginRuntime {
             );
 
             plugin.instance = instance;
+            plugin.context = context;
             plugin.listeners = listeners;
             plugin.loaded = true;
             plugin.manifest = manifest;
@@ -171,6 +172,12 @@ class PluginRuntime {
                 );
 
             }
+
+            // Plugin-API-Subscriptions vor dem Entladen entfernen.
+            if (typeof plugin.context?.dispose === "function") {
+                plugin.context.dispose();
+            }
+            plugin.context = null;
 
             // Navigation Lifecycle Cleanup: Alle vom Plugin registrierten Navigations-Einträge entfernen
             NavigationManager.clearPlugin(manifest.id);

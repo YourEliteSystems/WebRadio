@@ -18,7 +18,7 @@ Entscheidend ist der Unterschied zwischen *angelegt* und *aktiv*:
 | Auslöser | Version | Standardzustand |
 | -------- | ------- | --------------- |
 | Default-Branch `main` | `latest` | aktiv und gebaut |
-| Tag (z. B. `v1.0.7-beta.2`) | Version mit dem Tag-Namen | **inaktiv**, wird nicht gebaut |
+| Tag (z. B. `v1.0.7-beta.3`) | Version mit dem Tag-Namen | **inaktiv**, wird nicht gebaut |
 | anderer Branch | Version mit dem Branch-Namen | **inaktiv**, wird nicht gebaut |
 | Pull Request | temporäre Version | Build nur zur Vorschau, erscheint nicht im Versionsumschalter |
 
@@ -47,7 +47,7 @@ Das Projekt taggt nach SemVer mit `v`-Präfix:
 ```text
 v1.0.6            stabiles Release
 v1.0.7-alpha.1    Vorabversion
-v1.0.7-beta.2     Vorabversion
+v1.0.7-beta.3     Vorabversion
 v1.0.7-rc.1       Vorabversion (Release Candidate)
 ```
 
@@ -61,7 +61,7 @@ von `stable` nie ausgewählt.
 | ------- | ------ | ------ |
 | `latest` | `main` | aktiv, gebaut, Standardversion |
 | `stable` | Tag `v1.0.6` | aktiv, letzter Build (26.09.2026) **fehlgeschlagen** – `/de/stable/` liefert `404` |
-| `v1.0.7-beta.2` | letzter Beta-Tag | inaktiv, nicht gebaut |
+| `v1.0.7-beta.3` | letzter Beta-Tag | inaktiv, nicht gebaut |
 | alle älteren Tags/Branches | – | inaktiv, nicht gebaut |
 
 Der Grund für den fehlgeschlagenen `stable`-Build liegt in der Historie: `v1.0.6` und
@@ -103,9 +103,9 @@ Tags müssen einmalig von Hand aktiviert werden:
 
 1. <https://app.readthedocs.org/projects/webradio/versions/> öffnen
    (oder **Admin → Versions** im Projekt).
-2. Gewünschte Version suchen, z. B. `v1.0.7-beta.2`.
+2. Gewünschte Version suchen, z. B. `v1.0.7-beta.3`.
 3. **Activate** wählen; der Build startet sofort.
-4. Nach dem Build die URL prüfen: `https://webradio.readthedocs.io/de/v1.0.7-beta.2/`.
+4. Nach dem Build die URL prüfen: `https://webradio.readthedocs.io/de/v1.0.7-beta.3/`.
 5. `v1.0.6` und ältere Tags **nicht** aktivieren – sie können nicht bauen (siehe oben).
 
 ### Automatisierungsregeln für neue Tags
@@ -163,7 +163,7 @@ Das Projekt verwendet bereits `multiple_versions_with_translations`, also URLs d
 weiterer Versionen ändert dieses Schema **nicht**:
 
 - `https://webradio.readthedocs.io/de/latest/` bleibt gültig.
-- Neue Versionen erscheinen daneben als `/de/v1.0.7-beta.2/`, `/de/stable/` usw.
+- Neue Versionen erscheinen daneben als `/de/v1.0.7-beta.3/`, `/de/stable/` usw.
 - `https://webradio.readthedocs.io/` leitet auf die Standardversion weiter.
 - Es sind **keine Weiterleitungen** nötig, solange das Schema unverändert bleibt.
   Würde das Projekt auf „Single Version“ umgestellt, würden alle bestehenden Links

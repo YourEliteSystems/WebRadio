@@ -179,7 +179,7 @@ Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumge
 
 ### Aktuelle Version und Release-Kanäle
 
-Der Quellstand dokumentiert derzeit **v1.0.7-beta.2**. Das zuletzt veröffentlichte GitHub-Beta-Release ist aktuell **[v1.0.7-beta.1](../../releases/tag/v1.0.7-beta.1)**. Diese Angaben können auseinanderliegen, wenn neuere Änderungen noch nicht als Release veröffentlicht wurden. **v1.0.7-beta.2 ist damit nicht automatisch herunterladbar.** Für Downloads gelten ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
+Der Quellstand dokumentiert derzeit **v1.0.7-beta.3**. Das zuletzt veröffentlichte GitHub-Beta-Release ist aktuell **[v1.0.7-beta.2](../../releases/tag/v1.0.7-beta.2)**. Diese Angaben können auseinanderliegen, wenn neuere Änderungen noch nicht als Release veröffentlicht wurden. **v1.0.7-beta.3 ist damit nicht automatisch herunterladbar.** Für Downloads gelten ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
 
 - **Stable** – verwenden, wenn ein entsprechender stabiler Release veröffentlicht wurde.
 - **Beta** – Vorabversionen zum Testen; Fehler und Änderungen sind möglich.

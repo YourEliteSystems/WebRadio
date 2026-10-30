@@ -33,7 +33,7 @@ module.exports = {
 
 ---
 
-# API-Struktur (1.0.7-alpha.5)
+# API-Struktur (Plugin API 1.3.0)
 
 ```javascript
 context = {
@@ -46,7 +46,9 @@ context = {
   ui: {...},                      // UI-Registrierung
   navigation: {...},              // Navigation Extension API
   httpOrigin: {...},              // Plugin-HTTP-Ursprung (Capability-abhängig)
-  player: {...}                   // Unified Player API (Berechtigung abhängig)
+  player: {...},                  // Unified Player API (Berechtigung abhängig)
+  mediaControls: {...},           // System-/Player-Medienstatus (Capability-abhängig)
+  webSession: {...}               // Isolierte Web-Sitzungen (Capability-abhängig)
 }
 ```
 
@@ -531,6 +533,69 @@ module.exports = {
 ### Deprecation-Warnungen
 
 Der PluginManager gibt Warnungen aus, wenn deprecated Importe erkannt werden.
+
+---
+
+## System Media Controls
+
+Plugins that need media state or playback actions should use `context.mediaControls` from the PluginContext. Declare both the `media-control` permission and `media-controls` capability; each method checks both grants at runtime. The API exposes state snapshots without stream URLs, supported actions, an initial-plus-change subscription, and controlled play/pause/next/previous requests. Use the returned unsubscribe function and let PluginRuntime dispose remaining subscriptions on unload. Direct Electron, IPC and audio-resource access is not part of this API.
+
+See the [Unified Player API reference](../api-reference/UnifiedPlayer.md#plugin-media-controls-api) for the manifest declaration and method example.
+
+---
+
+## Web Sessions
+
+Plugins that need a provider web page (for example a music service's own login and player) can use `context.webSession`. Declare the capability and every allowed HTTPS origin in the manifest:
+
+```json
+{
+  "capabilities": ["web-session", "web-session-media"],
+  "webSessionOrigins": [
+    "https://music.youtube.com",
+    "https://accounts.google.com"
+  ]
+}
+```
+
+```javascript
+module.exports = {
+  init(context) {
+    if (!context.capabilities.has("web-session")) return;
+
+    const state = context.webSession.create({
+      sessionId: "youtube-music",
+      origin: "https://music.youtube.com"
+    });
+
+    const unsubscribe = context.webSession.onState("youtube-music", (next) => {
+      // next.state, next.title, next.artist, next.album, next.artwork,
+      // next.duration, next.position, next.volume, next.audible
+    });
+
+    // Login sichtbar machen, danach kann die Sitzung verborgen weiterlaufen.
+    context.webSession.openLogin("youtube-music");
+    context.webSession.show("youtube-music", { x: 40, y: 120, width: 900, height: 640 });
+
+    // Bei Bedarf: context.webSession.command("youtube-music", { type: "pause" });
+    // Beim Entladen: unsubscribe() oder context.dispose() räumt die Listener ab.
+  }
+};
+```
+
+Contract:
+
+- Every method re-checks the declared capability. `getState`, `command`, `onState` additionally require `web-session-media`.
+- `create` is idempotent per session ID and returns only `{ sessionId, state }`. Full metadata requires `web-session-media` through `getState`/`onState`. The core derives the persistent partition; a supplied `partition` is only accepted if it matches.
+- `load` accepts declared HTTPS origins only. `show` needs a live main window and validates `x/y/width/height`.
+- `command` currently executes `play`, `pause` and `stop`. `seek` and `setVolume` are part of the reference but have no documented arguments, so the core returns `COMMAND_ARGUMENTS_UNSPECIFIED` instead of inventing one.
+- `onState` emits an initial sanitized snapshot, then changes. Duplicate snapshots are suppressed. `unsubscribe()` and plugin unload remove the listener.
+- Errors are stable: `CAPABILITY_DENIED`, `ORIGINS_REQUIRED`, `INVALID_ARGUMENT`, `INVALID_ORIGIN`, `ORIGIN_NOT_ALLOWED`, `INVALID_PARTITION`, `SESSION_EXISTS`, `SESSION_NOT_FOUND`, `INVALID_COMMAND`, `INVALID_BOUNDS`, `LOAD_FAILED`, `COMMAND_FAILED`, `PLAY_REJECTED`, `NO_MEDIA`.
+- No cookies, headers, tokens or Electron objects cross the API boundary.
+
+### Why there is no `window.pluginWebSessionAPI`
+
+The MediaHub reference proposes a renderer bridge under that name. WebRadio does not implement it: renderer plugin scripts from different plugins execute in the same renderer, and a global bridge would have to trust a caller-supplied plugin ID. A plugin could then act with another plugin's `web-session` capability. The operations are therefore exposed on the plugin's main-process `context`, where the manifest identity and capability set are authoritative. A plugin that needs its web session from its own renderer must relay through its main-process code and its own validated API.
 
 ---
 

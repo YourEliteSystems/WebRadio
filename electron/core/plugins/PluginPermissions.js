@@ -11,7 +11,8 @@ const VALID_PERMISSIONS = [
     "audio",
     "notifications",
     "network",
-    "player"
+    "player",
+    "media-control"
 ];
 
 const CapabilityRegistry = require("./CapabilityRegistry");
@@ -126,6 +127,15 @@ function resolveCapabilities(requestedCapabilities = [], grantedPermissions = []
 
     // 3) Kette in Abhängigkeitsreihenfolge auflösen.
     for (const capId of required) {
+        // Vom Core als derzeit nicht verfügbar markierte Capabilities (z. B.
+        // `encrypted-media` ohne DRM-Unterstützung) werden nie gewährt. Sie
+        // bleiben bekannt, damit Plugins ihre Verfügbarkeit abfragen können.
+        if (CapabilityRegistry.getDefinition(capId)?.security?.available === false) {
+            denied.push(capId);
+            reasons[capId] = `Capability unavailable: ${capId}`;
+            continue;
+        }
+
         const prereq = CapabilityRegistry.getPrerequisites(capId) || {};
         const permission = prereq.permission;
         const capability = prereq.capability;

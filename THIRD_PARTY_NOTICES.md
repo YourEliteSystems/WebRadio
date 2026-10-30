@@ -2,7 +2,7 @@
 
 WebRadio wird unter der Apache License 2.0 veröffentlicht. Das gilt nicht automatisch für eingebundene Bibliotheken oder mitgelieferte Programme; diese können eigene Lizenzbedingungen haben.
 
-Diese Übersicht ist eine **erste Bestandsaufnahme der direkten Abhängigkeiten** aus `package-lock.json` für den Quellstand `1.0.7-beta.2`. Sie ersetzt noch keine vollständige, automatisiert geprüfte Lizenzliste aller transitiven Abhängigkeiten und keine rechtliche Prüfung. Die angegebenen Lizenzkennzeichen stammen aus den Paketmetadaten und sollten vor Releases erneut überprüft werden.
+Diese Übersicht ist eine **erste Bestandsaufnahme der direkten Abhängigkeiten** aus `package-lock.json` für den Quellstand `1.0.7-beta.3`. Sie ersetzt noch keine vollständige, automatisiert geprüfte Lizenzliste aller transitiven Abhängigkeiten und keine rechtliche Prüfung. Die angegebenen Lizenzkennzeichen stammen aus den Paketmetadaten und sollten vor Releases erneut überprüft werden.
 
 ## Direkte Laufzeitabhängigkeiten
 

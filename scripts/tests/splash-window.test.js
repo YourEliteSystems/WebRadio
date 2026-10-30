@@ -63,7 +63,7 @@ const appRoot = path.resolve(__dirname, "../..");
 const fakeApp = {
     isPackaged: false,
     getAppPath: () => appRoot,
-    getVersion: () => "1.0.7-beta.2",
+    getVersion: () => "1.0.7-beta.3",
     getPath: (key) => (key === "userData" ? userDataRoot : userDataRoot),
     quit: () => { quitCalls++; }
 };
@@ -242,7 +242,7 @@ const invoke = (channel, win) => ipcHandlers.get(channel)(eventFor(win));
             assert.strictEqual(typeof ipcHandlers.get(channel), "function", `${channel} fehlt`);
         }
         assert.strictEqual(ipcHandlers.size, SPLASH_CHANNELS.length);
-        assert.strictEqual(invoke("splash:get-version", splash._window), "1.0.7-beta.2");
+        assert.strictEqual(invoke("splash:get-version", splash._window), "1.0.7-beta.3");
 
         splash.dispose();
     });
@@ -602,7 +602,7 @@ const invoke = (channel, win) => ipcHandlers.get(channel)(eventFor(win));
 
         assert.strictEqual(parsed.type, "boot-failure");
         assert.strictEqual(parsed.failedStep, "plugins-init");
-        assert.strictEqual(parsed.application.version, "1.0.7-beta.2");
+        assert.strictEqual(parsed.application.version, "1.0.7-beta.3");
         assert.strictEqual(parsed.paths.logs, path.join(userDataRoot, "logs"));
         assert.strictEqual(parsed.error.message, "token=[REDACTED]");
         assert.ok(written.indexOf("geheim") === -1, "Token wurde nicht bereinigt");

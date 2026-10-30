@@ -51,9 +51,9 @@ class HelloPlugin extends Plugin {
 
 ---
 
-# Available Services (1.0.7-alpha.5)
+# Available Services
 
-In WebRadio 1.0.7-alpha.5, the PluginContext exposes a controlled subset of the public SDK.
+The PluginContext exposes a controlled subset of the public SDK. Optional services can require additional manifest permissions and capabilities.
 
 The current plugin-facing surface includes:
 
@@ -77,6 +77,10 @@ context.ui
 context.httpOrigin
 
 context.player
+
+context.mediaControls (requires `media-control` + `media-controls`)
+
+context.webSession (requires `web-session`; media methods additionally `web-session-media`)
 ```
 
 Additional services may be introduced in future SDK versions.
@@ -182,6 +186,34 @@ Plugins with the appropriate capability can access plugin HTTP-origin helpers th
 This is the current public plugin HTTP-origin surface.
 
 ---
+
+# System Media Controls API
+
+Plugins declaring both the `media-control` permission and `media-controls` capability may use `context.mediaControls` to query current player state, inspect supported actions, subscribe/unsubscribe from updates, and request supported play/pause/next/previous actions. Runtime permission checks apply to every method, and plugin subscriptions are removed on teardown. The state projection omits stream URLs. Access to Electron, IPC, FFmpeg and audio resources is not exposed through this API.
+
+See the [Unified Player reference](./UnifiedPlayer.md#plugin-media-controls-api) for the declaration and method contract.
+
+# Web Session API
+
+Plugins declaring `web-session` and at least one exact HTTPS origin in `webSessionOrigins` may use `context.webSession`. The core creates an isolated `WebContentsView` with its own persistent partition, blocks downloads, popups, webviews, file/custom protocols and permission prompts, and keeps navigation on the declared origins. Plugin code never receives cookies, headers, tokens or the underlying Electron objects.
+
+```text
+create({ sessionId, origin })   → { sessionId, state }
+openLogin(sessionId)            → loads the declared origin
+load(sessionId, url)            → declared HTTPS origin only
+getState(sessionId)             → web-session-media required
+command(sessionId, { type })    → play | pause | stop (web-session-media required)
+show(sessionId, bounds)         → visible login/repair view
+hide(sessionId) / reload(sessionId) / destroy(sessionId)
+onState / onNavigationRequired / onError → unsubscribe functions
+getCapabilities()               → supported commands and optional DRM availability
+```
+
+Each method re-checks the capability at call time. Missing grants throw an error with `code: "CAPABILITY_DENIED"`; unknown sessions fail with `SESSION_NOT_FOUND`; invalid arguments are rejected before any Electron object is touched. `create()` returns only the coarse `{ sessionId, state }`; full metadata requires `web-session-media` through `getState()` or `onState()`. Subscriptions are removed by the returned unsubscribe function and by PluginRuntime on unload. `context.webSession` is a main-process plugin API; there is deliberately no global `window.pluginWebSessionAPI`, because all renderer plugins share one renderer and could impersonate another plugin's capability.
+
+Limitations: `seek`/`setVolume` have no documented arguments and are rejected with `COMMAND_ARGUMENTS_UNSPECIFIED`. There is no settings UI yet to delete a stored session partition; `destroy()` closes the view but keeps cookies so a login survives a restart. Real provider login and playback (for example Google/YouTube Music) were not verified in the development environment.
+
+See [Capabilities & Plugin HTTP Environment](../plugin-sdk/13-Capabilities.md#web-session) for the manifest contract and limitations.
 
 # Player API
 
