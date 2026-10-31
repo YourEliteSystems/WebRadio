@@ -318,11 +318,12 @@ jobs:
 
               # Electron mit --version: validiert, dass die Binary startet
               # und die Sandbox nicht sofort mit FATAL abbricht.
-              ELECTRON_VERSION=$(/usr/bin/webradio --version --no-sandbox 2>&1 || true)
+              # `timeout` verhindert, dass ein haengender Prozess den Job blockiert.
+              ELECTRON_VERSION=$(timeout 30 /usr/bin/webradio --version --no-sandbox 2>&1 || true)
               echo "Electron --version Ausgabe: $ELECTRON_VERSION"
 
               # Prüfen ob chrome-sandbox FATAL-Fehler aufgetreten ist
-              SANDBOX_CHECK=$(/usr/bin/webradio --version 2>&1 || true)
+              SANDBOX_CHECK=$(timeout 30 /usr/bin/webradio --version 2>&1 || true)
               if echo "$SANDBOX_CHECK" | grep -qi "FATAL.*sandbox"; then
                 echo "::error::Sandbox FATAL-Fehler beim Start: $SANDBOX_CHECK"
                 kill "$XVFB_PID" 2>/dev/null || true
@@ -331,6 +332,7 @@ jobs:
               echo "Kein Sandbox FATAL-Fehler detektiert."
 
               kill "$XVFB_PID" 2>/dev/null || true
+              wait "$XVFB_PID" 2>/dev/null || true
               echo ""
               echo "=== Alle Prüfungen bestanden ==="
             '
