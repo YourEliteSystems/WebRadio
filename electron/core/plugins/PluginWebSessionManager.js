@@ -384,7 +384,8 @@ class PluginWebSessionManager {
     contents.on("will-navigate", checkNavigation);
     contents.on("will-redirect", checkNavigation);
     contents.on("will-frame-navigate", (event, details) => {
-      if (!this._validateUrl(entry, details?.url, false, true)) {
+      const url = details?.url || details;
+      if (!this._validateUrl(entry, url, false, true)) {
         event.preventDefault();
         this._emitError(entry, "NAVIGATION_BLOCKED", "Die Frame-Navigation wurde durch die Origin-Regel blockiert.");
       }

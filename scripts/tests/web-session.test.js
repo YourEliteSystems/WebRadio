@@ -716,6 +716,135 @@ test("Ungültige Optionen und unbekannte Befehle werden kontrolliert abgelehnt",
   assert.strictEqual(seek.error.code, "COMMAND_ARGUMENTS_UNSPECIFIED");
 });
 
+// ─────────────────────────────────────────────────────────────
+// 4. will-frame-navigate Event-Signaturen (Electron-44 Kompatibilität)
+// ─────────────────────────────────────────────────────────────
+console.log("\n[4] will-frame-navigate Event-Signaturen");
+
+test("will-frame-navigate akzeptiert URL als String (Electron-44)", () => {
+  reset();
+  manager.create(PLUGIN_ID, ORIGINS, {
+    pluginId: PLUGIN_ID, sessionId: SESSION_ID, origin: "https://accounts.google.com"
+  });
+  const view = lastView();
+  const errors = [];
+  manager.onError(PLUGIN_ID, SESSION_ID, (error) => errors.push(error));
+
+  const event = { preventDefault: () => {} };
+  const preventDefaultCalls = [];
+  event.preventDefault = () => preventDefaultCalls.push(true);
+
+  // String-Signatur: URL direkt als String
+  view.webContents.emit("will-frame-navigate", event, "https://accounts.google.com/signin");
+
+  assert.strictEqual(preventDefaultCalls.length, 0, "Erlaubte Google-Origin darf nicht blockiert werden");
+  assert.strictEqual(errors.length, 0, "Kein Fehler ausgelöst");
+});
+
+test("will-frame-navigate akzeptiert URL als Objekt mit url-Eigenschaft", () => {
+  reset();
+  manager.create(PLUGIN_ID, ORIGINS, {
+    pluginId: PLUGIN_ID, sessionId: SESSION_ID, origin: "https://accounts.google.com"
+  });
+  const view = lastView();
+  const errors = [];
+  manager.onError(PLUGIN_ID, SESSION_ID, (error) => errors.push(error));
+
+  const event = { preventDefault: () => {} };
+  const preventDefaultCalls = [];
+  event.preventDefault = () => preventDefaultCalls.push(true);
+
+  // Objekt-Signatur: URL als details.url
+  view.webContents.emit("will-frame-navigate", event, { url: "https://accounts.google.com/signin" });
+
+  assert.strictEqual(preventDefaultCalls.length, 0, "Erlaubte Google-Origin darf nicht blockiert werden");
+  assert.strictEqual(errors.length, 0, "Kein Fehler ausgelöst");
+});
+
+test("will-frame-navigate blockiert nicht erlaubte Origins", () => {
+  reset();
+  manager.create(PLUGIN_ID, ORIGINS, {
+    pluginId: PLUGIN_ID, sessionId: SESSION_ID, origin: "https://music.youtube.com"
+  });
+  const view = lastView();
+  const errors = [];
+  manager.onError(PLUGIN_ID, SESSION_ID, (error) => errors.push(error));
+
+  const event = { preventDefault: () => {} };
+  const preventDefaultCalls = [];
+  event.preventDefault = () => preventDefaultCalls.push(true);
+
+  // Nicht erlaubte Origin (String-Signatur)
+  view.webContents.emit("will-frame-navigate", event, "https://evil.example/track");
+
+  assert.strictEqual(preventDefaultCalls.length, 1, "Nicht erlaubte Origin muss blockiert werden");
+  assert.strictEqual(errors.length, 1, "Fehler NAVIGATION_BLOCKED muss ausgelöst werden");
+  assert.strictEqual(errors[0].code, "NAVIGATION_BLOCKED");
+});
+
+test("will-frame-navigate blockiert ungültige Eingaben sicher", () => {
+  reset();
+  manager.create(PLUGIN_ID, ORIGINS, {
+    pluginId: PLUGIN_ID, sessionId: SESSION_ID, origin: "https://music.youtube.com"
+  });
+  const view = lastView();
+  const errors = [];
+  manager.onError(PLUGIN_ID, SESSION_ID, (error) => errors.push(error));
+
+  const event = { preventDefault: () => {} };
+  const preventDefaultCalls = [];
+  event.preventDefault = () => preventDefaultCalls.push(true);
+
+  // Ungültige Eingaben: undefined, null, leerer String
+  const invalidInputs = [undefined, null, "", "not-a-url"];
+
+  for (const input of invalidInputs) {
+    preventDefaultCalls.length = 0;
+    errors.length = 0;
+    view.webContents.emit("will-frame-navigate", event, input);
+    assert.strictEqual(preventDefaultCalls.length, 1, `Ungültige Eingabe ${input} muss blockiert werden`);
+    assert.strictEqual(errors.length, 1, `Fehler bei ungültiger Eingabe ${input} muss ausgelöst werden`);
+  }
+});
+
+test("Erlaubte MediaHub-Origins bleiben erhalten und funktionieren", () => {
+  reset();
+  const mediaHubOrigins = [
+    "https://accounts.google.com",
+    "https://accounts.youtube.com",
+    "https://music.youtube.com",
+    "https://consent.youtube.com"
+  ];
+
+  for (const origin of mediaHubOrigins) {
+    reset();
+    manager.create(PLUGIN_ID, mediaHubOrigins, {
+      pluginId: PLUGIN_ID, sessionId: SESSION_ID, origin: origin
+    });
+    const view = lastView();
+    const errors = [];
+    manager.onError(PLUGIN_ID, SESSION_ID, (error) => errors.push(error));
+
+    const event = { preventDefault: () => {} };
+    const preventDefaultCalls = [];
+    event.preventDefault = () => preventDefaultCalls.push(true);
+
+    // Test mit String-Signatur
+    view.webContents.emit("will-frame-navigate", event, `${origin}/path`);
+
+    assert.strictEqual(preventDefaultCalls.length, 0, `${origin} darf nicht blockiert werden (String)`);
+    assert.strictEqual(errors.length, 0, `Kein Fehler für ${origin} (String)`);
+
+    // Test mit Objekt-Signatur
+    preventDefaultCalls.length = 0;
+    errors.length = 0;
+    view.webContents.emit("will-frame-navigate", event, { url: `${origin}/path` });
+
+    assert.strictEqual(preventDefaultCalls.length, 0, `${origin} darf nicht blockiert werden (Objekt)`);
+    assert.strictEqual(errors.length, 0, `Kein Fehler für ${origin} (Objekt)`);
+  }
+});
+
 (async () => {
   for (const [name, fn] of queue) {
     try {
