@@ -33,15 +33,27 @@
  */
 
 const BaseUpdateProvider = require("./BaseUpdateProvider");
+const LinuxAppImageInstaller = require("./LinuxAppImageInstaller");
 
 class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
 
-    constructor(autoUpdater) {
+    constructor(autoUpdater, app = null) {
         super();
         this._autoUpdater = autoUpdater;
+        this._app = app;
+        this._downloadedFilePath = null;
         // Grund, der in Diagnose-Antworten erscheint, wenn kein AutoUpdater
         // verfuegbar ist (z.B. `npm run dev`).
         this._reason = "AppImage-Updater verfuegbar nur in gepackten Builds via electron-updater";
+
+        if (this._autoUpdater && typeof this._autoUpdater.on === "function") {
+            this._onDownloaded = (info) => {
+                this._downloadedFilePath = (info && info.downloadedFile) ||
+                    (this._autoUpdater && this._autoUpdater.installerPath) ||
+                    null;
+            };
+            this._autoUpdater.on("update-downloaded", this._onDownloaded);
+        }
     }
 
     getProviderType() {
@@ -140,11 +152,14 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
     /**
      * Installiert ein heruntergeladenes Update (Benutzer-ausgelöst).
      *
-     * electron-updater ersetzt die AppImage-Datei beim Beenden via
-     * quitAndInstall(). Nur zulässig, wenn ein Update vollständig
-     * heruntergeladen ist.
+     * Verwendet LinuxAppImageInstaller für den sicheren, atomaren Austausch unter
+     * Linux mit vollständigem Erhalt der Dateiberechtigungen (chmod 755/stat.mode)
+     * und Symlink-Erhalt.
+     *
+     * @param {object} [options={}]
+     * @returns {Promise<object>}
      */
-    async installUpdate() {
+    async installUpdate(options = {}) {
         if (!this._autoUpdater) {
             return {
                 status: "unsupported",
@@ -163,21 +178,68 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
             };
         }
 
-        try {
-            // isSilent=false, isForceRunAfter=false => explizite Benutzeraktion.
-            this._autoUpdater.quitAndInstall(false, false);
-            return { status: "installing" };
-        } catch (err) {
-            return {
-                status: "error",
-                code: "INSTALL_FAILED",
-                message: err.message || "Update konnte nicht installiert werden"
-            };
+        const currentAppPath = options.currentAppPath || process.env.APPIMAGE;
+        const downloadedFilePath = options.downloadedFilePath ||
+            this._downloadedFilePath ||
+            (this._autoUpdater && this._autoUpdater.installerPath);
+
+        // Sicherer atomarer Austausch über LinuxAppImageInstaller
+        if (currentAppPath && downloadedFilePath) {
+            try {
+                const fsObj = options.fsObj || require("fs");
+                const appObj = options.appObj !== undefined ? options.appObj : this._app;
+                const result = LinuxAppImageInstaller.applyUpdate({
+                    currentAppPath,
+                    downloadedUpdatePath: downloadedFilePath,
+                    fsObj,
+                    appObj
+                });
+                return {
+                    status: "installing",
+                    targetPath: result.targetPath
+                };
+            } catch (err) {
+                return {
+                    status: "error",
+                    code: "INSTALL_FAILED",
+                    message: err.message || "Update konnte nicht installiert werden"
+                };
+            }
         }
+
+        // Schutz vor Umgehung der sicheren Installationslogik:
+        // Auf Linux darf quitAndInstall() nicht unkontrolliert als Fallback aufgerufen werden,
+        // da dies die Dateiberechtigungen zerstören würde.
+        if (options.allowUnsafeFallback && typeof this._autoUpdater.quitAndInstall === "function") {
+            try {
+                this._autoUpdater.quitAndInstall(false, false);
+                return { status: "installing" };
+            } catch (err) {
+                return {
+                    status: "error",
+                    code: "INSTALL_FAILED",
+                    message: err.message || "Update konnte nicht installiert werden"
+                };
+            }
+        }
+
+        return {
+            status: "error",
+            code: "INSTALL_FAILED",
+            message: !currentAppPath
+                ? "AppImage-Pfad (APPIMAGE) nicht ermittelt. Update abgebrochen, um Rechteverlust zu verhindern."
+                : "Pfad zum heruntergeladenen Update-Artefakt nicht ermittelt."
+        };
     }
 
     dispose() {
-        // Keine eigenen Ressourcen; electron-updater wird vom UpdateManager disposed.
+        if (this._autoUpdater && this._onDownloaded && typeof this._autoUpdater.off === "function") {
+            try {
+                this._autoUpdater.off("update-downloaded", this._onDownloaded);
+            } catch {
+                /* ignore */
+            }
+        }
     }
 
     // ─────────────────────────────────────────────────────────

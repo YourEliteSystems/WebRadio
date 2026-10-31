@@ -227,7 +227,7 @@ function ensurePrereqs() {
     return missing;
 }
 
-function buildInDocker(workDir, pkgName) {
+function buildInDocker(workDir, _pkgName) {
     const image = "archlinux:latest";
     const cmd = [
         "docker",

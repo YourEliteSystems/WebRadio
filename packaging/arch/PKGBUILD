@@ -37,7 +37,7 @@ url="https://github.com/YourEliteSystems/WebRadio"
 license=('Apache-2.0')
 depends=(
   'alsa-lib'
-  'at-spi2-atk'
+  'at-spi2-core'
   'cairo'
   'dbus'
   'expat'
@@ -61,7 +61,6 @@ depends=(
   'nspr'
   'nss'
   'pango'
-  'python'
   'xdg-utils'
 )
 optdepends=(
@@ -132,30 +131,44 @@ package() {
     cp -a "$srcdir/appimage-extract/." "$pkgdir/opt/${_pkgname}/"
   fi
 
-  # Rechte absichern: Executable für die App, Read-only für den Rest.
-  # Keine globalen Schreibrechte (kein chmod 777).
+  # Verzeichnisse absichern: 755
   find "$pkgdir/opt/${_pkgname}" -type d -exec chmod 755 {} +
+
+  # Standard-Dateirechte für statische Daten: 644 (keine globalen Schreibrechte, kein chmod 777)
   find "$pkgdir/opt/${_pkgname}" -type f -exec chmod 644 {} +
 
-  # Die Hauptbinary ermitteln und ausführbar machen.
-  # electron-builder erzeugt je nach executableName "WebRadio" oder "${_pkgname}".
+  # Die Hauptbinary ermitteln und ausführbar machen (chmod 755).
+  # electron-builder erzeugt je nach Konfiguration "webradio" oder "WebRadio".
   _bin_name=""
-  if [ -f "$pkgdir/opt/${_pkgname}/WebRadio" ]; then
+  if [ -f "$pkgdir/opt/${_pkgname}/webradio" ]; then
+    _bin_name="webradio"
+  elif [ -f "$pkgdir/opt/${_pkgname}/WebRadio" ]; then
     _bin_name="WebRadio"
-  elif [ -f "$pkgdir/opt/${_pkgname}/${_pkgname}" ]; then
-    _bin_name="${_pkgname}"
   fi
 
   if [ -n "$_bin_name" ]; then
     chmod 755 "$pkgdir/opt/${_pkgname}/${_bin_name}"
   fi
 
+  # Chromium/Electron SUID-Sandbox Helper benötigt SUID-Root bzw. 4755 auf Linux
+  if [ -f "$pkgdir/opt/${_pkgname}/chrome-sandbox" ]; then
+    chmod 4755 "$pkgdir/opt/${_pkgname}/chrome-sandbox"
+  fi
+
+  # Electron Crashpad Handler ausführbar machen
+  if [ -f "$pkgdir/opt/${_pkgname}/chrome_crashpad_handler" ]; then
+    chmod 755 "$pkgdir/opt/${_pkgname}/chrome_crashpad_handler"
+  fi
+
+  # Shared Libraries (.so) und native Module (.node) bleiben 644 (nicht ausführbar),
+  # da sie per dlopen geladen werden und keine Ausführungsrechte benötigen.
+
+  # FFmpeg-Binaries in resources und asar.unpacked ausführbar machen
   if [ -d "$pkgdir/opt/${_pkgname}/resources" ]; then
     find "$pkgdir/opt/${_pkgname}/resources" -type f -name 'ffmpeg*' -exec chmod 755 {} + 2>/dev/null || true
   fi
   # ASAR-unpacked FFmpeg (falls vorhanden)
   if [ -d "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" ]; then
-    find "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" -type f -exec chmod 644 {} +
     find "$pkgdir/opt/${_pkgname}/resources/app.asar.unpacked" -type f -name 'ffmpeg*' -exec chmod 755 {} + 2>/dev/null || true
   fi
 

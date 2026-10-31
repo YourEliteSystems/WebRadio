@@ -500,6 +500,13 @@ class UpdateManager {
         this._broadcastState();
 
         try {
+            if (this._provider && typeof this._provider.installUpdate === "function") {
+                const res = await this._provider.installUpdate();
+                if (res && res.status === "error") {
+                    throw new Error(res.message || "Update konnte nicht installiert werden");
+                }
+                return res || { status: "installing" };
+            }
             // isSilent=false, isForceRunAfter=false => Benutzer hat
             // bereits explizit "Jetzt neu starten" gedrückt.
             autoUpdater.quitAndInstall(false, false);
@@ -509,13 +516,13 @@ class UpdateManager {
             this._setStatus(UpdateState.STATES.ERROR);
             this._state.error = UpdateState.buildErrorPayload(
                 UpdateState.ERROR_CODES.INSTALL_FAILED,
-                "Update konnte nicht installiert werden",
+                err.message || "Update konnte nicht installiert werden",
                 { stage: "install" }
             );
             this._broadcastState();
             return this._buildErrorResult(
                 UpdateState.ERROR_CODES.INSTALL_FAILED,
-                "Update konnte nicht installiert werden"
+                err.message || "Update konnte nicht installiert werden"
             );
         }
     }
