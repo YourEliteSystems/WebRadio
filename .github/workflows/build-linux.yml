@@ -324,7 +324,11 @@ jobs:
 
               # Prüfen ob chrome-sandbox FATAL-Fehler aufgetreten ist
               SANDBOX_CHECK=$(timeout 30 /usr/bin/webradio --version 2>&1 || true)
-              if echo "$SANDBOX_CHECK" | grep -qi "FATAL.*sandbox"; then
+              # Der Hinweis "Running as root without --no-sandbox" ist in CI-Containern
+              # (Lauf als root) zu erwarten und kein echter chrome-sandbox-Fehler.
+              # Die SUID-Konfiguration der chrome-sandbox (4755) wird separat geprueft.
+              if echo "$SANDBOX_CHECK" | grep -qi "FATAL.*sandbox" && \
+                 ! echo "$SANDBOX_CHECK" | grep -qi "Running as root"; then
                 echo "::error::Sandbox FATAL-Fehler beim Start: $SANDBOX_CHECK"
                 kill "$XVFB_PID" 2>/dev/null || true
                 exit 1
