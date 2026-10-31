@@ -200,6 +200,33 @@ test("PKGBUILD: Symlink zeigt auf installierte Binary (WebRadio oder pkgname)", 
               "Symlink muss dynamisch oder auf WebRadio verweisen");
 });
 
+test("PKGBUILD: depends nutzt at-spi2-core und nicht veraltetes at-spi2-atk", () => {
+    const s = readPkgbuild();
+    assert.ok(!/'at-spi2-atk'/.test(s), "Veraltetes Paket at-spi2-atk darf nicht in depends vorkommen");
+    assert.ok(/'at-spi2-core'/.test(s), "at-spi2-core muss in depends vorkommen");
+});
+
+test("PKGBUILD: keine unnötige Python-Laufzeitabhängigkeit in depends", () => {
+    const s = readPkgbuild();
+    const dependsBlock = s.split("depends=(")[1]?.split(")")[0] || "";
+    assert.ok(!/'python'/.test(dependsBlock), "Python darf nicht in Laufzeit-Abhängigkeiten sein");
+});
+
+test("PKGBUILD: chrome-sandbox erhält 4755 Permissions", () => {
+    const s = readPkgbuild();
+    assert.ok(/chmod 4755.*chrome-sandbox/.test(s), "chrome-sandbox muss 4755 erhalten");
+});
+
+test("PKGBUILD: crashpad-handler ist 755 und .so Bibliotheken werden nicht pauschal ausfuehrbar gemacht", () => {
+    const s = readPkgbuild();
+    assert.ok(/chmod 755.*chrome_crashpad_handler/.test(s), "chrome_crashpad_handler muss 755 erhalten");
+    const code = s
+        .split("\n")
+        .filter((l) => !l.trim().startsWith("#"))
+        .join("\n");
+    assert.ok(!/chmod\s+755[^\n]*\*\.so/.test(code), "Shared libraries dürfen nicht pauschal ausführbar gemacht werden");
+});
+
 // ─────────────────────────────────────────────────────────────
 // 3. .desktop-Audit
 // ─────────────────────────────────────────────────────────────

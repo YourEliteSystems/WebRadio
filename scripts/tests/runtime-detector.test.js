@@ -264,6 +264,40 @@ test("detectLinuxPackaging: /usr/webradio path -> deb", () => {
     assert.strictEqual(result, "deb");
 });
 
+test("detectLinuxPackaging: /opt/webradio on Arch (pacman present) -> arch", () => {
+    const appOnArch = {
+        isPackaged: true,
+        getAppPath: () => "/opt/webradio"
+    };
+    const archFs = {
+        existsSync: (p) => p === "/usr/bin/pacman" || p === "/etc/arch-release"
+    };
+    const result = RuntimeDetector.detectLinuxPackaging(
+        appOnArch,
+        { platform: "linux", env: {} },
+        archFs,
+        mockPath
+    );
+    assert.strictEqual(result, "arch");
+});
+
+test("detectLinuxPackaging: /opt/webradio on Arch (/etc/arch-release present) -> arch", () => {
+    const appOnArch = {
+        isPackaged: true,
+        getAppPath: () => "/opt/webradio"
+    };
+    const archReleaseFs = {
+        existsSync: (p) => p === "/etc/arch-release"
+    };
+    const result = RuntimeDetector.detectLinuxPackaging(
+        appOnArch,
+        { platform: "linux", env: {} },
+        archReleaseFs,
+        mockPath
+    );
+    assert.strictEqual(result, "arch");
+});
+
 test("detectLinuxPackaging: unknown path -> unknown", () => {
     const result = RuntimeDetector.detectLinuxPackaging(
         { isPackaged: true, getAppPath: () => "/home/user/webradio" },

@@ -21,9 +21,10 @@ const BaseUpdateProvider = require("./BaseUpdateProvider");
 
 class UnsupportedUpdateProvider extends BaseUpdateProvider {
 
-    constructor(reason = "Packaging type does not support automatic app updates") {
+    constructor(reason = "Packaging type does not support automatic app updates", suggestion = null) {
         super();
         this._reason = reason;
+        this._suggestion = suggestion;
     }
 
     getProviderType() {
@@ -38,7 +39,7 @@ class UnsupportedUpdateProvider extends BaseUpdateProvider {
         return this._reason;
     }
 
-    isSuitableForRuntime(runtimeInfo) {
+    isSuitableForRuntime(_runtimeInfo) {
         // Dieser Provider ist der Fallback für alles, was nicht
         // von einem spezialisierten Provider abgedeckt wird.
         return true;
@@ -70,9 +71,7 @@ class UnsupportedUpdateProvider extends BaseUpdateProvider {
     }
 
     _getSuggestion() {
-        // Konkrete Vorschläge basierend auf dem Packaging-Typ
-        // (würde in der Praxis mit RuntimeInfo aufgerufen werden)
-        return "Please use your system package manager to update the application.";
+        return this._suggestion || "Bitte nutze die System-Paketverwaltung deines Systems, um WebRadio zu aktualisieren.";
     }
 }
 

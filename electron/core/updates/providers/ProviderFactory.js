@@ -32,8 +32,8 @@ class ProviderFactory {
      * @param {object} path - path module (optional, für Tests)
      * @returns {BaseUpdateProvider}
      */
-    static createProvider(app, autoUpdater, fs, path) {
-        const runtimeInfo = RuntimeDetector.detectRuntime(app, process, fs, path);
+    static createProvider(app, autoUpdater, fs, path, processObj = process) {
+        const runtimeInfo = RuntimeDetector.detectRuntime(app, processObj, fs, path);
 
         // Windows -> electron-updater
         if (runtimeInfo.platform === "windows") {
@@ -42,22 +42,33 @@ class ProviderFactory {
 
         // Linux AppImage -> AppImage-Provider (vorläufig GitHub-Fallback)
         if (runtimeInfo.isAppImage) {
-            return new LinuxAppImageUpdateProvider(autoUpdater);
+            return new LinuxAppImageUpdateProvider(autoUpdater, app);
         }
 
-        // Linux .deb / Arch / macOS / unknown -> Unsupported
-        let reason = "Packaging type does not support automatic app updates";
+        // Linux .deb / Arch / RPM / macOS / unknown -> Unsupported
+        let reason = "Der installierte Pakettyp unterstützt keine automatischen In-App-Updates.";
+        let suggestion = "Bitte nutze die Paketverwaltung deines Systems, um WebRadio zu aktualisieren.";
+
         if (runtimeInfo.platform === "linux") {
             if (runtimeInfo.packaging === "deb") {
-                reason = "Debian/Ubuntu packages should be updated via apt/dpkg";
+                reason = "Debian/Ubuntu-Pakete (.deb) müssen über die System-Paketverwaltung (apt/dpkg) aktualisiert werden.";
+                suggestion = "Bitte aktualisiere WebRadio über deinen Paketmanager (z. B. sudo apt update && sudo apt upgrade webradio).";
             } else if (runtimeInfo.packaging === "arch") {
-                reason = "Arch Linux packages should be updated via pacman";
+                reason = "Arch-Linux-Pakete (.pkg.tar.zst) müssen über die Paketverwaltung (pacman) aktualisiert werden.";
+                suggestion = "Bitte aktualisiere WebRadio über deinen Paketmanager (z. B. sudo pacman -Syu webradio).";
+            } else if (runtimeInfo.packaging === "rpm") {
+                reason = "RPM-Pakete müssen über die System-Paketverwaltung (dnf/zypper) aktualisiert werden.";
+                suggestion = "Bitte aktualisiere WebRadio über deinen Paketmanager (z. B. sudo dnf upgrade webradio).";
+            } else {
+                reason = "Systemweit installierte Linux-Pakete können aus Sicherheitsgründen nicht über den In-App-Updater modifiziert werden.";
+                suggestion = "Bitte nutze den Paketmanager deiner Linux-Distribution, um WebRadio zu aktualisieren.";
             }
         } else if (runtimeInfo.platform === "macos") {
-            reason = "macOS automatic updates are not yet implemented";
+            reason = "Automatische Updates für macOS sind noch nicht implementiert.";
+            suggestion = "Bitte lade das neueste Release für macOS manuell von GitHub herunter.";
         }
 
-        return new UnsupportedUpdateProvider(reason);
+        return new UnsupportedUpdateProvider(reason, suggestion);
     }
 
     /**
@@ -68,8 +79,8 @@ class ProviderFactory {
      * @param {object} path - path module (optional)
      * @returns {object}
      */
-    static getRuntimeInfo(app, fs, path) {
-        return RuntimeDetector.detectRuntime(app, process, fs, path);
+    static getRuntimeInfo(app, fs, path, processObj = process) {
+        return RuntimeDetector.detectRuntime(app, processObj, fs, path);
     }
 }
 

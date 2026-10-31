@@ -70,7 +70,7 @@ function detectPackaged(app) {
  * 3. Executable-Path enthält typische AppImage-Muster
  * 4. Resources-Path enthält AppImage-Muster
  */
-function detectAppImage(app, processObj, fsObj, pathObj) {
+function detectAppImage(app, processObj, fsObj, _pathObj) {
     if (!app || !processObj) return false;
 
     const platform = normalizePlatform(processObj.platform);
@@ -137,50 +137,33 @@ function detectLinuxPackaging(app, processObj, fsObj, pathObj) {
     const isAppImage = detectAppImage(app, processObj, fsObj, pathObj);
     if (isAppImage) return "appimage";
 
-    // deb Erkennung
     try {
-        const execPath = app.getAppPath ? app.getAppPath() : processObj.execPath;
+        const execPath = app.getAppPath ? app.getAppPath() : (processObj ? processObj.execPath : "");
         if (execPath && typeof execPath === "string") {
-            // deb-Pakete installieren typischerweise unter /opt/ oder /usr/
-            if (execPath.startsWith("/opt/") || execPath.startsWith("/usr/")) {
-                // Zusätzliche Prüfung: dpkg-query
-                try {
-                    const dpkgCheck = processObj.platform === "linux" && 
-                        fsObj.existsSync("/usr/bin/dpkg-query");
-                    if (dpkgCheck) {
-                        return "deb";
-                    }
-                } catch {
-                    // ignore
+            const isInstalledPath = execPath.startsWith("/opt/") || execPath.startsWith("/usr/");
+            if (isInstalledPath) {
+                const isLinux = !processObj || processObj.platform === "linux";
+                const pacmanCheck = isLinux && !!fsObj && (
+                    (typeof fsObj.existsSync === "function" && (fsObj.existsSync("/usr/bin/pacman") || fsObj.existsSync("/etc/arch-release")))
+                );
+                const dpkgCheck = isLinux && !!fsObj && (
+                    (typeof fsObj.existsSync === "function" && (fsObj.existsSync("/usr/bin/dpkg-query") || fsObj.existsSync("/etc/debian_version")))
+                );
+
+                if (pacmanCheck && !dpkgCheck) {
+                    return "arch";
                 }
-                // Fallback auf Pfad-Muster
+                if (dpkgCheck) {
+                    return "deb";
+                }
+                if (pacmanCheck) {
+                    return "arch";
+                }
+
+                // Fallback auf Pfadmuster für Umgebungen ohne gemockte Paketmanager-Dateien
                 if (execPath.includes("/opt/webradio") || execPath.includes("/usr/webradio")) {
                     return "deb";
                 }
-            }
-        }
-    } catch {
-        // ignore
-    }
-
-    // Arch Erkennung
-    try {
-        const execPath = app.getAppPath ? app.getAppPath() : processObj.execPath;
-        if (execPath && typeof execPath === "string") {
-            // Arch-Pakete installieren unter /opt/webradio oder /usr/
-            if (execPath.includes("/opt/webradio")) {
-                // Zusätzliche Prüfung: pacman
-                try {
-                    const pacmanCheck = processObj.platform === "linux" && 
-                        fsObj.existsSync("/usr/bin/pacman");
-                    if (pacmanCheck) {
-                        return "arch";
-                    }
-                } catch {
-                    // ignore
-                }
-                // Fallback auf Pfad-Muster
-                return "arch";
             }
         }
     } catch {
