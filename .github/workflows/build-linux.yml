@@ -202,7 +202,7 @@ jobs:
                 at-spi2-core alsa-lib cairo dbus expat gcc-libs glib2 gtk3 \
                 hicolor-icon-theme libcups libdrm libnotify libsecret libx11 \
                 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon \
-                libxrandr mesa nspr nss pango xdg-utils 2>/dev/null || true
+                libxrandr mesa nspr nss pango xdg-utils xorg-server-xvfb 2>/dev/null || true
 
               PKG=$(ls /pkg/*.pkg.tar.zst | head -n1)
               if [ -z "$PKG" ]; then
@@ -221,6 +221,12 @@ jobs:
 
               echo ""
               echo "=== Permissions-Audit ==="
+
+              echo ""
+              echo "=== Installationsverzeichnis ==="
+              ls -la "$INSTDIR"
+              echo "Kandidaten:"
+              find "$INSTDIR" -maxdepth 2 \( -name "webradio" -o -name "WebRadio" \) -print
 
               # Hauptbinary (webradio oder WebRadio) muss 755 haben
               MAIN_BIN=""

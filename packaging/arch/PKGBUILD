@@ -104,19 +104,34 @@ package() {
   cd "$srcdir"
   mkdir -p appimage-extract
   chmod +x "$srcdir/${_appimage}"
+  # Wichtig: --appimage-extract legt squashfs-root im AKTUELLEN Arbeitsverzeichnis
+  # ab. Deshalb die Extraktion innerhalb von appimage-extract durchfuehren, damit
+  # das Ergebnis unter $srcdir/appimage-extract/squashfs-root landet (nicht in
+  # $srcdir selbst, wo es vom Code unten nicht gefunden wuerde).
   # --no-sandbox, damit das Entpacken auch in CI-Containern ohne
   # Kernel-Sandbox-Erweiterungen funktioniert.
-  "$srcdir/${_appimage}" --appimage-extract >/dev/null 2>&1 || {
-    # Fallback: manuell entpacken (benötigt nur squashfs-tools + unzip).
-    # Der Artefaktname wird als Argument übergeben – keine String-Interpolation
+  if ! ( cd "$srcdir/appimage-extract" && "$srcdir/${_appimage}" --appimage-extract >/dev/null 2>&1 ); then
+    # Fallback: manuell entpacken (benoetigt nur squashfs-tools + unzip).
+    # Der Artefaktname wird als Argument uebergeben - keine String-Interpolation
     # eines Versionsstrings in den Dateinamen.
-    bash -c '
-      cd appimage-extract
-      _artifact="$1"
-      offset=$(../"$_artifact" --appimage-offset 2>/dev/null || echo 0)
-      tail -c +$((offset + 1)) ../"$_artifact" | unsquashfs -d squashfs-root - >/dev/null 2>&1
-    ' _ "${_appimage}"
-  }
+    (
+      cd "$srcdir/appimage-extract" || exit 1
+      offset=$("$srcdir/${_appimage}" --appimage-offset 2>/dev/null || echo 0)
+      tail -c +$((offset + 1)) "$srcdir/${_appimage}" | unsquashfs -d squashfs-root - >/dev/null 2>&1
+    )
+  fi
+
+  # Defensiv: falls die Extraktion squashfs-root doch in $srcdir abgelegt hat.
+  if [ -d "$srcdir/squashfs-root" ] && [ ! -d "$srcdir/appimage-extract/squashfs-root" ]; then
+    mv "$srcdir/squashfs-root" "$srcdir/appimage-extract/"
+  fi
+
+  # Hart abbrechen, statt ein leeres Paket zu erzeugen.
+  if [ ! -d "$srcdir/appimage-extract/squashfs-root" ]; then
+    echo "ERROR: AppImage-Extraktion fehlgeschlagen - squashfs-root fehlt." >&2
+    ls -la "$srcdir" "$srcdir/appimage-extract" >&2 || true
+    exit 1
+  fi
 
   # 2) Installations-Verzeichnisbaum anlegen.
   install -dm755 "$pkgdir/opt/${_pkgname}"
