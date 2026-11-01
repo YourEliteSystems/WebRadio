@@ -6,10 +6,16 @@ on:
       - main
       - develop
       - feature/**
+      - release/**
   pull_request:
     branches:
       - main
       - develop
+      - release/**
+    paths:
+      - "packaging/**"
+      - "scripts/**"
+      - ".github/workflows/build-linux.yml"
   workflow_dispatch:
 
 permissions:
