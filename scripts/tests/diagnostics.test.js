@@ -16,6 +16,8 @@
 
 const assert = require("assert");
 const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
 const DiagnosticsStore = require("../../electron/core/diagnostics/DiagnosticsStore");
 const MemoryProfiler = require("../../electron/core/diagnostics/MemoryProfiler");
@@ -26,6 +28,8 @@ const CrashDumpWriter = require("../../electron/core/diagnostics/CrashDumpWriter
 const DiagnosticsManager = require("../../electron/core/diagnostics/DiagnosticsManager");
 const CrashHandler = require("../../electron/core/diagnostics/CrashHandler");
 const eventBus = require("../../electron/core/eventBus");
+const LogReader = require("../../electron/core/diagnostics/logging/LogReader");
+const CrashReportReader = require("../../electron/core/diagnostics/crash/CrashReportReader");
 
 console.log("==========================================");
 console.log("🧪 Starte Diagnostics & Bootup Tests");
@@ -474,6 +478,126 @@ test("step() generische Methode delegiert korrekt", () => {
     const steps = BootupDiagnostics.getSteps();
     const failStep = steps.find(s => s.name === "fail-step");
     assert.strictEqual(failStep.status, "failed");
+});
+
+// ─────────────────────────────────────────────
+// 9. LogReader & CrashReportReader Security Checks
+// ─────────────────────────────────────────────
+console.log("\n[9] LogReader & CrashReportReader Security Checks");
+
+test("LogReader blockiert Path Traversal und unerlaubte Dateiendungen", () => {
+    // Path traversal Versuche
+    assert.strictEqual(LogReader.read("../../package.json"), null);
+    assert.strictEqual(LogReader.read("..\\package.json"), null);
+    assert.strictEqual(LogReader.read("../../../windows/win.ini"), null);
+    assert.strictEqual(LogReader.delete("../../package.json"), false);
+    assert.strictEqual(LogReader.delete("..\\package.json"), false);
+
+    // Falsche Dateiendungen
+    assert.strictEqual(LogReader.read("test.txt"), null);
+    assert.strictEqual(LogReader.read("test.json"), null);
+    assert.strictEqual(LogReader.delete("test.exe"), false);
+
+    // Ungültige Typen / leere Eingaben
+    assert.strictEqual(LogReader.read(null), null);
+    assert.strictEqual(LogReader.read(""), null);
+    assert.strictEqual(LogReader.read(123), null);
+    assert.strictEqual(LogReader.delete(null), false);
+    assert.strictEqual(LogReader.delete(""), false);
+});
+
+test("CrashReportReader blockiert Path Traversal und unerlaubte Dateiendungen", () => {
+    // Path traversal Versuche
+    assert.strictEqual(CrashReportReader.read("../../package.json"), null);
+    assert.strictEqual(CrashReportReader.read("..\\package.json"), null);
+    assert.strictEqual(CrashReportReader.delete("../../package.json"), false);
+    assert.strictEqual(CrashReportReader.delete("..\\package.json"), false);
+
+    // Falsche Dateiendungen
+    assert.strictEqual(CrashReportReader.read("test.log"), null);
+    assert.strictEqual(CrashReportReader.read("test.txt"), null);
+    assert.strictEqual(CrashReportReader.delete("test.log"), false);
+
+    // Ungültige Typen / leere Eingaben
+    assert.strictEqual(CrashReportReader.read(null), null);
+    assert.strictEqual(CrashReportReader.read(""), null);
+    assert.strictEqual(CrashReportReader.delete(null), false);
+    assert.strictEqual(CrashReportReader.delete(""), false);
+});
+
+
+test("LogReader und CrashReportReader blockieren Symlink-Ausbrüche", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "webradio-diag-"));
+    const logs = path.join(root, "logs");
+    const crash = path.join(root, "crash");
+    fs.mkdirSync(logs);
+    fs.mkdirSync(crash);
+
+    const outsideLog = path.join(root, "outside.log");
+    const outsideJson = path.join(root, "outside.json");
+    fs.writeFileSync(outsideLog, "secret");
+    fs.writeFileSync(outsideJson, JSON.stringify({ secret: true }));
+
+    try {
+        fs.symlinkSync(outsideLog, path.join(logs, "link.log"), "file");
+        fs.symlinkSync(outsideJson, path.join(crash, "link.json"), "file");
+    } catch (err) {
+        // Windows ohne Developer Mode erlaubt keine Symlinks; dann ist der
+        // Test auf dieser Plattform nicht ausführbar.
+        if (["EPERM", "EACCES", "ENOSYS"].includes(err.code)) {
+            fs.rmSync(root, { recursive: true, force: true });
+            return;
+        }
+        throw err;
+    }
+
+    const oldLogDirectory = LogReader.logDirectory;
+    const oldCrashDirectory = CrashReportReader.crashDirectory;
+    LogReader.logDirectory = logs;
+    CrashReportReader.crashDirectory = crash;
+
+    try {
+        assert.strictEqual(LogReader.read("link.log"), null);
+        assert.strictEqual(LogReader.delete("link.log"), false);
+        assert.strictEqual(CrashReportReader.read("link.json"), null);
+        assert.strictEqual(CrashReportReader.delete("link.json"), false);
+    } finally {
+        LogReader.logDirectory = oldLogDirectory;
+        CrashReportReader.crashDirectory = oldCrashDirectory;
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("LogReader und CrashReportReader blockieren Windows-Laufwerks- und UNC-Pfade", () => {
+    const bs = String.fromCharCode(92);
+    const nul = String.fromCharCode(0);
+    const logNames = [
+        "C:" + bs + "Windows" + bs + "win.ini.log",
+        "C:/Windows/win.ini.log",
+        bs + bs + "server" + bs + "share" + bs + "evil.log",
+        "//server/share/evil.log",
+        ".." + bs + "evil.log",
+        "../evil.log",
+        "evil.log" + nul
+    ];
+    const reportNames = [
+        "C:" + bs + "Windows" + bs + "win.ini.json",
+        "C:/Windows/win.ini.json",
+        bs + bs + "server" + bs + "share" + bs + "evil.json",
+        "//server/share/evil.json",
+        ".." + bs + "evil.json",
+        "../evil.json",
+        "evil.json" + nul
+    ];
+
+    for (const name of logNames) {
+        assert.strictEqual(LogReader.read(name), null);
+        assert.strictEqual(LogReader.delete(name), false);
+    }
+    for (const name of reportNames) {
+        assert.strictEqual(CrashReportReader.read(name), null);
+        assert.strictEqual(CrashReportReader.delete(name), false);
+    }
 });
 
 console.log("\n==========================================");
