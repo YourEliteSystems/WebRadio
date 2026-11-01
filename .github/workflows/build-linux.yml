@@ -10,6 +10,10 @@ on:
     branches:
       - main
       - develop
+    paths:
+      - "packaging/**"
+      - "scripts/**"
+      - ".github/workflows/build-linux.yml"
   workflow_dispatch:
 
 permissions:
@@ -247,12 +251,17 @@ jobs:
                 exit 1
               fi
 
-              # chrome-sandbox muss 4755 (SUID) haben
+              # chrome-sandbox muss 4755 (SUID) haben und root:root gehoeren
               if [ -f "$INSTDIR/chrome-sandbox" ]; then
                 SANDBOX_MODE=$(stat -c "%a" "$INSTDIR/chrome-sandbox")
-                echo "chrome-sandbox: $SANDBOX_MODE"
+                SANDBOX_OWNER=$(stat -c "%U:%G" "$INSTDIR/chrome-sandbox")
+                echo "chrome-sandbox: $SANDBOX_MODE (owner $SANDBOX_OWNER)"
                 if [ "$SANDBOX_MODE" != "4755" ]; then
                   echo "::error::chrome-sandbox muss 4755 haben, ist: $SANDBOX_MODE"
+                  exit 1
+                fi
+                if [ "$SANDBOX_OWNER" != "root:root" ]; then
+                  echo "::error::chrome-sandbox muss root:root gehoeren, ist: $SANDBOX_OWNER"
                   exit 1
                 fi
               else
@@ -309,32 +318,46 @@ jobs:
               #  2. Dass chrome-sandbox korrekt als SUID konfiguriert ist
               #     (Electron prüft dies beim Start und bricht mit FATAL ab).
               echo ""
-              echo "=== Headless Smoke-Test ==="
+              echo "=== Headless Smoke-Test (unprivilegierter Benutzer) ==="
+
+              # Unprivilegierten Testbenutzer anlegen
+              id testuser >/dev/null 2>&1 || useradd -m -s /bin/bash testuser
+
               export DISPLAY=:99
-              # Virtual-Framebuffer für minimale GUI-Initialisierung
+              # Virtual-Framebuffer fuer minimale GUI-Initialisierung
               Xvfb :99 -screen 0 1024x768x24 &
               XVFB_PID=$!
               sleep 1
 
-              # Electron mit --version: validiert, dass die Binary startet
-              # und die Sandbox nicht sofort mit FATAL abbricht.
-              # `timeout` verhindert, dass ein haengender Prozess den Job blockiert.
-              ELECTRON_VERSION=$(timeout 30 /usr/bin/webradio --version --no-sandbox 2>&1 || true)
-              echo "Electron --version Ausgabe: $ELECTRON_VERSION"
+              # App als unprivilegierter Benutzer starten, Ausgabe erfassen.
+              # `timeout` verhindert einen haengenden Prozess.
+              LOGFILE=/tmp/webradio-smoke.log
+              rm -f "$LOGFILE"
+              su testuser -c "DISPLAY=:99 /usr/bin/webradio --no-sandbox >$LOGFILE 2>&1" &
+              APP_PID=$!
+              sleep 8
 
-              # Prüfen ob chrome-sandbox FATAL-Fehler aufgetreten ist
-              SANDBOX_CHECK=$(timeout 30 /usr/bin/webradio --version 2>&1 || true)
-              # Der Hinweis "Running as root without --no-sandbox" ist in CI-Containern
-              # (Lauf als root) zu erwarten und kein echter chrome-sandbox-Fehler.
-              # Die SUID-Konfiguration der chrome-sandbox (4755) wird separat geprueft.
-              if echo "$SANDBOX_CHECK" | grep -qi "FATAL.*sandbox" && \
-                 ! echo "$SANDBOX_CHECK" | grep -qi "Running as root"; then
-                echo "::error::Sandbox FATAL-Fehler beim Start: $SANDBOX_CHECK"
+              # Pruefen, dass der Prozess noch laeuft (kein sofortiger Crash)
+              if ! kill -0 "$APP_PID" 2>/dev/null; then
+                echo "::error::WebRadio-Prozess ist nach 8s nicht mehr aktiv (Crash beim Start)."
+                echo "--- Log ---"; cat "$LOGFILE" || true
                 kill "$XVFB_PID" 2>/dev/null || true
                 exit 1
               fi
-              echo "Kein Sandbox FATAL-Fehler detektiert."
 
+              # Auf Crash-Meldungen pruefen
+              if grep -qiE "FATAL|crash|segmentation fault|core dumped" "$LOGFILE" 2>/dev/null; then
+                echo "::error::Crash-Meldung im Smoke-Test-Log:"
+                cat "$LOGFILE"
+                kill "$APP_PID" 2>/dev/null || true
+                kill "$XVFB_PID" 2>/dev/null || true
+                exit 1
+              fi
+              echo "Prozess laeuft nach 8s ohne Crash-Meldung. Smoke-Test bestanden."
+
+              # Aufraeumen
+              kill "$APP_PID" 2>/dev/null || true
+              wait "$APP_PID" 2>/dev/null || true
               kill "$XVFB_PID" 2>/dev/null || true
               wait "$XVFB_PID" 2>/dev/null || true
               echo ""
