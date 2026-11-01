@@ -139,9 +139,9 @@ test("PKGBUILD: arch=('x86_64')", () => {
     assert.ok(/arch=\('x86_64'\)/.test(s));
 });
 
-test("PKGBUILD: license=('MIT')", () => {
+test("PKGBUILD: license=('Apache-2.0')", () => {
     const s = readPkgbuild();
-    assert.ok(/license=\('MIT'\)/.test(s));
+    assert.ok(/license=\('Apache-2.0'\)/.test(s));
 });
 
 test("PKGBUILD: pkgver wird beim Build korrekt ersetzt", () => {

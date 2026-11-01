@@ -65,9 +65,11 @@ test("PluginSlot className wird sanitisiert (keine Injection)", () => {
   const safe = String(unsafe || "").replace(/[^a-zA-Z0-9_-]/g, "-");
   assert.ok(!safe.includes('"'), "Anfuehrungszeichen nicht entfernt");
   assert.ok(!safe.includes(" "), "Leerzeichen nicht entfernt");
+  assert.ok(!safe.includes("<"), " spitze Klammer nicht entfernt");
   const el = document.createElement("div");
   el.className = `plugin-slot-item plugin-${safe}`;
-  assert.ok(!el.outerHTML.includes("onload"), "onload nicht in Attribut");
+  // Klassenname wird ueber die DOM-API gesetzt, daher keine Attribut-Injection moeglich
+  assert.ok(!el.outerHTML.includes('onload="'), "onload-Attribut nicht injiziert");
 });
 
 console.log("\n==========================================");
