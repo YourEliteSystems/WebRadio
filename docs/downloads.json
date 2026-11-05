@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-04T10:51:34.489Z",
+  "generatedAt": "2026-11-05T10:49:22.504Z",
   "repository": "YourEliteSystems/WebRadio",
   "definition": "Counts only downloadable application packages. GitHub updater metadata, blockmaps, checksums and builder-debug files are excluded.",
-  "totalDownloads": 101,
+  "totalDownloads": 104,
   "platformDownloads": {
-    "appimage": 44,
+    "appimage": 47,
     "windows": 31,
     "arch": 26
   },
@@ -72,9 +72,9 @@
       "name": "WebRadio 1.0.7-beta.1",
       "publishedAt": "2026-10-06T18:56:48Z",
       "prerelease": true,
-      "downloads": 4,
+      "downloads": 5,
       "platforms": {
-        "appimage": 2,
+        "appimage": 3,
         "windows": 1,
         "arch": 1
       },
@@ -82,7 +82,7 @@
         {
           "name": "WebRadio-1.0.7-beta.1-linux-x86_64.AppImage",
           "platform": "appimage",
-          "downloads": 2
+          "downloads": 3
         },
         {
           "name": "WebRadio-1.0.7-beta.1-win-x64.exe",
@@ -217,9 +217,9 @@
       "name": "WebRadio 1.0.7-alpha.1",
       "publishedAt": "2026-09-25T19:28:42Z",
       "prerelease": true,
-      "downloads": 4,
+      "downloads": 5,
       "platforms": {
-        "appimage": 2,
+        "appimage": 3,
         "windows": 1,
         "arch": 1
       },
@@ -227,7 +227,7 @@
         {
           "name": "WebRadio-1.0.7-alpha.1-linux-x86_64.AppImage",
           "platform": "appimage",
-          "downloads": 2
+          "downloads": 3
         },
         {
           "name": "WebRadio-1.0.7-alpha.1-win-x64.exe",
@@ -391,9 +391,9 @@
       "name": "WebRadio 1.0.6-beta.3",
       "publishedAt": "2026-09-07T17:53:19Z",
       "prerelease": true,
-      "downloads": 5,
+      "downloads": 6,
       "platforms": {
-        "appimage": 3,
+        "appimage": 4,
         "windows": 1,
         "arch": 1
       },
@@ -401,7 +401,7 @@
         {
           "name": "WebRadio-1.0.6-beta.3-linux-x86_64.AppImage",
           "platform": "appimage",
-          "downloads": 3
+          "downloads": 4
         },
         {
           "name": "WebRadio-1.0.6-beta.3-win-x64.exe",
