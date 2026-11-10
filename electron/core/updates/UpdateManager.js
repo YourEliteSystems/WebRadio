@@ -40,6 +40,9 @@ const MarkdownSanitizer = require("./MarkdownSanitizer");
 // (Windows/NSIS + Linux AppImage) bleibt unverändert. Der
 // ProviderFactory wählt den passenden Provider anhand der Runtime.
 const RuntimeDetector = require("../platform/RuntimeDetector");
+const SystemDetector = require("../platform/SystemDetector");
+const InstallationDetector = require("../platform/InstallationDetector");
+const UpdateProviderRegistry = require("./UpdateProviderRegistry");
 const ProviderFactory = require("./providers/ProviderFactory");
 
 const logger = LogManager.getLogger("Updater");
@@ -92,6 +95,12 @@ class UpdateManager {
         // Beta 4: Provider-Routing State
         this._provider = null;
         this._runtimeInfo = null;
+
+        // v1.0.7: System- und Installationserkennung
+        this._systemInfo = null;
+        this._installationInfo = null;
+        this._providerSelection = null;
+        this._diagnosticsSteps = [];
     }
 
     // ─────────────────────────────────────────────
@@ -118,23 +127,59 @@ class UpdateManager {
             // currentVersion JEDES Mal setzen, auch nach dispose()/re-init
             this._state.currentVersion = app.getVersion();
 
-            // Beta 4: Runtime-Erkennung + Provider-Auswahl.
+            // v1.0.7: Systemerkennung -> Installationserkennung -> Provider.
             // Fehler hier dürfen den bestehenden Updater NICHT brechen.
             try {
                 const fs = require("fs");
                 const path = require("path");
+                const os = require("os");
                 this._runtimeInfo = RuntimeDetector.detectRuntime(
                     app, process, fs, path
                 );
-                this._provider = ProviderFactory.createProvider(
-                    app, autoUpdater, fs, path
+                this._systemInfo = SystemDetector.detect({
+                    app,
+                    processObj: process,
+                    fsModule: fs,
+                    osModule: os,
+                    versions: process.versions,
+                    platform: process.platform,
+                    arch: process.arch
+                });
+                this._installationInfo = InstallationDetector.detect({
+                    system: this._systemInfo,
+                    app,
+                    processObj: process,
+                    fsModule: fs,
+                    pathModule: path
+                });
+                this._providerSelection = UpdateProviderRegistry.select({
+                    system: this._systemInfo,
+                    installation: this._installationInfo,
+                    channel: this._state.channel
+                });
+                this._provider = UpdateProviderRegistry.createProvider(
+                    this._providerSelection,
+                    { app, autoUpdater, fs, path }
                 );
-                logger.info(
-                    `[Updater] Runtime: ${this._runtimeInfo.platform}/` +
-                    `${this._runtimeInfo.packaging} ` +
-                    `(provider=${this._provider.getProviderType()})`
-                );
+                this._recordStep("provider-selection", "ok", this._providerSelection.key);
+
+                // Nach erfolgreichem Start: vorherige Sicherung bestätigen
+                // und erst dann zur Löschung freigeben.
+                if (this._provider && typeof this._provider.confirmHealthyInstall === "function") {
+                    try {
+                        const confirmation = this._provider.confirmHealthyInstall();
+                        this._recordStep(
+                            "backup-confirmation",
+                            confirmation && confirmation.status === "error" ? "failed" : "ok",
+                            confirmation ? confirmation.status : null
+                        );
+                    } catch (confirmErr) {
+                        this._recordStep("backup-confirmation", "failed", confirmErr.message);
+                    }
+                }
+                this._logDetectionSummary();
             } catch (providerErr) {
+                this._recordStep("provider-selection", "failed", providerErr.message);
                 logger.warn(
                     `[Updater] Provider-Routing fehlgeschlagen: ${providerErr.message}`
                 );
@@ -211,6 +256,7 @@ class UpdateManager {
      * welche Runtime erkannt wurde. Für Diagnose-Einstellungen genutzt.
      */
     getProviderInfo() {
+        const selection = this._providerSelection;
         return {
             type: this._provider ? this._provider.getProviderType() : null,
             reason: (this._isUnsupported() && this._provider && this._provider.getReason)
@@ -226,8 +272,168 @@ class UpdateManager {
                     isWindows: !!this._runtimeInfo.isWindows,
                     isMacOS: !!this._runtimeInfo.isMacOS
                 }
-                : null
+                : null,
+            // v1.0.7: vollständige Provider-Auswahl für Diagnose/UI
+            key: selection ? selection.key : null,
+            label: selection ? selection.label : null,
+            mechanism: selection ? selection.mechanism : null,
+            automatic: selection ? !!selection.automatic : false,
+            requiresElevation: selection ? !!selection.requiresElevation : false,
+            manualUpdate: selection ? selection.manualUpdate : null,
+            suggestion: selection ? selection.suggestion : null,
+            channelIndependent: selection ? !!selection.channelIndependent : true
         };
+    }
+
+    /**
+     * Vollständige, bereinigte Update-Diagnose.
+     *
+     * Enthält ausschließlich die in Abschnitt 8 geforderten Angaben.
+     * Keine Passwörter, Tokens, Schlüssel oder Umgebungsvariablen.
+     */
+    getDiagnostics() {
+        const system = this._systemInfo;
+        const installation = this._installationInfo;
+        const selection = this._providerSelection;
+
+        return {
+            generatedAt: new Date().toISOString(),
+            currentVersion: this._state.currentVersion || null,
+            channel: this._state.channel,
+            versionChannel: this.getVersionChannel(),
+            system: system
+                ? {
+                    os: system.os.name,
+                    osVersion: system.os.version,
+                    osStatus: system.os.status,
+                    architecture: system.architecture.system,
+                    processArchitecture: system.architecture.process,
+                    emulated: system.architecture.emulated,
+                    runtime: system.runtime.runtime,
+                    electron: system.runtime.electron,
+                    node: system.runtime.node,
+                    distribution: system.linux
+                        ? {
+                            id: system.linux.distribution.id,
+                            name: system.linux.distribution.name,
+                            versionId: system.linux.distribution.versionId,
+                            family: system.linux.distribution.family,
+                            packageManager: system.linux.distribution.packageManager,
+                            status: system.linux.distribution.status
+                        }
+                        : null
+                }
+                : null,
+            installation: installation
+                ? {
+                    kind: installation.kind,
+                    format: installation.format,
+                    source: installation.source,
+                    status: installation.status,
+                    sourceStatus: installation.sourceStatus,
+                    systemManaged: !!installation.systemManaged,
+                    paths: {
+                        installPath: installation.paths.installPath,
+                        executionPath: installation.paths.executionPath,
+                        executablePath: installation.paths.executablePath,
+                        appDirectory: installation.paths.appDirectory,
+                        userDataPath: installation.paths.userDataPath,
+                        updatePath: installation.paths.updatePath,
+                        backupPath: installation.paths.backupPath,
+                        tempPath: installation.paths.tempPath
+                    },
+                    permissions: {
+                        installDirectoryWritable: installation.permissions.installDirectoryWritable,
+                        executableWritable: installation.permissions.executableWritable,
+                        elevationRequired: !!installation.permissions.elevationRequired,
+                        status: installation.permissions.status
+                    }
+                }
+                : null,
+            provider: selection
+                ? {
+                    key: selection.key,
+                    providerType: selection.providerType,
+                    mechanism: selection.mechanism,
+                    automatic: !!selection.automatic,
+                    requiresElevation: !!selection.requiresElevation,
+                    channelIndependent: !!selection.channelIndependent,
+                    reason: selection.reason,
+                    suggestion: selection.suggestion
+                }
+                : null,
+            activeProviderType: this._provider ? this._provider.getProviderType() : null,
+            steps: this._diagnosticsSteps.map((step) => ({ ...step })),
+            state: {
+                status: this._state.status,
+                availableVersion: this._state.availableVersion,
+                downloaded: this._state.downloaded,
+                error: this._state.error
+            }
+        };
+    }
+
+    /**
+     * Liefert den Vorschlag für den manuellen Update-Weg des aktiven
+     * Providers (verständliche Meldung für die UI).
+     */
+    getManualUpdateHint() {
+        const selection = this._providerSelection;
+        if (!selection) return null;
+        return {
+            key: selection.key,
+            reason: selection.reason,
+            suggestion: selection.suggestion,
+            manualUpdate: selection.manualUpdate
+        };
+    }
+
+    /**
+     * Interne, begrenzte Schritt-Liste für die Diagnose.
+     * Enthält niemals vertrauliche Werte.
+     */
+    _recordStep(name, status, detail = null) {
+        if (!Array.isArray(this._diagnosticsSteps)) return;
+        this._diagnosticsSteps.push({
+            name,
+            status,
+            detail: typeof detail === "string" ? detail : null,
+            timestamp: new Date().toISOString()
+        });
+        if (this._diagnosticsSteps.length > 50) {
+            this._diagnosticsSteps.shift();
+        }
+    }
+
+    /**
+     * Protokolliert die Erkennung ohne vertrauliche Informationen.
+     */
+    _logDetectionSummary() {
+        const system = this._systemInfo;
+        const installation = this._installationInfo;
+        const selection = this._providerSelection;
+        if (!system || !installation || !selection) return;
+
+        const distro = system.linux ? system.linux.distribution : null;
+        logger.info(
+            `[Updater] System: ${system.os.name} ${system.os.version || ""} ` +
+            `${system.architecture.system}/${system.architecture.process}` +
+            (distro ? ` (distro=${distro.id || "unknown"}, family=${distro.family}, pm=${distro.packageManager || "none"})` : "")
+        );
+        logger.info(
+            `[Updater] Installation: ${installation.kind} ` +
+            `(format=${installation.format}, source=${installation.source}, status=${installation.status})`
+        );
+        logger.info(
+            `[Updater] Provider: ${selection.key} (${selection.providerType}, ` +
+            `automatic=${selection.automatic ? "yes" : "no"})`
+        );
+    }
+
+    _unsupportedSuggestion() {
+        const selection = this._providerSelection;
+        if (selection && selection.suggestion) return selection.suggestion;
+        return "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren.";
     }
 
     /**
@@ -357,13 +563,16 @@ class UpdateManager {
                 ? this._provider.getReason()
                 : "Pakettyp unterstützt keine automatischen Updates";
             logger.info(`[Updater] Update-Check übersprungen (unsupported): ${reason}`);
+            this._recordStep("check", "unsupported", this._providerSelection ? this._providerSelection.key : null);
             const result = {
                 status: "unsupported",
                 currentVersion: this._state.currentVersion || this.getCurrentVersion(),
                 channel: this._state.channel,
                 providerType: this._provider ? this._provider.getProviderType() : null,
+                providerKey: this._providerSelection ? this._providerSelection.key : null,
+                mechanism: this._providerSelection ? this._providerSelection.mechanism : null,
                 reason,
-                suggestion: "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren."
+                suggestion: this._unsupportedSuggestion()
             };
             this._state.availableVersion = null;
             this._state.error = null;
@@ -418,7 +627,7 @@ class UpdateManager {
                     "Download wird für diesen Pakettyp nicht unterstützt"
                 ),
                 providerType: this._provider ? this._provider.getProviderType() : null,
-                suggestion: "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren."
+                suggestion: this._unsupportedSuggestion()
             };
         }
         if (!autoUpdater) {
@@ -479,7 +688,7 @@ class UpdateManager {
                     "Installation wird für diesen Pakettyp nicht unterstützt"
                 ),
                 providerType: this._provider ? this._provider.getProviderType() : null,
-                suggestion: "Bitte nutze den System-Paketmanager, um WebRadio zu aktualisieren."
+                suggestion: this._unsupportedSuggestion()
             };
         }
         if (!autoUpdater) {
@@ -684,6 +893,10 @@ class UpdateManager {
         this._downloadedFile = null;
         this._provider = null;
         this._runtimeInfo = null;
+        this._systemInfo = null;
+        this._installationInfo = null;
+        this._providerSelection = null;
+        this._diagnosticsSteps = [];
         this._initialized = false;
         this._initializing = false;
     }

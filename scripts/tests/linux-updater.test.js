@@ -295,12 +295,22 @@ const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "webradio-linux-updater-te
         });
 
         assert.strictEqual(res.success, true);
-        // Die orphanBak-Datei mit ANDEREM Präfix-Stand bleibt intakt,
-        // da das Ziel zum Zeitpunkt der Bereinigung existierte.
-        // (Bereinigung prüft vor Löschung: targetExists → true → löschen ist safe)
-        // Ergebnis hängt davon ab ob Ziel bei Cleanup-Phase vorhanden war.
-        // Hier war es vorhanden → orphanBak wurde gelöscht.
-        assert.strictEqual(fs.existsSync(orphanBak), false, "Orphan-.bak darf gelöscht werden, wenn Ziel existiert");
+        // v1.0.7: Eine Sicherung darf NICHT allein deshalb gelöscht werden, weil
+        // am Zielpfad eine Datei existiert. Sie bleibt bis zur ausdrücklichen
+        // Bestätigung einer gesunden Installation erhalten.
+        assert.strictEqual(
+            fs.existsSync(orphanBak),
+            true,
+            "Orphan-.bak muss trotz vorhandenem Ziel erhalten bleiben"
+        );
+
+        // Erst die Bestätigung nach erfolgreichem Start gibt Sicherungen frei.
+        const confirmation = LinuxAppImageInstaller.confirmHealthyInstall({
+            currentAppPath: currentApp,
+            fsObj: fs
+        });
+        assert.ok(Array.isArray(confirmation.removed), "confirmHealthyInstall liefert Liste");
+        assert.strictEqual(fs.existsSync(orphanBak), false, "Bestätigte Sicherung wird freigegeben");
     });
 
     test("applyUpdate: .bak bleibt wenn Ziel fehlt (Recovery-Schutz)", () => {
@@ -412,7 +422,7 @@ const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "webradio-linux-updater-te
         }
     });
 
-    test("applyUpdate: räumt alte Fragmente (.tmp / .bak) aus früheren Abbrüchen auf", () => {
+    test("applyUpdate: räumt alte Staging-Fragmente (.tmp) auf, Sicherungen (.bak) bleiben", () => {
         const currentApp = path.join(tmpBase, "cleanup-current.AppImage");
         const downloadedUpdate = path.join(tmpBase, "cleanup-download.AppImage");
         const staleTmp = path.join(tmpBase, ".webradio-update-old123.tmp");
@@ -434,7 +444,9 @@ const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "webradio-linux-updater-te
 
         assert.strictEqual(res.success, true);
         assert.strictEqual(fs.existsSync(staleTmp), false, "Altes .tmp-Fragment muss aufgeräumt sein");
-        assert.strictEqual(fs.existsSync(staleBak), false, "Altes .bak-Fragment muss aufgeräumt sein");
+        assert.strictEqual(fs.existsSync(staleBak), true, "Altes .bak-Fragment darf nicht ungefragt gelöscht werden");
+
+        try { fs.unlinkSync(staleBak); } catch { /* ignore */ }
     });
 
     // ─────────────────────────────────────────────────────────────

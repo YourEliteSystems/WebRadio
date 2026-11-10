@@ -17,6 +17,10 @@ const MarkdownSanitizer = require("./MarkdownSanitizer");
 const ChannelMetadata = require("./ChannelMetadata");
 const ReleaseChannel = require("./ReleaseChannel");
 const ChannelStore = require("./settings");
+const UpdateProviderRegistry = require("./UpdateProviderRegistry");
+const SystemDetector = require("../platform/SystemDetector");
+const InstallationDetector = require("../platform/InstallationDetector");
+const ArtifactVerifier = require("./verification/ArtifactVerifier");
 
 module.exports = {
     updateManager: UpdateManager,
@@ -38,5 +42,12 @@ module.exports = {
 
     getStoredChannel: ChannelStore.getStoredChannel,
     setStoredChannel: ChannelStore.setStoredChannel,
-    isValidStoredChannel: ChannelStore.isValidStoredChannel
+    isValidStoredChannel: ChannelStore.isValidStoredChannel,
+
+    // v1.0.7: System-/Installationserkennung und Provider-Registry
+    systemDetector: SystemDetector,
+    installationDetector: InstallationDetector,
+    providerRegistry: UpdateProviderRegistry,
+    artifactVerifier: ArtifactVerifier,
+    trust: SystemDetector.TRUST
 };

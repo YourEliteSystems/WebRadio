@@ -4,6 +4,47 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.7] – 2026-11-10
+
+> Stabiles Release 1.0.7: Das Update-System erkennt Betriebssystem, Version, Architektur, Linux-Distribution, Installationsart, Installationsquelle, Installationspfad und Berechtigungen und wählt daraus automatisch den sicheren Update-Weg. Paketmanagerverwaltete und unbekannte Installationen werden niemals eigenmächtig überschrieben; Integritäts-, Format-, Architektur- und Signaturprüfungen sowie atomarer Austausch und Backup/Rollback bleiben erhalten.
+
+### ✨ Neue Funktionen
+
+- **`SystemDetector` (`electron/core/platform/SystemDetector.js`):** Zentrale Erkennung von Betriebssystem und Version, System- und Prozessarchitektur (inklusive Emulation), Laufzeitumgebung sowie Linux-Distribution anhand von `/etc/os-release`. Familien und Paketmanager werden ausschließlich über `ID`/`ID_LIKE` aufgelöst – Arch, CachyOS, Debian, Ubuntu, Linux Mint, Fedora, openSUSE und weitere kompatible Distributionen sind abgedeckt. Unbekannte Distributionen fallen auf generische Linux-Funktionen zurück; der Anzeigename begründet nie eine Kompatibilität. Deklarative Systeme (NixOS, Silverblue, SteamOS …) werden als `UNSUPPORTED` markiert.
+- **`InstallationDetector` (`electron/core/platform/InstallationDetector.js`):** Erkennt Installationsart und -quelle für Windows (EXE/NSIS, MSI, Portable), Linux (AppImage, DEB, RPM, Arch-Paket, Portable) und macOS (DMG, PKG, ZIP) sowie unbekannte/manuelle Installationen. Liefert Installations-, Ausführungs- und Datenpfade getrennt, prüft Schreibrechte und liefert für jede Angabe eine Vertrauensstufe (`DETECTED`, `VERIFIED`, `UNKNOWN`, `UNSUPPORTED`). Eine unbekannte Quelle bleibt `unknown` und wird nicht durch eine Vermutung ersetzt.
+- **`UpdateProviderRegistry` (`electron/core/updates/UpdateProviderRegistry.js`):** Wählt den Update-Mechanismus anhand von Betriebssystem, Architektur, Installationsformat, Installationsquelle, Installationspfad und Berechtigungen. Die Auswahl ist kanalunabhängig: `stable`, `beta` und `alpha` nutzen denselben Provider und wechseln nie implizit den Kanal. `ProviderFactory` bleibt als stabile API erhalten und delegiert an die Registry.
+- **Integritätsprüfung (`electron/core/updates/verification/ArtifactVerifier.js`):** SHA-256 und SHA-512 (Hex und Base64), Dateigröße, Dateiformat (ELF/PE/Mach-O), Architektur, Signaturprüfung bei bereitgestellten Prüfdaten sowie freier Speicherplatz. Fehlende Prüfdaten werden als `UNSUPPORTED` gemeldet, nie als bestanden.
+- **Update-Diagnose:** `updates:get-diagnostics`, `updates:get-provider-info` und `updates:get-manual-update-hint` liefern eine bereinigte Übersicht über System, Distribution, Installationsart, Quelle, Pfade, Berechtigungen, Provider, Kanal und Update-Schritte. Fehler tragen einen stabilen Code und eine Kategorie (`network`, `integrity`, `permission`, `platform`, `installation`, `channel`).
+
+### 🔒 Sicherheit & Stabilität
+
+- **Paketmanager-Schutz:** DEB-, RPM- und Arch-Pakete werden ausschließlich über den Paketmanager aktualisiert. Die Registry liefert die passende Anweisung (`apt`, `dnf`/`zypper`, `pacman`) statt eigenmächtig Dateien zu ersetzen.
+- **Unbekannte Installationen:** Ohne belastbare Erkennung wird kein automatischer Update-Weg gewählt; die UI erhält eine verständliche Begründung und einen manuellen Download-Link.
+- **Integrität vor Austausch:** Der AppImage-Installer prüft zusätzlich die vom Release gelieferten SHA-512- und Größenangaben, bevor er eine Staging-Datei anlegt.
+- **Backup-Semantik korrigiert:** Eine Sicherung wird nicht mehr gelöscht, nur weil am Zielpfad bereits eine Datei existiert. Sie wird erst nach erfolgreichem Start der neuen Version über `confirmHealthyInstall()` freigegeben. Unvollständige Staging-Dateien (`.tmp`) werden weiterhin aufgeräumt.
+
+### 🧪 Tests und CI
+
+- Neue Unit-Tests: `system-detector.test.js`, `installation-detector.test.js`, `update-provider-registry.test.js`, `update-security.test.js` (Erkennung, Provider-Auswahl, Pfade, Quellen, Berechtigungen, Hash/Signatur, unvollständige Downloads, Backup/Rollback, unbekannte und nicht unterstützte Plattformen).
+- Echte Plattform-Probes: `scripts/tests/platform-probe.js` und `scripts/tests/assert-linux-distro.js` laufen auf dem tatsächlichen Windows-Host, auf Ubuntu und in einem Arch-Linux-Container.
+- CI (`ci-integration.yml`): neue Jobs für simulierte Update-Erkennungstests, Linux-Plattformerkennung und Arch-Plattformerkennung; Windows führt die Erkennungs-Probe auf echtem Windows aus. Die Zusammenfassung unterscheidet ausdrücklich zwischen Unit-Tests, simulierten Plattformtests und echten Integrationstests.
+
+### ⚠️ Bekannte Einschränkungen
+
+- macOS wird erkannt, aber nicht automatisch aktualisiert; es gibt weder macOS-Builds noch macOS-Plattformtests in dieser Version.
+- MSI wird erkannt, aber nicht automatisch aktualisiert (kein MSI-Artefakt im Release).
+- RPM wird erkannt, aber es wird kein RPM-Artefakt gebaut.
+- Linux Portable hat keinen automatischen Update-Weg.
+- Signaturen werden nur geprüft, wenn ein öffentlicher Schlüssel bereitgestellt wird; der Release liefert derzeit keine Signaturen.
+- AppImage-Updates laden die vollständige Datei (kein Delta-Update über zsync).
+
+### 📚 Dokumentation
+
+- `docs/UPDATE_ARCHITECTURE.md` beschreibt Architektur, SystemDetector, InstallationDetector, Provider-Registry, unterstützte Systeme und Formate, Update-Ablauf, Sicherheitsmechanismen, Rollback-Verhalten, Fehlerdiagnose, Erweiterung um neue Formate und die tatsächlich getesteten Installationsarten.
+- `docs/architecture/10-Updater.md` verweist auf die neue Erkennungs- und Registry-Schicht.
+
+---
+
 ## [v1.0.7-beta.3] – 2026-10-30
 
 > Beta-Version 1.0.7-beta.3: Führt die System-Mediensteuerung ein, die Zustand und Metadaten über Chromium `navigator.mediaSession` veröffentlicht. Hardware-Medientasten nutzen Electron-Shortcuts. Plugin Media Controls (`media-controls` Capability + `media-control` Permission) bieten Statusabfrage, Aktionsfähigkeiten und kontrollierte Play/Pause/Next/Previous-Anforderungen. Plugin Web-Session-API (`web-session`, `web-session-media`) ermöglicht isolierte persistente Web-Sitzungen mit kontrolliertem Medienzugriff. Sendernavigation folgt der sichtbaren Senderliste. alle Subscriptions werden bei Plugin-Unload bereinigt. Keine Offenlegung von Stream-URLs.

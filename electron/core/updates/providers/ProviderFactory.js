@@ -3,23 +3,24 @@
 /**
  * ProviderFactory.js
  *
- * Factory für die Erstellung des passenden Update-Providers basierend auf Runtime-Informationen.
+ * Kompatibilitätsschicht zur zentralen `UpdateProviderRegistry`.
  *
- * Aufgaben:
- *  - Runtime-Informationen analysieren
- *  - Passenden Provider auswählen
- *  - Provider-Instanz erstellen und zurückgeben
+ * Die eigentliche Auswahl (Betriebssystem, Architektur, Installationsformat,
+ * Installationsquelle, Berechtigungen) liegt in
+ * `electron/core/updates/UpdateProviderRegistry.js`. Diese Factory bleibt
+ * als stabile API erhalten, damit bestehende Aufrufer und Tests
+ * unverändert funktionieren.
  *
  * Designprinzipien:
- *  - Zentrale Provider-Selektion
- *  - RuntimeDetector-Integration
- *  - Fallback auf UnsupportedProvider
+ *  - Keine zweite Auswahllogik
+ *  - Fallback auf UnsupportedUpdateProvider
+ *  - Optionale Injektion einer bereits berechneten Erkennung
  */
 
 const RuntimeDetector = require("../../platform/RuntimeDetector");
-const WindowsUpdateProvider = require("./WindowsUpdateProvider");
-const LinuxAppImageUpdateProvider = require("./LinuxAppImageUpdateProvider");
-const UnsupportedUpdateProvider = require("./UnsupportedUpdateProvider");
+const SystemDetector = require("../../platform/SystemDetector");
+const InstallationDetector = require("../../platform/InstallationDetector");
+const UpdateProviderRegistry = require("../UpdateProviderRegistry");
 
 class ProviderFactory {
 
@@ -30,53 +31,66 @@ class ProviderFactory {
      * @param {object} autoUpdater - electron-updater instance (optional)
      * @param {object} fs - fs module (optional, für Tests)
      * @param {object} path - path module (optional, für Tests)
-     * @returns {BaseUpdateProvider}
+     * @param {object} [processObj=process]
+     * @param {object} [detection=null] - bereits berechnete Erkennung
+     *        ({ system, installation, selection })
+     * @returns {object} Provider-Instanz
      */
-    static createProvider(app, autoUpdater, fs, path, processObj = process) {
-        const runtimeInfo = RuntimeDetector.detectRuntime(app, processObj, fs, path);
+    static createProvider(app, autoUpdater, fs, path, processObj = process, detection = null) {
+        const context = detection || ProviderFactory.detectEnvironment(app, fs, path, processObj);
 
-        // Windows -> electron-updater
-        if (runtimeInfo.platform === "windows") {
-            return new WindowsUpdateProvider(autoUpdater);
-        }
+        const selection = context.selection || UpdateProviderRegistry.select({
+            system: context.system,
+            installation: context.installation
+        });
 
-        // Linux AppImage -> AppImage-Provider (vorläufig GitHub-Fallback)
-        if (runtimeInfo.isAppImage) {
-            return new LinuxAppImageUpdateProvider(autoUpdater, app);
-        }
-
-        // Linux .deb / Arch / RPM / macOS / unknown -> Unsupported
-        let reason = "Der installierte Pakettyp unterstützt keine automatischen In-App-Updates.";
-        let suggestion = "Bitte nutze die Paketverwaltung deines Systems, um WebRadio zu aktualisieren.";
-
-        if (runtimeInfo.platform === "linux") {
-            if (runtimeInfo.packaging === "deb") {
-                reason = "Debian/Ubuntu-Pakete (.deb) müssen über die System-Paketverwaltung (apt/dpkg) aktualisiert werden.";
-                suggestion = "Bitte aktualisiere WebRadio über deinen Paketmanager (z. B. sudo apt update && sudo apt upgrade webradio).";
-            } else if (runtimeInfo.packaging === "arch") {
-                reason = "Arch-Linux-Pakete (.pkg.tar.zst) müssen über die Paketverwaltung (pacman) aktualisiert werden.";
-                suggestion = "Bitte aktualisiere WebRadio über deinen Paketmanager (z. B. sudo pacman -Syu webradio).";
-            } else if (runtimeInfo.packaging === "rpm") {
-                reason = "RPM-Pakete müssen über die System-Paketverwaltung (dnf/zypper) aktualisiert werden.";
-                suggestion = "Bitte aktualisiere WebRadio über deinen Paketmanager (z. B. sudo dnf upgrade webradio).";
-            } else {
-                reason = "Systemweit installierte Linux-Pakete können aus Sicherheitsgründen nicht über den In-App-Updater modifiziert werden.";
-                suggestion = "Bitte nutze den Paketmanager deiner Linux-Distribution, um WebRadio zu aktualisieren.";
-            }
-        } else if (runtimeInfo.platform === "macos") {
-            reason = "Automatische Updates für macOS sind noch nicht implementiert.";
-            suggestion = "Bitte lade das neueste Release für macOS manuell von GitHub herunter.";
-        }
-
-        return new UnsupportedUpdateProvider(reason, suggestion);
+        return UpdateProviderRegistry.createProvider(selection, {
+            app,
+            autoUpdater,
+            fs,
+            path
+        });
     }
 
     /**
-     * Liefert Runtime-Informationen für Diagnose.
+     * Berechnet System- und Installationsprofil inklusive Provider-Auswahl.
+     *
+     * @param {object} app
+     * @param {object} [fs]
+     * @param {object} [path]
+     * @param {object} [processObj=process]
+     * @returns {{ system: object, installation: object, selection: object }}
+     */
+    static detectEnvironment(app, fs, path, processObj = process) {
+        const system = SystemDetector.detect({
+            app,
+            processObj,
+            fsModule: fs,
+            versions: processObj ? processObj.versions : process.versions,
+            platform: processObj ? processObj.platform : process.platform,
+            arch: processObj ? processObj.arch : process.arch
+        });
+
+        const installation = InstallationDetector.detect({
+            system,
+            app,
+            processObj,
+            fsModule: fs,
+            pathModule: path
+        });
+
+        const selection = UpdateProviderRegistry.select({ system, installation });
+
+        return { system, installation, selection };
+    }
+
+    /**
+     * Liefert Runtime-Informationen für Diagnose (Abwärtskompatibilität).
      *
      * @param {object} app - Electron app instance
      * @param {object} fs - fs module (optional)
      * @param {object} path - path module (optional)
+     * @param {object} [processObj=process]
      * @returns {object}
      */
     static getRuntimeInfo(app, fs, path, processObj = process) {

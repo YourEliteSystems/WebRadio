@@ -70,7 +70,18 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run All Tests
+      # Explizit simulierte Plattformtests: prüfen die Erkennungs- und
+      # Provider-Logik für Windows/Linux/macOS ohne echte Installation.
+      - name: Update Detection Tests (simulated platforms)
+        run: |
+          set -euo pipefail
+          for test in system-detector installation-detector update-provider-registry update-security; do
+            echo "::group::${test} (simulierte Plattformlogik)"
+            node "scripts/tests/${test}.test.js"
+            echo "::endgroup::"
+          done
+
+      - name: Run Unit and Regression Tests
         run: npm test
 
   # ─────────────────────────────────────────────────────────────
@@ -94,6 +105,11 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      # Echter Plattformtest auf Windows: führt die Erkennung gegen das
+      # tatsächliche Host-System aus (kein simuliertes Dateisystem).
+      - name: Platform Detection (real Windows host)
+        run: node scripts/tests/platform-probe.js
 
       - name: Build Project
         run: npm run build
@@ -198,7 +214,61 @@ jobs:
           if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────────
-  # 5. Arch-Linux-Paketierung und Installationstests
+  # 5. Linux-Plattformerkennung (echter Host)
+  # ─────────────────────────────────────────────────────────────
+  linux-platform-detection:
+    name: Linux Platform Detection (real host)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: unit-tests
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26.x
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Probe Real Linux Host
+        run: node scripts/tests/platform-probe.js
+
+      - name: Assert Ubuntu/Debian Detection
+        run: node scripts/tests/assert-linux-distro.js debian apt
+
+  # ─────────────────────────────────────────────────────────────
+  # 6. Arch-Linux-Plattformerkennung (echter Arch-Container)
+  # ─────────────────────────────────────────────────────────────
+  arch-platform-detection:
+    name: Arch Linux Platform Detection (real container)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: unit-tests
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Probe Real Arch Linux Container
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w /repo \
+            archlinux:latest \
+            bash -lc '
+              set -euo pipefail
+              pacman -Sy --noconfirm nodejs
+              node scripts/tests/platform-probe.js
+              node scripts/tests/assert-linux-distro.js arch pacman
+            '
+
+  # ─────────────────────────────────────────────────────────────
+  # 7. Arch-Linux-Paketierung und Installationstests
   # ─────────────────────────────────────────────────────────────
   arch-linux:
     name: Arch Linux Package and Installation Tests
@@ -288,7 +358,7 @@ jobs:
           if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────────
-  # 6. Arch-Linux Installationstests
+  # 8. Arch-Linux Installationstests
   # ─────────────────────────────────────────────────────────────
   arch-install-validation:
     name: Arch Linux Installation Validation
@@ -396,13 +466,13 @@ jobs:
             '
 
   # ─────────────────────────────────────────────────────────────
-  # 7. Zusammenfassender CI-Status
+  # 9. Zusammenfassender CI-Status
   # ─────────────────────────────────────────────────────────────
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, unit-tests, windows-build, linux-appimage, arch-linux, arch-install-validation]
+    needs: [lint, unit-tests, windows-build, linux-appimage, linux-platform-detection, arch-platform-detection, arch-linux, arch-install-validation]
     if: always()
 
     steps:
@@ -417,7 +487,14 @@ jobs:
           echo "  Unit Tests: ${{ needs.unit-tests.result }}"
           echo "  Windows Build: ${{ needs.windows-build.result }}"
           echo "  Linux AppImage: ${{ needs.linux-appimage.result }}"
+          echo "  Linux Platform Detection (real host): ${{ needs.linux-platform-detection.result }}"
+          echo "  Arch Platform Detection (real container): ${{ needs.arch-platform-detection.result }}"
           echo "  Arch Linux Package: ${{ needs.arch-linux.result }}"
           echo "  Arch Installation: ${{ needs.arch-install-validation.result }}"
+          echo ""
+          echo "Hinweis: Unit-Tests und Update-Detection-Tests sind simulierte"
+          echo "Plattformtests. Nur Windows Build, Linux Platform Detection,"
+          echo "Arch Platform Detection und Arch Installation laufen auf echten"
+          echo "Zielsystemen. macOS wird nicht gebaut und ist NICHT getestet."
           echo ""
           echo "=========================================="

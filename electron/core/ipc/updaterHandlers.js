@@ -168,6 +168,37 @@ function registerUpdaterHandlers() {
         };
     });
 
+    // ─────────────────────────────────────────
+    // v1.0.7: Diagnose der Update-Umgebung
+    // ─────────────────────────────────────────
+
+    ipcMain.handle("updates:get-diagnostics", () => {
+        try {
+            return { ok: true, diagnostics: updateManager.updateManager.getDiagnostics() };
+        } catch (err) {
+            logger.error(`updates:get-diagnostics: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
+    });
+
+    ipcMain.handle("updates:get-provider-info", () => {
+        try {
+            return { ok: true, provider: updateManager.updateManager.getProviderInfo() };
+        } catch (err) {
+            logger.error(`updates:get-provider-info: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
+    });
+
+    ipcMain.handle("updates:get-manual-update-hint", () => {
+        try {
+            return { ok: true, hint: updateManager.updateManager.getManualUpdateHint() };
+        } catch (err) {
+            logger.error(`updates:get-manual-update-hint: ${err.message}`);
+            return { ok: false, error: { code: "INTERNAL", message: err.message } };
+        }
+    });
+
     ipcMain.handle("updates:get-auto-check", () => {
         return { ok: true, enabled: updateManager.updateManager.getAutoCheck() };
     });

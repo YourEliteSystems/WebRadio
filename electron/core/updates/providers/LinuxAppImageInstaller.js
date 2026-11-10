@@ -19,6 +19,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
+const ArtifactVerifier = require("../verification/ArtifactVerifier");
+
 class LinuxAppImageInstaller {
 
     /**
@@ -167,9 +169,107 @@ class LinuxAppImageInstaller {
      * @param {object} [options.appObj=null]
      * @returns {{ success: boolean, targetPath: string, symlinkPath: string|null, mode: number }}
      */
-    static applyUpdate({ currentAppPath, downloadedUpdatePath, fsObj = fs, appObj = null }) {
-        // 1. Validierung des Downloads
+    /**
+     * Prüft die vom Release bereitgestellten Integritätsdaten.
+     *
+     * @param {string} filePath
+     * @param {object} options
+     * @returns {{ ok: boolean, checks: object[] }}
+     */
+    static verifyIntegrity(filePath, { fsObj = fs, expectedSha512 = null, expectedSha256 = null, expectedSize = null, expectedArch = null } = {}) {
+        const checks = [];
+        if (expectedSha512) {
+            checks.push(ArtifactVerifier.verifyHash(filePath, expectedSha512, { algorithm: "sha512", fsObj }));
+        }
+        if (expectedSha256) {
+            checks.push(ArtifactVerifier.verifyHash(filePath, expectedSha256, { algorithm: "sha256", fsObj }));
+        }
+        if (expectedSize) {
+            checks.push(ArtifactVerifier.verifyFileSize(filePath, expectedSize, { fsObj }));
+        }
+        if (expectedArch) {
+            checks.push(ArtifactVerifier.verifyArchitecture(filePath, expectedArch, { fsObj }));
+        }
+
+        const failures = checks
+            .filter((check) => check.status !== ArtifactVerifier.TRUST.UNSUPPORTED && !check.ok)
+            .map((check) => check.detail);
+
+        if (failures.length > 0) {
+            throw new Error(`Integritätsprüfung fehlgeschlagen: ${failures.join("; ")}`);
+        }
+
+        return { ok: true, checks };
+    }
+
+    /**
+     * Bestätigt eine gesunde Installation und gibt erst dann
+     * Sicherungsdateien zur Löschung frei.
+     *
+     * Wird beim Start der Anwendung aufgerufen, nachdem die laufende
+     * Version erfolgreich gestartet ist.
+     *
+     * @param {object} options
+     * @returns {{ removed: string[] }}
+     */
+    static confirmHealthyInstall({ currentAppPath, fsObj = fs }) {
+        const { targetPath } = this.resolveTargetPaths(currentAppPath, fsObj);
+
+        // Nur freigeben, wenn das laufende Artefakt tatsächlich valide ist.
+        this.validateUpdateArtifact(targetPath, fsObj);
+
+        const targetDir = path.dirname(targetPath);
+        const removed = [];
+
+        if (typeof fsObj.readdirSync === "function") {
+            for (const entry of fsObj.readdirSync(targetDir)) {
+                if (typeof entry !== "string" || !entry.startsWith(".webradio-update-")) continue;
+                if (!entry.endsWith(".bak") && !entry.endsWith(".tmp")) continue;
+                try {
+                    fsObj.unlinkSync(path.join(targetDir, entry));
+                    removed.push(entry);
+                } catch {
+                    /* ignore */
+                }
+            }
+        }
+
+        return { removed };
+    }
+
+    /**
+     * Führt den sicheren atomaren Austausch des AppImages durch.
+     *
+     * @param {object} options
+     * @param {string} options.currentAppPath
+     * @param {string} options.downloadedUpdatePath
+     * @param {object} [options.fsObj=fs]
+     * @param {object} [options.appObj=null]
+     * @param {string} [options.expectedSha512]
+     * @param {string} [options.expectedSha256]
+     * @param {number} [options.expectedSize]
+     * @param {string} [options.expectedArch]
+     * @returns {{ success: boolean, targetPath: string, symlinkPath: string|null, mode: number, backupPath: string }}
+     */
+    static applyUpdate({
+        currentAppPath,
+        downloadedUpdatePath,
+        fsObj = fs,
+        appObj = null,
+        expectedSha512 = null,
+        expectedSha256 = null,
+        expectedSize = null,
+        expectedArch = null
+    }) {
+        // 1. Validierung des Downloads (Format, Größe, Integrität)
         this.validateUpdateArtifact(downloadedUpdatePath, fsObj);
+        this.verifyIntegrity(downloadedUpdatePath, {
+            fsObj,
+            expectedSha512,
+            expectedSha256,
+            expectedSize,
+            expectedArch
+        });
 
         // 2. Zielpfad und Symlink ermitteln
         const { targetPath, symlinkPath } = this.resolveTargetPaths(currentAppPath, fsObj);
@@ -196,17 +296,11 @@ class LinuxAppImageInstaller {
                             // Unvollständige Staging-Dateien immer löschen – sie
                             // enthalten kein gültiges Backup der Anwendung.
                             try { fsObj.unlinkSync(entryPath); } catch { /* ignore */ }
-                        } else if (entry.endsWith(".bak")) {
-                            // .bak könnte der letzte Stand nach einem Absturz sein.
-                            // Nur löschen wenn das Ziel bereits existiert (d. h.
-                            // vorheriges Update hat funktioniert), NICHT wenn das Ziel fehlt.
-                            const targetExists = fsObj.existsSync(targetPath);
-                            if (targetExists) {
-                                try { fsObj.unlinkSync(entryPath); } catch { /* ignore */ }
-                            }
-                            // Wenn Ziel fehlt: .bak-Datei als mögliche Wiederherstellungsquelle
-                            // in Ruhe lassen; sie schadet nicht.
                         }
+                        // .bak-Dateien werden hier NIE gelöscht. Eine Sicherung darf
+                        // nicht allein deshalb entfernt werden, weil am Zielpfad eine
+                        // Datei existiert. Freigabe ausschließlich über
+                        // confirmHealthyInstall() nach erfolgreichem Start.
                     }
                 }
             }
@@ -267,12 +361,10 @@ class LinuxAppImageInstaller {
                 throw new Error(`Atomarer Austausch fehlgeschlagen, Rollback durchgeführt: ${swapErr.message}`);
             }
 
-            // Erfolg: Backup entfernen
-            try {
-                fsObj.unlinkSync(backupPath);
-            } catch {
-                /* ignore */
-            }
+            // Erfolg: Backup bleibt bestehen. Es wird erst freigegeben, wenn
+            // die neue Version nach einem Neustart nachweislich läuft
+            // (confirmHealthyInstall). Ein vorhandenes Ziel ist dafür
+            // ausdrücklich KEIN ausreichender Grund.
 
             // Heruntergeladene temporäre Datei aufräumen
             try {
@@ -291,7 +383,8 @@ class LinuxAppImageInstaller {
                 success: true,
                 targetPath,
                 symlinkPath,
-                mode: preservedMode
+                mode: preservedMode,
+                backupPath
             };
         } finally {
             // Aufräumen von Staging falls vorhanden

@@ -42,12 +42,14 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
         this._autoUpdater = autoUpdater;
         this._app = app;
         this._downloadedFilePath = null;
+        this._downloadedInfo = null;
         // Grund, der in Diagnose-Antworten erscheint, wenn kein AutoUpdater
         // verfuegbar ist (z.B. `npm run dev`).
         this._reason = "AppImage-Updater verfuegbar nur in gepackten Builds via electron-updater";
 
         if (this._autoUpdater && typeof this._autoUpdater.on === "function") {
             this._onDownloaded = (info) => {
+                this._downloadedInfo = info || null;
                 this._downloadedFilePath = (info && info.downloadedFile) ||
                     (this._autoUpdater && this._autoUpdater.installerPath) ||
                     null;
@@ -188,15 +190,28 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
             try {
                 const fsObj = options.fsObj || require("fs");
                 const appObj = options.appObj !== undefined ? options.appObj : this._app;
+
+                // Integritätsdaten stammen bevorzugt aus den expliziten Optionen,
+                // sonst aus den Release-Metadaten des Downloads (sha512 + size).
+                const downloadedInfo = options.updateInfo || this._downloadedInfo || null;
+                const fileInfo = downloadedInfo && Array.isArray(downloadedInfo.files)
+                    ? downloadedInfo.files[0]
+                    : null;
+
                 const result = LinuxAppImageInstaller.applyUpdate({
                     currentAppPath,
                     downloadedUpdatePath: downloadedFilePath,
                     fsObj,
-                    appObj
+                    appObj,
+                    expectedSha512: options.expectedSha512 || (fileInfo && fileInfo.sha512) || null,
+                    expectedSha256: options.expectedSha256 || null,
+                    expectedSize: options.expectedSize || (fileInfo && fileInfo.size) || null,
+                    expectedArch: options.expectedArch || null
                 });
                 return {
                     status: "installing",
-                    targetPath: result.targetPath
+                    targetPath: result.targetPath,
+                    backupPath: result.backupPath
                 };
             } catch (err) {
                 return {
@@ -230,6 +245,28 @@ class LinuxAppImageUpdateProvider extends BaseUpdateProvider {
                 ? "AppImage-Pfad (APPIMAGE) nicht ermittelt. Update abgebrochen, um Rechteverlust zu verhindern."
                 : "Pfad zum heruntergeladenen Update-Artefakt nicht ermittelt."
         };
+    }
+
+    /**
+     * Bestätigt nach einem erfolgreichen Start die laufende AppImage-Datei
+     * und gibt ältere Sicherungen frei.
+     *
+     * @param {object} [options={}]
+     * @returns {object}
+     */
+    confirmHealthyInstall(options = {}) {
+        const currentAppPath = options.currentAppPath || process.env.APPIMAGE;
+        if (!currentAppPath) {
+            return { status: "skipped", reason: "Kein AppImage-Pfad vorhanden" };
+        }
+
+        try {
+            const fsObj = options.fsObj || require("fs");
+            const result = LinuxAppImageInstaller.confirmHealthyInstall({ currentAppPath, fsObj });
+            return { status: "ok", removed: result.removed };
+        } catch (err) {
+            return { status: "error", message: err.message || "Sicherung konnte nicht bestätigt werden" };
+        }
     }
 
     dispose() {

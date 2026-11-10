@@ -13,8 +13,11 @@ The Updater subsystem is organized as a small core layer with supporting modules
 * **UpdateManager** – central orchestration, state and channel handling.
 * **UpdateChannel** – stable/beta/alpha channel logic.
 * **UpdateState** – current update state.
-* **ProviderFactory** – selects the correct update provider for the detected runtime.
+* **ProviderFactory** – stable compatibility API delegating to the provider registry.
 * **RuntimeDetector** – detects platform, architecture and packaging type.
+* **SystemDetector** – detects OS version, architecture, runtime and Linux distribution.
+* **InstallationDetector** – detects installation kind, source, paths and permissions.
+* **UpdateProviderRegistry** – selects the update mechanism independently of the channel.
 * Platform-specific providers – Windows, Linux AppImage, unsupported.
 
 The Updater is responsible for:
@@ -63,11 +66,17 @@ Before checking for updates, the Updater determines the current runtime environm
 
 This includes:
 
-* Operating system (Windows, Linux, macOS)
-* Architecture (x64, arm64, arm, ia32)
-* Packaging type (appimage, deb, arch, windows-installer, windows-portable, development)
+* Operating system and OS version (Windows, Linux, macOS)
+* System and process architecture (x64, arm64, arm, ia32) including emulation
+* Linux distribution, distribution family and package manager from `/etc/os-release`
+* Installation kind (nsis, msi, portable, appimage, deb, rpm, arch, dmg, pkg, zip, development, unknown)
+* Installation source (installer, package-manager, appimage, portable, manual, unknown)
+* Install path, execution path and user data path, plus write permissions
 
-This information is used to select the correct update provider.
+This information is used to select the correct update provider. Package-manager
+managed installations are never overwritten; unknown installation kinds never use
+an automatic update path. See [Update Architecture](../UPDATE_ARCHITECTURE.md) for
+the complete matrix and the list of tested installation kinds.
 
 ---
 
@@ -80,11 +89,11 @@ UpdateManager
 
 ↓
 
-RuntimeDetector
+SystemDetector → InstallationDetector
 
 ↓
 
-ProviderFactory
+UpdateProviderRegistry (ProviderFactory delegates)
 
 ↓
 
@@ -93,11 +102,14 @@ Selected Provider
 
 Supported providers:
 
-* **WindowsUpdateProvider** – wraps electron-updater for Windows builds.
-* **LinuxAppImageUpdateProvider** – prepared for AppImageUpdate, currently GitHub fallback.
-* **UnsupportedUpdateProvider** – used for deb, arch and other package types without automatic updates.
+* **WindowsUpdateProvider** – wraps electron-updater for Windows NSIS and portable builds.
+* **LinuxAppImageUpdateProvider** – validates and atomically replaces the AppImage.
+* **UnsupportedUpdateProvider** – used for deb, rpm, arch, MSI, macOS and unknown
+  installations. It returns a clear reason plus a manual update path and never
+  replaces package-manager managed files.
 
-> macOS automatic updates are not implemented in 1.0.7-alpha.5.
+> macOS automatic updates are not implemented in 1.0.7. macOS builds are not
+> produced by the release pipeline and are not covered by platform tests.
 
 ---
 

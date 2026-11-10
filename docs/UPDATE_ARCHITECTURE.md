@@ -1,503 +1,532 @@
-# Update Architecture – Runtime Detection & Platform-Specific Providers
+# Update-System – Architektur, Erkennung und Provider-Auswahl
 
-## Overview
+Diese Seite beschreibt das Update-System von WebRadio ab **v1.0.7**: die
+Systemerkennung, die Installationserkennung, die Provider-Registry, die
+Sicherheitsmechanismen und die Grenzen des Systems.
 
-WebRadio's update system has been extended with a runtime detection layer and platform-specific update providers. This enables the application to automatically detect its runtime environment (OS, architecture, packaging type) and select the appropriate update mechanism.
-
-**Key Principles:**
-- Windows continues to use electron-updater (unchanged)
-- Linux AppImage has a dedicated provider (currently GitHub fallback, prepared for AppImageUpdate)
-- Linux .deb and Arch packages delegate to system package managers
-- macOS is prepared for future provider implementation
-- Stable/Beta channels remain centralized and shared across all platforms
-- No breaking changes to existing update UI or IPC API
+Sie ersetzt die frühere Beschreibung, in der die Provider-Auswahl
+ausschließlich auf einem groben „Packaging-Typ“ basierte.
 
 ---
 
-## Architecture
+## Ziele
 
-```
-                  ┌──────────────────┐
-                  │ RuntimeDetector  │
-                  └────────┬─────────┘
-                           │
-                           ▼
-                  ┌──────────────────┐
-                  │  UpdateManager   │
-                  └────────┬─────────┘
-                           │
-                 ┌─────────┴─────────┐
-                 ▼                   ▼
-        ┌─────────────────┐  ┌─────────────────────┐
-        │ Windows Provider│  │ Linux AppImage      │
-        │ electron-updater│  │ Update Provider     │
-        └─────────────────┘  └─────────────────────┘
-                 │                   │
-                 ▼                   ▼
-          GitHub Releases      GitHub Releases
-                                  (AppImageUpdate TBD)
-```
+Das Update-System muss zuverlässig erkennen,
 
-**Separation of Concerns:**
-- `RuntimeDetector` – Detects OS, architecture, and packaging type
-- `UpdateManager` – Central orchestration, channel management, state
-- `Providers` – Platform-specific update implementations
-- `UpdateChannel` – Centralized Stable/Beta logic (not duplicated per provider)
+- welches Betriebssystem und welche Version vorliegt,
+- welche System- und Prozessarchitektur verwendet wird,
+- welche Linux-Distribution und welcher Paketmanager vorhanden sind,
+- in welcher Form und an welchem Ort WebRadio installiert ist,
+- über welchen Weg die Installation erfolgte,
+
+und daraus **automatisch den korrekten, sicheren Update-Mechanismus**
+auswählen. Wenn kein sicherer automatischer Weg existiert, muss eine
+verständliche Meldung mit einem manuellen Update-Weg erscheinen.
+
+Unverändert gilt:
+
+- GitHub Releases bleibt die einzige Quelle für Versionen, Artefakte und
+  Release-Metadaten.
+- Die Kanäle `stable`, `beta` und `alpha` bleiben vollständig erhalten.
+- Die Provider-Auswahl ist **kanalunabhängig**; es findet kein impliziter
+  Kanalwechsel statt.
+- Bestehende Sicherheitsmechanismen (SHA-512 aus den Release-Metadaten,
+  Asset-Whitelist, atomarer Austausch, Rollback) bleiben erhalten.
 
 ---
 
-## Runtime Detection
+## Architektur
 
-### Location
-`electron/core/platform/RuntimeDetector.js`
+```text
+                    ┌──────────────────┐
+                    │  SystemDetector  │  OS, Version, Architektur,
+                    │                  │  Laufzeit, Distribution
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌────────────────────┐
+                    │InstallationDetector│  Installationsart, Quelle,
+                    │                    │  Pfade, Berechtigungen
+                    └────────┬───────────┘
+                             │
+                             ▼
+                 ┌───────────────────────────┐
+                 │ UpdateProviderRegistry    │  wählt Mechanismus
+                 └────────┬──────────────────┘
+                          │
+                          ▼
+                 ┌───────────────────┐
+                 │   UpdateManager   │  Zustand, Kanäle, Download,
+                 │                   │  Installation, Diagnose
+                 └────────┬──────────┘
+                          │
+        ┌─────────────────┼──────────────────────┐
+        ▼                 ▼                      ▼
+ WindowsUpdate     LinuxAppImage          Unsupported
+ Provider          UpdateProvider         UpdateProvider
+ (electron-updater)(atomarer Austausch)   (Paketmanager/manuell)
+```
 
-### Detection Capabilities
+Beteiligte Dateien:
 
-**Platform Detection:**
-- `windows` – win32
-- `linux` – linux
-- `macos` – darwin
-- `unknown` – other platforms
+| Aufgabe | Datei |
+| ------- | ----- |
+| Systemerkennung | `electron/core/platform/SystemDetector.js` |
+| Installationserkennung | `electron/core/platform/InstallationDetector.js` |
+| Provider-Auswahl | `electron/core/updates/UpdateProviderRegistry.js` |
+| Kompatibilitäts-Factory | `electron/core/updates/providers/ProviderFactory.js` |
+| Orchestrierung | `electron/core/updates/UpdateManager.js` |
+| Integritätsprüfung | `electron/core/updates/verification/ArtifactVerifier.js` |
+| AppImage-Installer | `electron/core/updates/providers/LinuxAppImageInstaller.js` |
+| Kanäle | `electron/core/updates/UpdateChannel.js` |
+| Fehlercodes/Kategorien | `electron/core/updates/UpdateState.js` |
 
-**Architecture Detection:**
-- `x64` – x86_64, amd64
-- `arm64` – aarch64
-- `arm` – arm
-- `ia32` – x86
-- `unknown` – other architectures
+`ProviderFactory` enthält **keine eigene Auswahllogik** mehr. Sie bleibt als
+stabile API erhalten und delegiert an die Registry.
 
-**Packaging Type Detection:**
-- `development` – Unpackaged, running from source
-- `appimage` – Linux AppImage (robust multi-signal detection)
-- `deb` – Debian/Ubuntu package
-- `arch` – Arch Linux package
-- `windows-installer` – NSIS installer
-- `windows-portable` – Portable executable
-- `macos` – macOS application
-- `unknown` – Cannot determine packaging type
+---
 
-### AppImage Detection
+## SystemDetector
 
-The AppImage detection uses multiple runtime signals for robustness:
+`SystemDetector.detect()` liefert ein JSON-serialisierbares Profil:
 
-1. **APPIMAGE Environment Variable**
-   - Set by AppImage runtime
-   - Verified by checking file existence
-
-2. **Executable Path Analysis**
-   - AppImages mount under `/tmp/.mount_*`
-   - Pattern matching on mount paths
-
-3. **Resources Path Analysis**
-   - AppImage resources under `/tmp/.mount_*/usr/bin`
-   - Secondary verification signal
-
-**Fallback Behavior:**
-- If no AppImage signals are detected, falls back to `deb`/`arch` detection based on path patterns
-- If packaging cannot be determined, returns `unknown`
-
-### Usage Example
-
-```javascript
-const RuntimeDetector = require("./core/platform/RuntimeDetector");
-
-const runtimeInfo = RuntimeDetector.detectRuntime(app, process, fs, path);
-
-// Result example for Linux AppImage:
+```js
 {
-  platform: "linux",
-  architecture: "x64",
-  packaging: "appimage",
-  isDevelopment: false,
-  isPackaged: true,
-  isAppImage: true,
-  isLinux: true,
-  isWindows: false,
-  isMacOS: false
+  status: "VERIFIED",
+  os: {
+    name: "linux",              // windows | linux | macos | unknown
+    version: "41",              // Distro-VERSION_ID bzw. os.release()
+    kernelVersion: "6.11.3",
+    status: "VERIFIED",
+    evidence: "os-release VERSION_ID"
+  },
+  architecture: {
+    system: "x64",              // os.arch()
+    process: "x64",             // process.arch
+    emulated: false,            // true bei Emulation (z. B. x64 auf arm64)
+    status: "DETECTED"
+  },
+  runtime: {
+    runtime: "electron",        // electron | node | unknown
+    electron: "44.4.1",
+    node: "26.0.0",
+    chrome: "140.0.0.0",
+    status: "DETECTED"
+  },
+  linux: {
+    distribution: {
+      id: "arch",
+      name: "Arch Linux",
+      prettyName: "Arch Linux",
+      versionId: "rolling",
+      idLike: ["archlinux"],
+      family: "arch",           // arch | debian | fedora | rhel | suse | unknown
+      packageManager: "pacman",
+      immutable: false,
+      status: "VERIFIED",
+      matchedId: "arch",
+      evidence: "os-release ID/ID_LIKE -> arch"
+    },
+    kernelVersion: "6.11.3",
+    osReleasePath: "/etc/os-release"
+  },
+  capabilities: {
+    isPackaged: true,
+    isDevelopment: false,
+    hasPackageManager: true,
+    immutableSystem: false,
+    supportsInAppUpdate: true
+  }
 }
 ```
 
+### Linux-Distributionen
+
+Die Distributionsfamilie wird **ausschließlich** über `ID` und `ID_LIKE`
+aus `/etc/os-release` aufgelöst – niemals über `NAME`. Damit kann eine
+Distribution nicht allein wegen ihres Anzeigenamens als kompatibel gelten.
+
+Aufgelöste Familien und Paketmanager:
+
+| Familie | Paketmanager | Beispiele (über ID/ID_LIKE) |
+| ------- | ------------ | --------------------------- |
+| `debian` | `apt` | Debian, Ubuntu, Linux Mint, Pop!_OS, elementary, Zorin, Kali, Raspberry Pi OS |
+| `arch` | `pacman` | Arch Linux, CachyOS, EndeavourOS, Manjaro, Garuda, Artix, ArcoLinux, Archcraft |
+| `fedora` | `dnf` | Fedora, Nobara |
+| `rhel` | `dnf` | RHEL, CentOS, Rocky, AlmaLinux, Oracle Linux, Amazon Linux |
+| `suse` | `zypper` | openSUSE Leap/Tumbleweed, SLES |
+| `unknown` | – | alles andere |
+
+Unbekannte Distributionen fallen bewusst auf `unknown` zurück. Die
+Installationserkennung nutzt dann generische Linux-Signale
+(Paketmanager-Binaries, Paketdatenbanken), statt eine Familie zu raten.
+
+Deklarative/immutable Systeme (NixOS, Fedora Silverblue/Kinoite, Bazzite,
+SteamOS, openSUSE MicroOS) werden als `UNSUPPORTED` markiert.
+
+### Vertrauensstufen
+
+Jede erkannte Information trägt eine Stufe:
+
+| Stufe | Bedeutung |
+| ----- | --------- |
+| `DETECTED` | zuverlässig erkannt, aber nicht zusätzlich verifiziert |
+| `VERIFIED` | zusätzlich gegen eine belastbare Quelle geprüft (z. B. Paketdatenbank, `APPIMAGE` + existierende Datei) |
+| `UNKNOWN` | nicht zuverlässig ermittelbar |
+| `UNSUPPORTED` | erkannt, aber nicht unterstützt |
+
 ---
 
-## Update Providers
+## InstallationDetector
 
-### Provider Hierarchy
+`InstallationDetector.detect()` unterscheidet ausdrücklich zwischen
+Installationspfad, Ausführungspfad, ausführbarer Datei, Anwendungs- und
+Benutzerdatenverzeichnis:
 
+```js
+{
+  status: "VERIFIED",
+  kind: "linux-deb",
+  format: "deb",                 // nsis | msi | portable | appimage | deb |
+                                 // rpm | arch | dmg | pkg | zip |
+                                 // development | unknown
+  source: "package-manager",     // installer | package-manager | appimage |
+                                 // portable | manual | unknown
+  sourceStatus: "VERIFIED",
+  systemManaged: true,
+  trust: { kind, source, paths, permissions },
+  paths: {
+    installPath: "/opt/webradio",
+    executionPath: "/opt/webradio/webradio",
+    executablePath: "/opt/webradio/webradio",
+    appDirectory: "/opt/webradio/resources/app.asar",
+    userDataPath: "/home/user/.config/WebRadio",
+    updatePath: "/home/user/.config/WebRadio/updates",
+    stagingPath: "/home/user/.config/WebRadio/updates/staging",
+    backupPath: "/home/user/.config/WebRadio/updates/backups",
+    tempPath: "/tmp"
+  },
+  permissions: {
+    installDirectoryWritable: false,
+    executableWritable: false,
+    elevationRequired: true,
+    status: "DETECTED"
+  },
+  evidence: "dpkg-Status enthält webradio",
+  detectedAt: "2026-11-10T00:00:00.000Z"
+}
 ```
-BaseUpdateProvider (abstract)
-    ├── WindowsUpdateProvider
-    ├── LinuxAppImageUpdateProvider
-    └── UnsupportedUpdateProvider
+
+### Erkannte Installationsarten
+
+| Plattform | Art (`kind`) | Quelle (`source`) | Nachweis |
+| --------- | ------------ | ----------------- | -------- |
+| Windows | `windows-exe` | `installer` | Ausführung unter `Program Files`/`%LOCALAPPDATA%\Programs` |
+| Windows | `windows-msi` | `installer` | `WEBRADIO_INSTALLER=msi` oder Marker-Datei |
+| Windows | `windows-portable` | `portable` | `PORTABLE_EXECUTABLE_DIR` (verifiziert) oder Pfad außerhalb der Programmverzeichnisse |
+| Linux | `linux-appimage` | `appimage` | `APPIMAGE` + existierende Datei (verifiziert) oder Mount-Pfad |
+| Linux | `linux-deb` | `package-manager` | Systempfad + Debian-Familie; `dpkg`-Status (verifiziert) |
+| Linux | `linux-rpm` | `package-manager` | Systempfad + Fedora/RHEL/SUSE-Familie |
+| Linux | `linux-arch` | `package-manager` | Systempfad + Arch-Familie; pacman-Datenbank (verifiziert) |
+| Linux | `linux-portable` | `portable` | entpackte Anwendung im Benutzerverzeichnis, schreibbar |
+| macOS | `macos-dmg` | `installer`/`unknown` | gemountetes `/Volumes/…` (verifiziert); `/Applications` ohne Receipt nur `DETECTED`, Quelle bleibt `unknown` |
+| macOS | `macos-pkg` | `installer` | PKG-Receipt in `/var/db/receipts` (verifiziert) |
+| macOS | `macos-zip` | `portable` | App-Bundle außerhalb von `/Applications` |
+| – | `development` | `manual` | `app.isPackaged === false` |
+| – | `unknown` | `unknown`/`manual` | keine belastbaren Signale |
+
+**Grundregel:** Eine unbekannte Installationsquelle wird nicht durch eine
+Vermutung ersetzt. Sie bleibt `unknown`; die Registry wählt dann keinen
+automatischen Weg.
+
+### Marker-Datei für Packager
+
+Packager können die Installationsart explizit deklarieren, statt sie
+erkennen zu lassen. Gesucht wird `install-source.json` unter
+`resources/`, neben der ausführbaren Datei bzw. im App-Verzeichnis:
+
+```json
+{ "kind": "linux-portable", "source": "portable" }
 ```
 
-### Provider Factory
+Nur gültige `kind`/`source`-Kombinationen werden übernommen; ungültige
+Marker werden ignoriert.
 
-`electron/core/updates/providers/ProviderFactory.js`
+---
 
-Automatically selects the appropriate provider based on runtime detection:
+## UpdateProviderRegistry
 
-```javascript
-const ProviderFactory = require("./core/updates/providers/ProviderFactory");
+`UpdateProviderRegistry.select({ system, installation, channel })` liefert
+eine serialisierbare Auswahl:
 
-const provider = ProviderFactory.createProvider(app, autoUpdater, fs, path);
+```js
+{
+  key: "linux-appimage",
+  label: "Linux AppImage",
+  providerType: "appimage-github-fallback",
+  mechanism: "atomic-file-replace",
+  automatic: true,
+  requiresElevation: false,
+  channel: "stable",
+  channelIndependent: true,
+  channels: ["stable", "beta", "alpha"],
+  reason: null,
+  suggestion: null,
+  manualUpdate: null
+}
 ```
 
-### Windows Update Provider
+### Auswahlmatrix
 
-**Location:** `electron/core/updates/providers/WindowsUpdateProvider.js`
+| Plattform | Format | Provider-Schlüssel | Automatisch | Mechanismus |
+| --------- | ------ | ------------------ | ----------- | ----------- |
+| Windows | `nsis` | `windows-nsis` | ja | electron-updater (Installer) |
+| Windows | `portable` | `windows-portable` | ja | electron-updater (im Anwendungsverzeichnis) |
+| Windows | `msi` | `windows-msi` | nein | manuell über Windows Installer (`msiexec`) |
+| Linux | `appimage` | `linux-appimage` | ja | Download, Validierung, atomarer Austausch |
+| Linux | `deb` | `linux-deb` | nein | Paketmanager (`apt`/`dpkg`) |
+| Linux | `rpm` | `linux-rpm` | nein | Paketmanager (`dnf`/`zypper`) |
+| Linux | `arch` | `linux-arch` | nein | Paketmanager (`pacman`) |
+| Linux | `portable` | `linux-portable` | nein | manueller Austausch im Anwendungsverzeichnis |
+| macOS | `dmg` | `macos-dmg` | nein | manuelles DMG |
+| macOS | `pkg` | `macos-pkg` | nein | macOS Installer |
+| macOS | `zip` | `macos-zip` | nein | manueller Austausch |
+| – | `development` | `development` | nein | – |
+| – | `unknown` | `unsupported` | nein | manueller Download |
 
-**Provider Type:** `electron-updater`
+Harte Regeln:
 
-**Suitable For:** Windows (all packaging types)
-
-**Behavior:**
-- Wraps existing electron-updater
-- No changes to Windows update behavior
-- Supports NSIS installer and portable builds
-- Uses GitHub Releases as update source
-- Maintains all existing functionality (autoDownload=false, manual confirmation)
-
-**Status:** ✅ Fully functional, production-ready
-
----
-
-### Linux AppImage Update Provider
-
-**Location:** `electron/core/updates/providers/LinuxAppImageUpdateProvider.js`
-
-**Provider Type:** `appimage-github-fallback` (temporary)
-
-**Suitable For:** Linux AppImage
-
-**Current Behavior:**
-- Placeholder for future AppImageUpdate integration
-- Currently falls back to GitHub Releases check
-- Informs user that automatic AppImage updates are not yet implemented
-- Suggests manual download from GitHub Releases
-
-**Future Implementation Requirements:**
-1. AppImageUpdate tool integration (`appimageupdatetool-binaries`)
-2. zsync support in build process
-3. Update metadata embedding in AppImage
-4. SHA256 verification for AppImage artifacts
-5. Stable/Beta channel integration for AppImage
-
-**Status:** ⚠️ Prepared for future implementation, currently GitHub fallback
+1. Paketmanagerverwaltete Installationen werden **niemals** automatisch
+   überschrieben.
+2. Unbekannte Installationsarten werden **niemals** automatisch
+   überschrieben.
+3. Ist keine sichere automatische Aktualisierung möglich, enthält die
+   Auswahl `reason`, `suggestion` und `manualUpdate.url`.
+4. Die Kanalwahl beeinflusst die Auswahl nicht; die Auswahl beeinflusst die
+   Kanalwahl nicht.
 
 ---
 
-### Unsupported Update Provider
+## Update-Kanäle
 
-**Location:** `electron/core/updates/providers/UnsupportedUpdateProvider.js`
+| Kanal | electron-updater | `allowPrerelease` | akzeptierte Releases |
+| ----- | ---------------- | ----------------- | -------------------- |
+| `stable` | `latest` | `false` | nur stabile Versionen |
+| `beta` | `beta` | `true` | Beta + Stable (kein Alpha) |
+| `alpha` | `alpha` | `true` | Alpha + Beta + Stable |
 
-**Provider Type:** `unsupported`
-
-**Suitable For:** All packaging types without automatic app updates
-
-**Behavior:**
-- Returns consistent "unsupported" status
-- Provides user-friendly suggestions based on packaging type
-- Prevents no-op update attempts
-
-**Supported Packaging Types:**
-- Linux `.deb` → "Use apt/dpkg to update"
-- Linux Arch → "Use pacman to update"
-- macOS → "macOS automatic updates not yet implemented"
-- Unknown → "Use system package manager"
-
-**Status:** ✅ Fully functional, production-ready
+Die kanonischen IDs und die Zuordnung liegen ausschließlich in
+`UpdateState.CHANNELS`, `UpdateChannel` und `ChannelMetadata`. Die
+Provider-Auswahl liest den Kanal nur zur Diagnose.
 
 ---
 
-## Update Channels (alpha / beta / stable)
+## Update-Ablauf
 
-### Centralized Channel Logic
+```text
+App-Start
+  → UpdateManager.initialize() (idempotent)
+      → SystemDetector.detect()
+      → InstallationDetector.detect()
+      → UpdateProviderRegistry.select()
+      → Provider erstellen
+      → confirmHealthyInstall()  (vorherige Sicherung freigeben)
+  → optionaler Auto-Check (nur packaged, nur unterstützte Formate)
 
-**Location:** `electron/core/updates/UpdateChannel.js`
+Check
+  → Provider prüft GitHub-Release-Metadaten des Kanals
+  → Kanal-Filter (Alpha/Beta/Stable) wird angewendet
 
-**Design Principle:** Channels are NOT duplicated per provider. All providers use the same centralized channel logic.
+Download
+  → Benutzer löst Download explizit aus (autoDownload = false)
+  → HTTPS / Größe / Fortschritt werden von electron-updater geführt
+  → Unterbrechungen: electron-updater setzt Teil-Downloads fort
+  → unvollständige Dateien werden über Größe + SHA-512 erkannt
 
-**Channel Types:**
-- `alpha` – All pre-releases including alpha (plus stable)
-- `beta` – Stable + pre-releases (excluding alpha)
-- `stable` – Only stable releases
+Installation
+  → Berechtigungen prüfen
+  → Artefakt validieren (Format, Größe, Hash, ggf. Signatur/Architektur)
+  → Staging-Datei im Zielverzeichnis
+  → bisherige Datei → Backup
+  → atomarer rename auf den Zielpfad
+  → Ausführungsrechte prüfen
+  → bei Fehler: Rollback aus dem Backup
 
-**Channel Configuration:**
-
-| Channel | electron-updater channel | allowPrerelease | allowDowngrade |
-|---------|-------------------------|-----------------|----------------|
-| alpha   | alpha                   | true            | true            |
-| beta    | beta                    | true            | true            |
-| stable  | null (latest)           | false           | true*           |
-
-*allowDowngrade is true for stable when current version is a pre-release (e.g., beta → stable downgrade)
-
-**Persistence:**
-
-- The selected channel is stored by the Main process in `settings.json` (`updateChannel` / `updates.channel`) inside the Electron `userData` directory.
-- Startup validates the stored value; missing or invalid values fall back to the existing default (version-based detection → `stable` for stable builds) without touching other user settings.
-- Invalid values never produce a broken updater configuration.
-- `ChannelMetadata.js` remains the single source for UI metadata (label, color, icon, order); no second channel detection exists in the renderer.
-
-**Provider Integration:**
-- Providers receive the already-determined channel from UpdateManager
-- Providers do NOT make channel decisions
-- Alpha/Beta/Stable logic remains in UpdateChannel.js
-
----
-
-## Security
-
-### Download Validation
-
-**Windows (electron-updater):**
-- SHA512 verification built into electron-updater
-- Code signing verification for NSIS installers
-- GitHub Releases as trusted source
-
-**Linux AppImage (future):**
-- SHA256 verification planned
-- AppImageUpdate signature verification planned
-- GitHub Releases as trusted source (current fallback)
-
-**Linux .deb / Arch:**
-- System package manager handles verification
-- Repository GPG keys
-- Package manager integrity checks
-
-### Renderer Isolation
-
-**Security Rules (maintained):**
-- No shell commands from renderer
-- No unvalidated URLs from user input
-- No tokens/secrets in AppImage or app-update.yml
-- No direct electron-updater access from renderer
-- All update operations go through IPC handlers
-
-**autoDownload:**
-- Remains `false` for all providers
-- User must explicitly confirm download
-- User must explicitly confirm installation
-
----
-
-## Release Requirements
-
-### Windows
-
-**Required Artifacts:**
-- `WebRadio-{version}-win-x64.exe` (NSIS installer)
-- `WebRadio-{version}-win-x64.exe.blockmap`
-- `latest.yml` (electron-updater metadata)
-- `beta.yml` (if beta release)
-
-**Update Source:** GitHub Releases
-
-### Linux AppImage
-
-**Required Artifacts:**
-- `WebRadio-{version}-linux-x86_64.AppImage`
-- `latest-linux.yml` (electron-updater metadata)
-- `beta-linux.yml` (if beta release)
-- `SHA256SUMS.txt` (checksums for all Linux artifacts)
-- `org.yourelitesystems.webradio.metainfo.xml` (AppStream metadata)
-
-**Update Source:** GitHub Releases (current), AppImageUpdate (future)
-
-**Metadata Requirements:**
-- X-AppImage-Name: WebRadio
-- X-AppImage-Version: ${version}
-- AppStream metainfo.xml included in build
-
-### Linux .deb
-
-**Required Artifacts:**
-- `webradio_{version}_amd64.deb`
-- `SHA256SUMS.txt`
-
-**Update Source:** System package manager (apt/dpkg)
-
-### Linux Arch
-
-**Required Artifacts:**
-- `webradio-{version}-x86_64.pkg.tar.zst`
-- `SHA256SUMS.txt`
-
-**Update Source:** System package manager (pacman)
-
-### macOS
-
-**Required Artifacts:**
-- `WebRadio-{version}-darwin-x64.dmg`
-- `WebRadio-{version}-darwin-arm64.dmg`
-- `latest-mac.yml` (if electron-updater is used)
-
-**Update Source:** Not yet implemented
-
----
-
-## Testing
-
-### Runtime Detector Tests
-
-**Location:** `scripts/tests/runtime-detector.test.js`
-
-**Test Coverage:**
-- Platform normalization (5 tests)
-- Architecture normalization (8 tests)
-- Development detection (3 tests)
-- Packaged detection (3 tests)
-- AppImage detection (5 tests)
-- Linux packaging detection (5 tests)
-- Windows packaging detection (4 tests)
-- Full runtime detection matrix (9 tests)
-- Edge cases (4 tests)
-
-**Total:** 46 tests, all passing
-
-### Provider Tests
-
-**Status:** Provider tests are prepared but not yet implemented. The provider architecture is designed for testability through dependency injection.
-
-### Existing Tests
-
-All existing tests continue to pass:
-- navigation.test.js
-- theme.test.js
-- pluginManager.test.js
-- paths.test.js
-- updater.test.js
-- artifact-audit.test.js
-- runtime-detector.test.js
-
-**Total:** 262 tests, all passing
-
----
-
-## Migration Guide
-
-### For Existing Code
-
-**No changes required.** The new provider architecture is designed as an extension, not a replacement.
-
-**Existing UpdateManager:**
-- Continues to work as before
-- electron-updater integration unchanged
-- IPC handlers unchanged
-- Renderer API unchanged
-
-**Future Integration:**
-To enable the new provider architecture in UpdateManager:
-
-```javascript
-const ProviderFactory = require("./core/updates/providers/ProviderFactory");
-
-// In UpdateManager.initialize():
-const provider = ProviderFactory.createProvider(app, autoUpdater, fs, path);
-// Use provider instead of direct autoUpdater calls
+Nach dem Neustart
+  → laufende Datei wird erneut validiert
+  → erst dann werden Sicherungen freigegeben
 ```
 
 ---
 
-## Known Limitations
+## Sicherheitsmechanismen
 
-### AppImage Automatic Updates
+### Download
 
-**Current Status:** Not implemented
+- GitHub-Release-Quelle über HTTPS (electron-updater).
+- `autoDownload = false`: kein Download ohne Benutzerentscheidung.
+- Größen- und Fortschrittskontrolle über die Release-Metadaten.
+- Fortsetzung von Teil-Downloads durch electron-updater; unvollständige
+  Dateien werden anschließend über Größe und Hash abgelehnt.
+- Temporäre Dateien liegen im Benutzer-Datenverzeichnis
+  (`updates/staging` bzw. der Downloader-Cache), nicht in Systempfaden.
 
-**Reason:** AppImageUpdate integration requires:
-1. Additional build-time tooling (appimagetool with update flags)
-2. zsync server infrastructure
-3. Update metadata embedding in AppImage
-4. Cross-platform testing of update mechanism
+### Integrität (`ArtifactVerifier`)
 
-**Workaround:** Users can manually download the latest AppImage from GitHub Releases.
+- SHA-256 und SHA-512, jeweils als Hex oder Base64
+  (electron-updater liefert SHA-512 als Base64).
+- Die bestehende SHA-512-Prüfung des AppImage-Updaters bleibt erhalten und
+  wird zusätzlich vor dem Austausch ausgeführt.
+- Dateigröße gegen die Release-Metadaten.
+- Dateiformat über Magic Bytes: ELF, PE, Mach-O.
+- Architektur aus ELF `e_machine`, PE `Machine` oder Mach-O `cputype`.
+- Signaturprüfung, sofern ein öffentlicher Schlüssel und eine Signatur
+  bereitgestellt werden. Ohne Prüfdaten lautet das Ergebnis ausdrücklich
+  `UNSUPPORTED` – niemals „bestanden“.
+- Freier Speicherplatz, sofern vom Laufzeitsystem ermittelbar.
 
-### macOS Updates
+### Installation
 
-**Current Status:** Not implemented
+- Schreibrechte im Zielverzeichnis und auf der Zieldatei werden vorab
+  geprüft (`accessSync`).
+- Systemverwaltete Verzeichnisse (`/opt/webradio`, `/usr/lib/webradio`,
+  `/usr/share/webradio`) werden ohne Berechtigung nicht verändert.
+- Symbolische Links werden vor dem Austausch aufgelöst; die
+  Symlink-Integrität bleibt erhalten.
+- Atomarer Austausch über eine Staging-Datei im selben Verzeichnis
+  (`rename` innerhalb desselben Dateisystems).
+- Ausführungsrechte werden erhalten (`stat.mode`, mindestens `0755`,
+  niemals world-writable).
+- Unter Windows/macOS werden laufende Prozesse und Dateisperren über die
+  jeweiligen Provider berücksichtigt; ein Austausch erfolgt nur, wenn der
+  Zielpfad schreibbar ist.
 
-**Reason:** macOS Sparkle integration is not yet part of the project scope.
+### Backup und Rollback
 
-**Workaround:** Users can download the latest DMG from GitHub Releases.
-
-### Linux .deb / Arch Updates
-
-**Current Status:** Delegated to system package managers
-
-**Reason:** Package manager updates are the standard and recommended approach for system packages.
-
-**Workaround:** Use `apt upgrade webradio` or `pacman -Syu webradio`.
-
----
-
-## Future Work
-
-### High Priority
-
-1. **AppImageUpdate Integration**
-   - Integrate appimageupdatetool-binaries
-   - Add zsync support to build process
-   - Embed update metadata in AppImage
-   - Implement SHA256 verification
-   - Test automatic update flow
-
-2. **Provider Integration in UpdateManager**
-   - Replace direct electron-updater calls with provider abstraction
-   - Add provider selection logic to UpdateManager.initialize()
-   - Test provider switching on different platforms
-
-### Medium Priority
-
-3. **macOS Provider**
-   - Implement Sparkle integration
-   - Add DMG update support
-   - Test on Intel and Apple Silicon
-
-4. **Enhanced Diagnostics**
-   - Add IPC handler for provider info
-   - Expose runtime info to renderer
-   - Add update provider status to diagnostics
-
-### Low Priority
-
-5. **Additional Packaging Types**
-   - Snap package support
-   - Flatpak support
-   - Windows Store support
+- Vor dem Austausch wird die vorhandene Datei gesichert.
+- Nach erfolgreichem `rename` wird die neue Datei validiert
+  (Format, Größe, Ausführungsrechte).
+- Schlägt der Austausch fehl, wird das Backup zurückgespielt.
+- **Eine Sicherung wird niemals gelöscht, nur weil am Zielpfad bereits eine
+  Datei existiert.** Freigegeben wird sie erst durch
+  `confirmHealthyInstall()` nach einem erfolgreichen Start der neuen
+  Version.
+- Unvollständige Staging-Dateien (`.tmp`) werden aufgeräumt; `.bak`-Dateien
+  bleiben als Wiederherstellungsquelle erhalten.
 
 ---
 
-## Appendix: File Structure
+## Fehlerdiagnose
 
-```
-electron/core/
-├── platform/
-│   └── RuntimeDetector.js
-├── updates/
-│   ├── UpdateManager.js
-│   ├── UpdateChannel.js
-│   ├── UpdateState.js
-│   └── providers/
-│       ├── BaseUpdateProvider.js
-│       ├── WindowsUpdateProvider.js
-│       ├── LinuxAppImageUpdateProvider.js
-│       ├── UnsupportedUpdateProvider.js
-│       └── ProviderFactory.js
+Der UpdateManager führt eine begrenzte, bereinigte Schrittliste
+(max. 50 Einträge) und stellt sie über IPC bereit:
 
-scripts/tests/
-└── runtime-detector.test.js
-```
+| Kanal | Inhalt |
+| ----- | ------ |
+| `updates:get-diagnostics` | System, Architektur, Distribution, Installationsart, Quelle, Pfade, Berechtigungen, Provider, Kanal, Schritte, Status |
+| `updates:get-provider-info` | aktiver Provider, Mechanismus, Automatik, Berechtigungsbedarf, manueller Weg |
+| `updates:get-manual-update-hint` | Begründung + Anleitung für manuelle Updates |
+
+Protokolliert werden: Betriebssystem, Architektur, Distribution,
+Installationsart, Installationsquelle, Installationspfad, ausgewählter
+Provider, Update-Kanal, Berechtigungen, Update-Schritte, erfolgreiche und
+fehlgeschlagene Prüfungen sowie Rollback-Ergebnisse.
+
+Nicht protokolliert werden Passwörter, Tokens, private Schlüssel oder
+vollständige Umgebungsvariablen.
+
+Fehler tragen einen stabilen Code und eine Kategorie:
+
+| Kategorie | Codes (Auswahl) |
+| --------- | --------------- |
+| `network` | `UPDATER_CHECK_FAILED`, `UPDATER_DOWNLOAD_FAILED`, `UPDATER_DOWNLOAD_INCOMPLETE` |
+| `integrity` | `UPDATER_INTEGRITY_FAILED`, `UPDATER_SIGNATURE_FAILED` |
+| `permission` | `UPDATER_PERMISSION_DENIED`, `UPDATER_DISK_SPACE_INSUFFICIENT` |
+| `platform` | `UPDATER_PLATFORM_UNSUPPORTED`, `UPDATER_PROVIDER_SELECTION_FAILED` |
+| `installation` | `UPDATER_INSTALLATION_UNKNOWN`, `UPDATER_INSTALL_FAILED`, `UPDATER_ROLLBACK_FAILED` |
+| `channel` | `UPDATER_INVALID_CHANNEL`, `UPDATER_CHANNEL_SWITCH_FAILED` |
 
 ---
 
-## Version History
+## Unterstützte Systeme
 
-- **v1.0.6-beta.3** – Initial runtime detection and provider architecture implementation
-  - RuntimeDetector with multi-signal AppImage detection
-  - Provider abstraction with BaseUpdateProvider
-  - WindowsUpdateProvider (electron-updater wrapper)
-  - LinuxAppImageUpdateProvider (placeholder with GitHub fallback)
-  - UnsupportedUpdateProvider (system package manager delegation)
-  - 46 new tests for runtime detection
-  - Total test suite: 262 tests, all passing (216 existing + 46 runtime detection)
+| Betriebssystem | Architekturen | Status |
+| -------------- | ------------- | ------ |
+| Windows 10/11 | x64, ia32 | unterstützt |
+| Linux | x64, arm64, arm | unterstützt |
+| macOS | x64, arm64 | erkannt, Auto-Update deaktiviert |
+
+---
+
+## Tatsächlich getestete Installationsarten
+
+Diese Tabelle trennt **ausgeführte Tests** von **theoretisch unterstützten**
+Funktionen. Simulierte Tests ersetzen keine Plattformintegration.
+
+| Installationsart | Getestet | Art des Tests |
+| ---------------- | -------- | ------------- |
+| Windows NSIS/EXE | ja | simulierte Erkennung + Provider-Auswahl; echter Windows-Host nur für die Erkennungs-Probe |
+| Windows Portable | ja | simulierte Erkennung + Provider-Auswahl |
+| Windows MSI | ja (Erkennung) | simulierte Erkennung; kein MSI-Artefakt im Release |
+| Linux AppImage | ja | Erkennung, Integrität, atomarer Austausch, Rollback (unit) |
+| Linux DEB | ja (Erkennung) | simulierte Erkennung; Paket wird gebaut, aber nicht automatisch aktualisiert |
+| Linux RPM | ja (Erkennung) | simulierte Erkennung; kein RPM-Artefakt im Release |
+| Linux Arch-Paket | ja (Erkennung) | simulierte Erkennung + echter Arch-Container für die Distributionserkennung |
+| Linux Portable | ja (Erkennung) | simulierte Erkennung; kein automatischer Update-Weg |
+| macOS DMG/PKG/ZIP | ja (Erkennung) | simulierte Erkennung; **kein macOS-Build und kein macOS-Laufzeittest** |
+| Unbekannte Installation | ja | simulierte Erkennung, kein automatischer Weg |
+
+Echte Plattformläufe in der CI:
+
+- **Windows**: `windows-latest` – Erkennungs-Probe auf echtem Windows.
+- **Linux (Ubuntu)**: `ubuntu-latest` – Erkennung von `/etc/os-release`
+  (Familie `debian`, Paketmanager `apt`).
+- **Arch Linux**: `archlinux:latest`-Container – Familie `arch`,
+  Paketmanager `pacman`.
+
+Nicht getestet: macOS (weder Build noch Laufzeit) und RPM-Distributionen.
+
+---
+
+## Bekannte Einschränkungen
+
+- **macOS-Auto-Updates** sind nicht implementiert. Ohne Signatur- und
+  Notarisierungsprüfung wird kein automatischer Austausch durchgeführt.
+- **MSI** wird erkannt, aber nicht automatisch aktualisiert (kein
+  MSI-Artefakt im Release).
+- **Linux Portable** hat keinen automatischen Update-Weg, weil kein
+  prüfbares Archiv-Artefakt veröffentlicht wird.
+- **RPM** wird erkannt, aber es wird kein RPM-Artefakt gebaut.
+- **Signaturen** werden nur geprüft, wenn ein öffentlicher Schlüssel
+  bereitgestellt wird. Derzeit stellt der Release keine Signaturen bereit;
+  die Prüfung meldet dann `UNSUPPORTED`.
+- **AppImage-Updates** laden die vollständige Datei; es gibt kein
+  Delta-Update über zsync/`appimageupdatetool`.
+- **Immutable Distributionen** (NixOS, Silverblue, SteamOS …) werden als
+  `UNSUPPORTED` markiert.
+- **Emulierte Prozesse** (z. B. x64 auf arm64) werden erkannt, aber ein
+  passendes Artefakt muss vom Release bereitgestellt werden.
+
+---
+
+## Erweiterung um weitere Installationsformate
+
+1. **Erkennung**: In `InstallationDetector` ein `kind` und ein `format`
+   ergänzen (`KINDS`, `FORMAT_BY_KIND`) und in der passenden
+   `detect*Kind`-Funktion über ein belastbares Signal setzen. Keine
+   Namensheuristik verwenden.
+2. **Registry**: In `UpdateProviderRegistry` eine Definition mit `key`,
+   `platform`, `formats`, `mechanism`, `automatic`, `reason`/`suggestion`
+   und – falls automatisierbar – `create` registrieren.
+3. **Provider**: Nur bei sicherer Automatisierung einen Provider
+   implementieren, der `checkForUpdates`, `downloadUpdate`,
+   `installUpdate`, `dispose` und `getProviderType` bereitstellt.
+4. **Sicherheit**: Integritätsprüfungen über `ArtifactVerifier` nutzen;
+   niemals ungeprüfte Dateien austauschen.
+5. **Tests**: Erkennung, Auswahl, Berechtigungen, Integrität und Rollback
+   in `scripts/tests/` abdecken.
+6. **Dokumentation**: Die Tabellen „Erkannte Installationsarten“,
+   „Auswahlmatrix“ und „Tatsächlich getestete Installationsarten“
+   aktualisieren.
+
+Neue Formate dürfen bestehende, getestete Pfade nicht verändern.
