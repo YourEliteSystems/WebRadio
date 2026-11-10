@@ -1,0 +1,421 @@
+name: CI Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ─────────────────────────────────────────────────────────────
+  # 1. Lint und statische Prüfungen
+  # ─────────────────────────────────────────────────────────────
+  lint:
+    name: Lint and Static Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26.x
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Audit Dependencies
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  # ─────────────────────────────────────────────────────────────
+  # 2. Unit- und Regressionstests
+  # ─────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit and Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26.x
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run All Tests
+        run: npm test
+
+  # ─────────────────────────────────────────────────────────────
+  # 3. Windows-Build und Integrationstests
+  # ─────────────────────────────────────────────────────────────
+  windows-build:
+    name: Windows Build and Integration Tests
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: unit-tests
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26.x
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Build Windows Installer (NSIS)
+        env:
+          UPDATE_CHANNEL: beta
+        run: npx electron-builder --win nsis --x64 --publish=never
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webradio-windows-installer
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest*.yml
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # 4. Linux AppImage-Build und Integrationstests
+  # ─────────────────────────────────────────────────────────────
+  linux-appimage:
+    name: Linux AppImage Build and Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-tests
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26.x
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Install Xvfb and Electron Libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libdrm2 libgbm1
+          sudo apt-get install -y libasound2 || sudo apt-get install -y libasound2t64
+
+      - name: Build Linux AppImage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_CHANNEL: beta
+        run: npx electron-builder --linux AppImage --x64 --publish=never
+
+      - name: Validate AppImage ELF Header
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const distDir = 'dist';
+          const files = fs.readdirSync(distDir).filter(f => f.endsWith('.AppImage'));
+          if (files.length !== 1) throw new Error('Expected exactly one AppImage');
+          const appImagePath = path.join(distDir, files[0]);
+          const fd = fs.openSync(appImagePath, 'r');
+          const buffer = Buffer.alloc(4);
+          fs.readSync(fd, buffer, 0, 4, 0);
+          fs.closeSync(fd);
+          const isElf = buffer[0] === 0x7f && buffer[1] === 0x45 && buffer[2] === 0x4c && buffer[3] === 0x46;
+          if (!isElf) throw new Error('AppImage is not a valid ELF binary');
+          console.log('✅ AppImage ELF header valid');
+          "
+
+      - name: Validate AppImage Executable Permissions
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const distDir = 'dist';
+          const files = fs.readdirSync(distDir).filter(f => f.endsWith('.AppImage'));
+          const appImagePath = path.join(distDir, files[0]);
+          const mode = fs.statSync(appImagePath).mode & 0o777;
+          if ((mode & 0o111) === 0) throw new Error('AppImage has no executable permissions');
+          console.log('✅ AppImage executable permissions valid');
+          "
+
+      - name: Run Electron Splash Smoke Test
+        run: xvfb-run -a npm run test:splash:electron
+
+      - name: Upload AppImage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webradio-linux-appimage
+          path: |
+            dist/*.AppImage
+            dist/latest*.yml
+            dist/latest*.json
+            dist/*.blockmap
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # 5. Arch-Linux-Paketierung und Installationstests
+  # ─────────────────────────────────────────────────────────────
+  arch-linux:
+    name: Arch Linux Package and Installation Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: linux-appimage
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download AppImage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webradio-linux-appimage
+          path: dist
+
+      - name: Prepare PKGBUILD and Sources
+        run: |
+          set -euo pipefail
+          mkdir -p dist/arch-build
+
+          SEMVER="$(node -p "require('./package.json').version")"
+          PKGVER_ARCH="${SEMVER//-/.}"
+
+          mapfile -t APPIMAGES < <(find dist -maxdepth 1 -type f -name '*.AppImage' -print)
+          if [ "${#APPIMAGES[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one AppImage artifact"
+            exit 1
+          fi
+          APPIMAGE_FILE="$(basename "${APPIMAGES[0]}")"
+          cp "${APPIMAGES[0]}" "dist/arch-build/${APPIMAGE_FILE}"
+          chmod +x "dist/arch-build/${APPIMAGE_FILE}"
+
+          cp assets/webradio.desktop dist/arch-build/
+          cp assets/icons/tray.png dist/arch-build/
+
+          {
+            echo "SEMVER=${SEMVER}"
+            echo "PKGVER_ARCH=${PKGVER_ARCH}"
+            echo "APPIMAGE_FILE=${APPIMAGE_FILE}"
+          } >> "$GITHUB_ENV"
+
+      - name: Render PKGBUILD from Template
+        run: |
+          set -euo pipefail
+          cd dist/arch-build
+
+          APP_SHA="$(sha256sum "${APPIMAGE_FILE}" | awk '{print $1}')"
+          DESK_SHA="$(sha256sum webradio.desktop | awk '{print $1}')"
+          ICON_SHA="$(sha256sum tray.png | awk '{print $1}')"
+
+          sed \
+            -e "s|__PKGVER__|${PKGVER_ARCH}|g" \
+            -e "s|__SEMVER__|${SEMVER}|g" \
+            -e "s|__APPIMAGE_FILE__|${APPIMAGE_FILE}|g" \
+            -e "s|__APPIMAGE_SHA256__|${APP_SHA}|g" \
+            -e "s|__DESKTOP_SHA256__|${DESK_SHA}|g" \
+            -e "s|__ICON_SHA256__|${ICON_SHA}|g" \
+            ../../packaging/arch/PKGBUILD \
+            > PKGBUILD
+
+          if grep -n '__[A-Z][A-Z_]*__' PKGBUILD; then
+            echo "::error::Unresolved placeholders in PKGBUILD"
+            exit 1
+          fi
+
+      - name: Build Arch Package in Container
+        run: |
+          docker run --rm \
+            -v "$PWD/dist/arch-build:/work" \
+            -w /work \
+            archlinux:latest \
+            bash -lc "
+              set -euo pipefail
+              pacman -Sy --noconfirm base-devel fakeroot squashfs-tools unzip
+              useradd -m builder
+              chown -R builder:builder /work
+              sudo -u builder bash -c 'cd /work && SRCDEST=/work makepkg --nodeps --noconfirm'
+            "
+
+      - name: Upload Arch Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webradio-linux-arch
+          path: dist/arch-build/*.pkg.tar.zst
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────────
+  # 6. Arch-Linux Installationstests
+  # ─────────────────────────────────────────────────────────────
+  arch-install-validation:
+    name: Arch Linux Installation Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: arch-linux
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Arch Package
+        uses: actions/download-artifact@v4
+        with:
+          name: webradio-linux-arch
+          path: dist/arch-build
+
+      - name: Install and Validate in Arch Container
+        run: |
+          docker run --rm \
+            -v "$PWD/dist/arch-build:/pkg" \
+            archlinux:latest \
+            bash -lc '
+              set -euo pipefail
+
+              pacman -Sy --noconfirm
+              pacman -S --noconfirm \
+                at-spi2-core alsa-lib cairo dbus expat gcc-libs glib2 gtk3 \
+                hicolor-icon-theme libcups libdrm libnotify libsecret libx11 \
+                libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon \
+                libxrandr mesa nspr nss pango xdg-utils xorg-server-xvfb 2>/dev/null || true
+
+              PKG=$(ls /pkg/*.pkg.tar.zst | head -n1)
+              if [ -z "$PKG" ]; then
+                echo "::error::No .pkg.tar.zst found"
+                exit 1
+              fi
+              pacman -U --noconfirm "$PKG"
+
+              INSTDIR="/opt/webradio"
+              if [ ! -d "$INSTDIR" ]; then
+                echo "::error::Installation directory not found"
+                exit 1
+              fi
+
+              # Check main binary permissions
+              MAIN_BIN=""
+              for candidate in webradio WebRadio; do
+                if [ -f "$INSTDIR/$candidate" ]; then
+                  MAIN_BIN="$candidate"
+                  break
+                fi
+              done
+              if [ -z "$MAIN_BIN" ]; then
+                echo "::error::Main binary not found"
+                exit 1
+              fi
+              MAIN_MODE=$(stat -c "%a" "$INSTDIR/$MAIN_BIN")
+              if [ "$MAIN_MODE" != "755" ]; then
+                echo "::error::Main binary must be 755, is $MAIN_MODE"
+                exit 1
+              fi
+
+              # Check chrome-sandbox permissions
+              if [ -f "$INSTDIR/chrome-sandbox" ]; then
+                SANDBOX_MODE=$(stat -c "%a" "$INSTDIR/chrome-sandbox")
+                if [ "$SANDBOX_MODE" != "4755" ]; then
+                  echo "::error::chrome-sandbox must be 4755, is $SANDBOX_MODE"
+                  exit 1
+                fi
+              fi
+
+              # Check desktop file and symlink
+              if [ ! -f "/usr/share/applications/webradio.desktop" ]; then
+                echo "::error::.desktop file missing"
+                exit 1
+              fi
+
+              if [ ! -L "/usr/bin/webradio" ] && [ ! -f "/usr/bin/webradio" ]; then
+                echo "::error::/usr/bin/webradio symlink missing"
+                exit 1
+              fi
+
+              # Headless smoke test
+              export DISPLAY=:99
+              Xvfb :99 -screen 0 1024x768x24 &
+              XVFB_PID=$!
+              sleep 1
+
+              ELECTRON_VERSION=$(timeout 30 /usr/bin/webradio --version --no-sandbox 2>&1 || true)
+              echo "Electron version: $ELECTRON_VERSION"
+
+              SANDBOX_CHECK=$(timeout 30 /usr/bin/webradio --version 2>&1 || true)
+              if echo "$SANDBOX_CHECK" | grep -qi "FATAL.*sandbox" && \
+                 ! echo "$SANDBOX_CHECK" | grep -qi "Running as root"; then
+                echo "::error::Sandbox FATAL error detected"
+                kill "$XVFB_PID" 2>/dev/null || true
+                exit 1
+              fi
+
+              kill "$XVFB_PID" 2>/dev/null || true
+              wait "$XVFB_PID" 2>/dev/null || true
+
+              echo "✅ All Arch Linux installation validations passed"
+            '
+
+  # ─────────────────────────────────────────────────────────────
+  # 7. Zusammenfassender CI-Status
+  # ─────────────────────────────────────────────────────────────
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint, unit-tests, windows-build, linux-appimage, arch-linux, arch-install-validation]
+    if: always()
+
+    steps:
+      - name: CI Summary
+        run: |
+          echo "=========================================="
+          echo "CI Integration Tests Summary"
+          echo "=========================================="
+          echo ""
+          echo "Job Status:"
+          echo "  Lint: ${{ needs.lint.result }}"
+          echo "  Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "  Windows Build: ${{ needs.windows-build.result }}"
+          echo "  Linux AppImage: ${{ needs.linux-appimage.result }}"
+          echo "  Arch Linux Package: ${{ needs.arch-linux.result }}"
+          echo "  Arch Installation: ${{ needs.arch-install-validation.result }}"
+          echo ""
+          echo "=========================================="
