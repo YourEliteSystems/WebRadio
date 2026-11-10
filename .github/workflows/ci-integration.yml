@@ -260,12 +260,28 @@ jobs:
             -v "$PWD:/repo" \
             -w /repo \
             archlinux:latest \
-            bash -lc '
+            bash -lc "
               set -euo pipefail
-              pacman -Sy --noconfirm nodejs
-              node scripts/tests/platform-probe.js
-              node scripts/tests/assert-linux-distro.js arch pacman
-            '
+
+              echo '== keyring =='
+              pacman -Syy --noconfirm archlinux-keyring \
+                || { echo '::error::archlinux-keyring konnte nicht aktualisiert werden'; exit 1; }
+
+              echo '== nodejs installieren =='
+              pacman -Syu --noconfirm --needed nodejs \
+                || { echo '::error::nodejs konnte im Arch-Container nicht installiert werden'; exit 1; }
+
+              command -v node \
+                || { echo '::error::node ist nach der Installation nicht im PATH'; exit 1; }
+              node --version
+
+              echo '== Erkennung =='
+              node scripts/tests/platform-probe.js \
+                || { echo '::error::platform-probe.js ist auf Arch Linux fehlgeschlagen'; exit 1; }
+
+              node scripts/tests/assert-linux-distro.js arch pacman \
+                || { echo '::error::Arch-Distribution wurde nicht korrekt erkannt'; exit 1; }
+            "
 
   # ─────────────────────────────────────────────────────────────
   # 7. Arch-Linux-Paketierung und Installationstests
