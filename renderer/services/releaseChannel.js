@@ -27,26 +27,30 @@ try {
 const RELEASE_CSS_VARIABLES = {
   alpha: "--release-alpha",
   beta: "--release-beta",
+  rc: "--release-rc",
   stable: "--release-stable"
 };
 
 // Zentrale_color-Map (basiert auf ChannelMetadata-Farben)
 // Die Farben werden einheitlich aus der Core-Metadaten-Ökosystem abgeleitet.
 const RELEASE_COLORS = {
-  alpha: "#a855f7", // violet / purple
+  alpha: "#ef4444", // red
   beta: "#f59e0b", // orange
+  rc: "#8b5cf6", // violet
   stable: "#22c55e" // green
 };
 
 const RELEASE_LABELS = {
   alpha: "Alpha",
   beta: "Beta",
+  rc: "Release Candidate",
   stable: "Stable"
 };
 
 const RELEASE_SHORT_LABELS = {
   alpha: "Alpha",
   beta: "Beta",
+  rc: "RC",
   stable: "Stable"
 };
 
@@ -75,6 +79,8 @@ function resolve(version) {
     channel = "alpha";
   } else if (/-beta(\.|$)/i.test(normalized)) {
     channel = "beta";
+  } else if (/-rc(\.|$)/i.test(normalized)) {
+    channel = "rc";
   }
   return {
     channel,

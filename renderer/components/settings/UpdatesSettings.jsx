@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import InlineSvg from '../InlineSvg.jsx';
+import { useTranslation } from '../../localization/index.js';
 
 const UpdatesSettings = () => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState('checking');
   const [updateInfo, setUpdateInfo] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(null);
@@ -17,6 +19,7 @@ const UpdatesSettings = () => {
   const [channelsMeta, setChannelsMeta] = useState([]);
   const [showBetaWarning, setShowBetaWarning] = useState(false);
   const [showAlphaWarning, setShowAlphaWarning] = useState(false);
+  const [showRcWarning, setShowRcWarning] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState('');
   const [showReleaseNotes, setShowReleaseNotes] = useState(false);
 
@@ -132,6 +135,8 @@ const UpdatesSettings = () => {
             setCurrentChannel('alpha');
           } else if (versionChannel === 'beta') {
             setCurrentChannel('beta');
+          } else if (versionChannel === 'rc') {
+            setCurrentChannel('rc');
           } else {
             setCurrentChannel('stable');
           }
@@ -429,6 +434,12 @@ const UpdatesSettings = () => {
       return;
     }
 
+    // Beim Wechsel auf Release Candidate: Bestätigung verlangen
+    if (meta.id === 'rc') {
+      setShowRcWarning(true);
+      return;
+    }
+
     commitChannelChange(newChannel);
   };
 
@@ -470,6 +481,25 @@ const UpdatesSettings = () => {
 
   const handleAlphaWarningCancel = () => {
     setShowAlphaWarning(false);
+  };
+
+  const handleRcWarningConfirm = async () => {
+    setShowRcWarning(false);
+    await commitChannelChange('rc');
+  };
+
+  const handleRcWarningCancel = () => {
+    setShowRcWarning(false);
+  };
+
+  // Kanalbeschreibungen stammen aus ChannelMetadata (Core) und sind dort
+  // deutsch hinterlegt. Für die Anzeige wird die lokalisierte Fassung
+  // verwendet; unbekannte Kanäle fallen auf den Core-Text zurück.
+  const channelDescription = (meta) => {
+    if (!meta?.id) return '';
+    const key = `settings.updates.channelDescriptions.${meta.id}`;
+    const localized = t(key);
+    return localized === key ? (meta.description || '') : localized;
   };
 
   const getStatusIcon = () => {
@@ -523,17 +553,19 @@ const UpdatesSettings = () => {
   };
 
   const getStatusText = () => {
+    const version = updateInfo?.version || currentVersion;
+
     switch (status) {
       case 'checking':
         return {
-          title: 'Prüfe auf Updates…',
-          sub: 'Verbindung zum Update-Server wird hergestellt'
+          title: t('settings.updates.status.checkingTitle'),
+          sub: t('settings.updates.status.checkingSub')
         };
       case 'current':
       case 'up-to-date':
         return {
-          title: 'Du bist aktuell',
-          sub: `${currentVersion} ist die neueste Version`
+          title: t('settings.updates.status.currentTitle'),
+          sub: t('settings.updates.status.currentSub', { version: currentVersion })
         };
       case 'available':
         {
@@ -542,40 +574,46 @@ const UpdatesSettings = () => {
             : null;
           if (chMeta?.id === 'alpha') {
             return {
-              title: `Alpha-Update verfügbar – v${updateInfo?.version}`,
-              sub: 'Hinweis: Alpha-Version – experimentell, kann schwere Fehler enthalten.'
+              title: t('settings.updates.status.availableAlphaTitle', { version }),
+              sub: t('settings.updates.status.availableAlphaSub')
             };
           }
           if (chMeta?.id === 'beta') {
             return {
-              title: `Beta-Update verfügbar – v${updateInfo?.version}`,
-              sub: 'Hinweis: Beta-Version – kann Fehler enthalten.'
+              title: t('settings.updates.status.availableBetaTitle', { version }),
+              sub: t('settings.updates.status.availableBetaSub')
+            };
+          }
+          if (chMeta?.id === 'rc') {
+            return {
+              title: t('settings.updates.status.availableRcTitle', { version }),
+              sub: t('settings.updates.status.availableRcSub')
             };
           }
           return {
-            title: `Update verfügbar – v${updateInfo?.version}`,
-            sub: 'Eine neue Version ist bereit zum Herunterladen'
+            title: t('settings.updates.status.availableTitle', { version }),
+            sub: t('settings.updates.status.availableSub')
           };
         }
       case 'downloading':
         return {
-          title: `Wird heruntergeladen – v${updateInfo?.version}`,
-          sub: 'Update wird heruntergeladen…'
+          title: t('settings.updates.status.downloadingTitle', { version }),
+          sub: t('settings.updates.status.downloadingSub')
         };
       case 'downloaded':
         return {
-          title: `Update bereit – v${updateInfo?.version}`,
-          sub: 'Das Update ist heruntergeladen und wartet auf Installation'
+          title: t('settings.updates.status.downloadedTitle', { version }),
+          sub: t('settings.updates.status.downloadedSub')
         };
       case 'error':
         return {
-          title: 'Update konnte nicht geprüft werden',
-          sub: 'Bitte überprüfe deine Internetverbindung und versuche es später erneut.'
+          title: t('settings.updates.status.errorTitle'),
+          sub: t('settings.updates.status.errorSub')
         };
       case 'idle':
         return {
-          title: 'Bereit',
-          sub: 'Klicke auf „Jetzt prüfen“, um nach Updates zu suchen'
+          title: t('settings.updates.status.idleTitle'),
+          sub: t('settings.updates.status.idleSub')
         };
       default:
         return { title: '', sub: '' };
@@ -585,8 +623,8 @@ const UpdatesSettings = () => {
   return (
     <div className="settings-page">
       <div className="settings-page-header">
-        <h1>Updates</h1>
-        <p>WebRadio auf dem neuesten Stand halten</p>
+        <h1>{t('settings.updates.title')}</h1>
+        <p>{t('settings.updates.subtitle')}</p>
       </div>
 
       <div className="settings-card">
@@ -605,7 +643,7 @@ const UpdatesSettings = () => {
         {status === 'downloading' && downloadProgress && (
           <div style={{display: 'block', margin: '12px 0 0'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
-              <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>Wird heruntergeladen…</span>
+              <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>{t('settings.updates.downloadingLabel')}</span>
               <span style={{fontSize: '12px', color: 'var(--text-main)', fontWeight: '600'}}>
                 {Math.round((downloadProgress.progress || 0) * 100)}%
               </span>
@@ -629,16 +667,16 @@ const UpdatesSettings = () => {
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
               <div style={{flex: 1}}>
-                <strong style={{fontSize: '13px', color: 'var(--text-main)', display: 'block', marginBottom: '2px'}}>Update bereit</strong>
-                <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>Das Update wird installiert, sobald WebRadio neu gestartet wird.</span>
+                <strong style={{fontSize: '13px', color: 'var(--text-main)', display: 'block', marginBottom: '2px'}}>{t('settings.updates.downloadedTitle')}</strong>
+                <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>{t('settings.updates.downloadedDescription')}</span>
               </div>
             </div>
             <div className="update-actions" style={{marginTop: '12px', gap: '8px'}}>
               <button onClick={handleRestartLater} className="btn-secondary" style={{display: 'inline-flex', width: 'auto', padding: '10px 18px', fontSize: '13px'}}>
-                Später neu starten
+                {t('settings.updates.restartLater')}
               </button>
               <button onClick={handleInstallNow} className="btn-update" style={{display: 'inline-flex'}}>
-                ↻ Jetzt neu starten
+                {t('settings.updates.restartNow')}
               </button>
             </div>
           </div>
@@ -648,7 +686,7 @@ const UpdatesSettings = () => {
         {showReleaseNotes && (
           <div style={{display: 'block'}}>
             <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '16px 0 8px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px'}}>
-              Was ist neu
+                                    {t('settings.updates.releaseNotesTitle')}
             </p>
             <div className="update-release-notes" dangerouslySetInnerHTML={{ __html: renderMarkdown(releaseNotes) }}></div>
           </div>
@@ -658,16 +696,16 @@ const UpdatesSettings = () => {
         <div className="update-actions" id="updateActionsRow">
           {(status === 'current' || status === 'idle' || status === 'error') && (
             <button onClick={handleCheckUpdate} className="btn-secondary" style={{width: 'auto', padding: '10px 18px', fontSize: '13px'}}>
-              Jetzt prüfen
+              {t('settings.updates.checkNow')}
             </button>
           )}
           {status === 'available' && (
             <>
               <button onClick={handleDismissUpdate} className="btn-secondary" style={{display: 'inline-flex', width: 'auto', padding: '10px 18px', fontSize: '13px'}}>
-                Später
+                {t('settings.updates.later')}
               </button>
               <button onClick={handleInstallUpdate} className="btn-update">
-                ⬇ Update herunterladen
+                {t('settings.updates.download')}
               </button>
             </>
           )}
@@ -682,7 +720,7 @@ const UpdatesSettings = () => {
               onChange={handleAutoCheckChange}
               style={{accentColor: 'var(--accent-color)', cursor: 'pointer'}}
             />
-            <span>Beim Start nach Updates suchen</span>
+            <span>{t('settings.updates.autoCheck')}</span>
           </label>
         </div>
       </div>
@@ -690,10 +728,10 @@ const UpdatesSettings = () => {
       {/* Channel-Auswahl */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Update-Kanal</span>
+          <span className="settings-card-title">{t('settings.updates.channelTitle')}</span>
           <span
             id="channelBadge"
-            className="channel-badge"
+            className={`channel-badge ${channel}`}
             data-channel={channel}
             style={{ '--update-channel-color': channelMeta?.color }}
           >
@@ -702,7 +740,7 @@ const UpdatesSettings = () => {
           </span>
         </div>
         <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 14px'}}>
-          Wähle, welche Versionen dir angeboten werden.
+          {t('settings.updates.channelDescription')}
         </p>
         <div className="channel-options">
           {channelsMeta.map((meta) => (
@@ -720,7 +758,7 @@ const UpdatesSettings = () => {
               />
               <div className="channel-option-content">
                 <div className="channel-option-title">{meta.label}</div>
-                <div className="channel-option-desc">{meta.description}</div>
+                <div className="channel-option-desc">{channelDescription(meta)}</div>
               </div>
               {/* Das Icon liegt als SVG-String vor und muss als echtes Inline-SVG
                   gerendert werden – `<InlineSvg/>` kapselt Größe und Farbe. */}
@@ -733,27 +771,45 @@ const UpdatesSettings = () => {
         {channelMeta?.id === 'beta' && (
           <div className="beta-hint" data-channel="beta" style={{ '--update-channel-color': channelMeta?.color }}>
             {renderChannelIcon(channelMeta, 'channel-hint-icon')}
-            <span>Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.</span>
+            <span>{t('settings.updates.betaHint')}</span>
           </div>
         )}
         {channelMeta?.id === 'alpha' && (
           <div className="alpha-hint" data-channel="alpha" style={{ '--update-channel-color': channelMeta?.color }}>
             {renderChannelIcon(channelMeta, 'channel-hint-icon')}
-            <span>Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.</span>
+            <span>{t('settings.updates.alphaHint')}</span>
+          </div>
+        )}
+        {channelMeta?.id === 'rc' && (
+          <div className="rc-hint" data-channel="rc" style={{ '--update-channel-color': channelMeta?.color }}>
+            {renderChannelIcon(channelMeta, 'channel-hint-icon')}
+            <span>{t('settings.updates.rcHint')}</span>
           </div>
         )}
         {channel !== currentChannel && (
           <p style={{fontSize: '12px', color: 'var(--text-muted)', margin: '12px 0 0'}}>
-            Der gewählte Kanal ist für alle Update-Prüfungen sofort aktiv. Die installierte Version
-            (<strong>{currentVersion}</strong>) stammt weiterhin aus dem {currentChannelMeta?.label ?? currentChannel}-Kanal
-            und wechselt erst, wenn ein Update installiert wurde.
+            {t('settings.updates.channelSwitchNote', {
+              version: currentVersion,
+              channel: currentChannelMeta?.label ?? currentChannel
+            })}
           </p>
         )}
       </div>
 
       <div className="version-info">
-        <span>Aktuelle Version: <strong>{currentVersion}</strong> <span id="currentVersionBadge" className="channel-badge" data-current-channel={currentChannel} style={{ display: currentChannel !== 'stable' ? 'inline-flex' : 'none', '--update-channel-color': currentChannelMeta?.color }}>{currentChannelMeta?.shortLabel ?? ''}{renderChannelIcon(currentChannelMeta)}</span></span>
-        <span>WebRadio by Your Elite Systems</span>
+        <span>{t('settings.updates.currentVersion', { version: currentVersion })}</span>
+        <span className="version-channel">
+          {t('settings.updates.installedReleaseType')}:{' '}
+          <span
+            id="currentVersionBadge"
+            className={`channel-badge ${currentChannel}`}
+            data-current-channel={currentChannel}
+            style={{ '--update-channel-color': currentChannelMeta?.color }}
+          >
+            {currentChannelMeta?.label ?? currentChannel}{renderChannelIcon(currentChannelMeta)}
+          </span>
+        </span>
+        <span>{t('settings.updates.byline')}</span>
       </div>
 
       {/* Beta-Warnung Modal */}
@@ -766,25 +822,23 @@ const UpdatesSettings = () => {
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              Beta-Versionen aktivieren
+              {t('settings.updates.betaModal.title')}
             </h2>
             <p>
-              Du möchtest WebRadio auf den <strong>Beta-Kanal</strong> umstellen.
+              {t('settings.updates.betaModal.intro')}
             </p>
             <p>
-              Beta-Versionen befinden sich noch in Entwicklung und wurden möglicherweise nicht vollständig getestet.
-              Sie können <strong>Fehler, Abstürze, Funktionsprobleme oder andere unerwartete Probleme</strong> enthalten.
+              {t('settings.updates.betaModal.body')}
             </p>
             <div className="modal-warning">
-              Der Beta-Kanal sollte nur aktiviert werden, wenn du bereit bist, mögliche Fehler zu melden
-              und mit instabileren Versionen zu arbeiten.
+              {t('settings.updates.betaModal.warning')}
             </div>
             <p style={{fontSize: '12px', color: 'var(--text-muted)'}}>
-              Möchtest du den Beta-Kanal wirklich aktivieren?
+              {t('settings.updates.betaModal.question')}
             </p>
             <div className="modal-actions">
-              <button onClick={handleBetaWarningCancel} className="btn-secondary" type="button">Abbrechen</button>
-              <button onClick={handleBetaWarningConfirm} className="btn-primary danger" type="button">Beta aktivieren</button>
+              <button onClick={handleBetaWarningCancel} className="btn-secondary" type="button">{t('common.cancel')}</button>
+              <button onClick={handleBetaWarningConfirm} className="btn-primary danger" type="button">{t('settings.updates.betaModal.confirm')}</button>
             </div>
           </div>
         </div>
@@ -800,25 +854,51 @@ const UpdatesSettings = () => {
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              Alpha-Versionen aktivieren
+              {t('settings.updates.alphaModal.title')}
             </h2>
             <p>
-              Du möchtest WebRadio auf den <strong>Alpha-Kanal</strong> umstellen.
+              {t('settings.updates.alphaModal.intro')}
             </p>
             <p>
-              Alpha-Versionen sind experimentelle Builds, die <strong>noch nicht einmal Beta-Stabilität</strong> erreicht haben.
-              Sie können <strong>schwere Fehler, Datenverlust, Abstürze oder andere kritische Probleme</strong> enthalten.
+              {t('settings.updates.alphaModal.body')}
             </p>
             <div className="modal-warning" style={{background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)'}}>
-              Der Alpha-Kanal sollte nur von Entwicklern aktiviert werden, die bereit sind,
-              kritische Fehler zu melden und mit sehr instabilen Versionen zu arbeiten.
+              {t('settings.updates.alphaModal.warning')}
             </div>
             <p style={{fontSize: '12px', color: 'var(--text-muted)'}}>
-              Möchtest du den Alpha-Kanal wirklich aktivieren?
+              {t('settings.updates.alphaModal.question')}
             </p>
             <div className="modal-actions">
-              <button onClick={handleAlphaWarningCancel} className="btn-secondary" type="button">Abbrechen</button>
-              <button onClick={handleAlphaWarningConfirm} className="btn-primary danger" type="button">Alpha aktivieren</button>
+              <button onClick={handleAlphaWarningCancel} className="btn-secondary" type="button">{t('common.cancel')}</button>
+              <button onClick={handleAlphaWarningConfirm} className="btn-primary danger" type="button">{t('settings.updates.alphaModal.confirm')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Release-Candidate-Warnung Modal */}
+      {showRcWarning && (
+        <div className="modal-backdrop open" role="dialog" aria-modal="true" aria-labelledby="rcWarningTitle">
+          <div className="modal">
+            <h2 id="rcWarningTitle">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" style={{color: '#8b5cf6'}}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              {t('settings.updates.rcModal.title')}
+            </h2>
+            <p>{t('settings.updates.rcModal.intro')}</p>
+            <p>{t('settings.updates.rcModal.body')}</p>
+            <div className="modal-warning" style={{background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.3)'}}>
+              {t('settings.updates.rcModal.warning')}
+            </div>
+            <p style={{fontSize: '12px', color: 'var(--text-muted)'}}>
+              {t('settings.updates.rcModal.question')}
+            </p>
+            <div className="modal-actions">
+              <button onClick={handleRcWarningCancel} className="btn-secondary" type="button">{t('common.cancel')}</button>
+              <button onClick={handleRcWarningConfirm} className="btn-primary" type="button">{t('settings.updates.rcModal.confirm')}</button>
             </div>
           </div>
         </div>

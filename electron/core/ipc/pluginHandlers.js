@@ -11,6 +11,21 @@ function registerPluginHandlers(mainWindow) {
 
   ipcMain.handle("plugins:toggle", (_, id, enabled) => {
     PluginManager.togglePlugin(id, enabled);
+
+    // Der Renderer lädt bzw. entlädt Renderer-Skripte anhand dieses Events.
+    // Ohne Broadcast würde ein aktiviertes Plugin erst nach einem Neustart
+    // im Renderer erscheinen.
+    try {
+      BrowserWindow.getAllWindows().forEach((win) => {
+        if (!win.isDestroyed()) {
+          win.webContents.send("plugin:toggled", { id, enabled: Boolean(enabled) });
+        }
+      });
+    } catch (broadcastErr) {
+      logger.warn(`Konnte plugin:toggled nicht broadcasten: ${broadcastErr.message}`);
+    }
+
+    return { ok: true, id, enabled: Boolean(enabled) };
   });
 
   ipcMain.handle("plugins:getRendererScripts", () => {

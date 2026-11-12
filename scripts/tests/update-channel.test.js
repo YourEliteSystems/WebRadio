@@ -1,4 +1,4 @@
-// Update Channel Tests
+// Update Channel Tests – vier Kanaele (alpha/beta/rc/stable)
 "use strict";
 
 const assert = require("assert");
@@ -22,250 +22,178 @@ function test(name, fn) {
   }
 }
 
-// Mock Import (da wir im Test-Kontext sind)
-const CHANNELS = {
-  STABLE: "stable",
-  BETA: "beta",
-  ALPHA: "alpha"
-};
+const UpdateChannel = require("../../electron/core/updates/UpdateChannel");
+const ReleaseChannel = require("../../electron/core/updates/ReleaseChannel");
+const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+const UpdateState = require("../../electron/core/updates/UpdateState");
 
-const ERROR_CODES = {
-  INVALID_CHANNEL: "UPDATER_INVALID_CHANNEL"
-};
-
-function isPrerelease(version) {
-  if (typeof version !== "string") return false;
-  return /-(alpha|beta|rc|nightly)(\.\d+)?/i.test(version);
-}
-
-function isValidChannel(channel) {
-  return channel === CHANNELS.STABLE || channel === CHANNELS.BETA || channel === CHANNELS.ALPHA;
-}
-
-function detectChannelFromVersion(version) {
-  if (isPrerelease(version)) {
-    if (/-alpha(\.|$)/i.test(version)) {
-      return CHANNELS.ALPHA;
-    }
-    if (/-beta(\.|$)/i.test(version)) {
-      return CHANNELS.BETA;
-    }
-    return CHANNELS.BETA;
-  }
-  return CHANNELS.STABLE;
-}
-
-function getUpdateChannel(settings, currentVersion) {
-  if (settings && settings.updates && settings.updates.channel) {
-    const userChannel = settings.updates.channel;
-    if (isValidChannel(userChannel)) {
-      return userChannel;
-    }
-  }
-  
-  if (currentVersion) {
-    return detectChannelFromVersion(currentVersion);
-  }
-  
-  return CHANNELS.STABLE;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Tests
-// ─────────────────────────────────────────────────────────────
+const CHANNELS = UpdateState.CHANNELS;
 
 console.log("\n[1] Channel Detection");
 test("1.0.7 -> stable", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7"), CHANNELS.STABLE);
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("1.0.7"), CHANNELS.STABLE);
 });
-
 test("1.0.7-alpha.1 -> alpha", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.1"), CHANNELS.ALPHA);
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("1.0.7-alpha.1"), CHANNELS.ALPHA);
 });
-
 test("1.0.7-beta.1 -> beta", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.1"), CHANNELS.BETA);
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("1.0.7-beta.1"), CHANNELS.BETA);
 });
-
-test("1.0.7-rc.1 -> beta", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-rc.1"), CHANNELS.BETA);
+test("1.0.8-rc.1 -> rc", () => {
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("1.0.8-rc.1"), CHANNELS.RC);
 });
-
-test("1.0.7-nightly.1 -> beta", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-nightly.1"), CHANNELS.BETA);
+test("1.0.8-rc.12 -> rc", () => {
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("1.0.8-rc.12"), CHANNELS.RC);
+});
+test("1.0.8-nightly.1 -> beta (unbekannte Stage bleibt beta-kompatibel)", () => {
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("1.0.8-nightly.1"), CHANNELS.BETA);
+});
+test("v-Praefix und Grossschreibung werden erkannt", () => {
+  assert.strictEqual(UpdateChannel.detectChannelFromVersion("v1.0.8-RC.1"), CHANNELS.RC);
 });
 
 console.log("\n[2] Channel Validation");
-test("stable ist gültig", () => {
-  assert.strictEqual(isValidChannel(CHANNELS.STABLE), true);
+test("stable/beta/rc/alpha sind gueltig", () => {
+  for (const channel of ["stable", "beta", "rc", "alpha"]) {
+    assert.strictEqual(UpdateChannel.isValidChannel(channel), true, channel);
+  }
+});
+test("unbekannte Channel sind ungueltig", () => {
+  assert.strictEqual(UpdateChannel.isValidChannel("RC"), false);
+  assert.strictEqual(UpdateChannel.isValidChannel("nightly"), false);
+  assert.strictEqual(UpdateChannel.isValidChannel(""), false);
+  assert.strictEqual(UpdateChannel.isValidChannel(null), false);
 });
 
-test("beta ist gültig", () => {
-  assert.strictEqual(isValidChannel(CHANNELS.BETA), true);
+console.log("\n[3] electron-updater Konfiguration");
+test("stable nutzt latest und keine Pre-Releases", () => {
+  const cfg = UpdateChannel.getUpdaterConfig("stable", "1.0.8");
+  assert.strictEqual(cfg.channel, null);
+  assert.strictEqual(cfg.allowPrerelease, false);
+  assert.strictEqual(cfg.allowDowngrade, false);
+});
+test("beta nutzt den beta-Feed", () => {
+  const cfg = UpdateChannel.getUpdaterConfig("beta", "1.0.8-beta.1");
+  assert.strictEqual(cfg.channel, "beta");
+  assert.strictEqual(cfg.allowPrerelease, true);
+  assert.strictEqual(cfg.allowDowngrade, false);
+});
+test("rc nutzt den rc-Feed", () => {
+  const cfg = UpdateChannel.getUpdaterConfig("rc", "1.0.8-rc.1");
+  assert.strictEqual(cfg.channel, "rc");
+  assert.strictEqual(cfg.allowPrerelease, true);
+  assert.strictEqual(cfg.allowDowngrade, false);
+});
+test("alpha nutzt den alpha-Feed", () => {
+  const cfg = UpdateChannel.getUpdaterConfig("alpha", "1.0.8-alpha.1");
+  assert.strictEqual(cfg.channel, "alpha");
+  assert.strictEqual(cfg.allowPrerelease, true);
+  assert.strictEqual(cfg.allowDowngrade, false);
+});
+test("kein Kanal erlaubt Downgrades, auch nicht aus einer Vorabversion", () => {
+  for (const current of ["1.0.8", "1.0.8-rc.1", "1.0.8-beta.2"]) {
+    for (const channel of ["stable", "beta", "rc", "alpha"]) {
+      assert.strictEqual(
+        UpdateChannel.getUpdaterConfig(channel, current).allowDowngrade,
+        false,
+        `${channel} / ${current}`
+      );
+    }
+  }
 });
 
-test("alpha ist gültig", () => {
-  assert.strictEqual(isValidChannel(CHANNELS.ALPHA), true);
+console.log("\n[4] Stage-Filter");
+test("stable akzeptiert nur finale Releases", () => {
+  const filter = UpdateChannel.getAllowedPreReleaseFilter("stable");
+  assert.strictEqual(filter({ version: "1.0.8" }), true);
+  for (const version of ["1.0.8-rc.1", "1.0.8-beta.1", "1.0.8-alpha.1", "1.0.8-nightly.1"]) {
+    assert.strictEqual(filter({ version }), false, version);
+  }
+});
+test("beta akzeptiert Beta, RC und Stable", () => {
+  const filter = UpdateChannel.getAllowedPreReleaseFilter("beta");
+  assert.strictEqual(filter({ version: "1.0.8-beta.1" }), true);
+  assert.strictEqual(filter({ version: "1.0.8-rc.1" }), true);
+  assert.strictEqual(filter({ version: "1.0.8" }), true);
+  assert.strictEqual(filter({ version: "1.0.8-alpha.1" }), false);
+  assert.strictEqual(filter({ version: "1.0.8-nightly.1" }), false);
+});
+test("rc akzeptiert RC und Stable", () => {
+  const filter = UpdateChannel.getAllowedPreReleaseFilter("rc");
+  assert.strictEqual(filter({ version: "1.0.8-rc.2" }), true);
+  assert.strictEqual(filter({ version: "1.0.8" }), true);
+  assert.strictEqual(filter({ version: "1.0.8-beta.1" }), false);
+  assert.strictEqual(filter({ version: "1.0.8-alpha.1" }), false);
+});
+test("alpha akzeptiert alle Stages", () => {
+  const filter = UpdateChannel.getAllowedPreReleaseFilter("alpha");
+  for (const version of ["1.0.8-alpha.1", "1.0.8-beta.1", "1.0.8-rc.1", "1.0.8"]) {
+    assert.strictEqual(filter({ version }), true, version);
+  }
 });
 
-test("invalid ist ungültig", () => {
-  assert.strictEqual(isValidChannel("invalid"), false);
+console.log("\n[5] ReleaseChannel-Resolver");
+test("ReleaseChannel erkennt RC", () => {
+  assert.strictEqual(ReleaseChannel.resolveChannel("1.0.8-rc.1"), "rc");
+  assert.strictEqual(ReleaseChannel.resolveChannel("1.0.8"), "stable");
+});
+test("ReleaseChannel liefert Label, Kurzlabel und Farbe fuer RC", () => {
+  const resolved = ReleaseChannel.resolve("1.0.8-rc.1");
+  assert.strictEqual(resolved.channel, "rc");
+  assert.strictEqual(resolved.label, "Release Candidate");
+  assert.strictEqual(resolved.shortLabel, "RC");
+  assert.strictEqual(resolved.color, "#8b5cf6");
+});
+test("ReleaseChannel-Farben entsprechen dem Channel-Konzept", () => {
+  assert.strictEqual(ReleaseChannel.resolve("1.0.8-alpha.1").color, "#ef4444");
+  assert.strictEqual(ReleaseChannel.resolve("1.0.8-beta.1").color, "#f59e0b");
+  assert.strictEqual(ReleaseChannel.resolve("1.0.8-rc.1").color, "#8b5cf6");
+  assert.strictEqual(ReleaseChannel.resolve("1.0.8").color, "#22c55e");
+});
+test("ReleaseChannel faellt bei ungueltigen Eingaben auf Stable zurueck", () => {
+  assert.strictEqual(ReleaseChannel.resolveChannel(null), "stable");
+  assert.strictEqual(ReleaseChannel.resolveChannel(""), "stable");
+  assert.strictEqual(ReleaseChannel.resolveChannel("keine-version"), "stable");
 });
 
-console.log("\n[3] Zentrale getUpdateChannel");
-test("User-Settings haben Priorität", () => {
-  const settings = { updates: { channel: CHANNELS.ALPHA } };
-  assert.strictEqual(getUpdateChannel(settings, "1.0.7"), CHANNELS.ALPHA);
+console.log("\n[6] ChannelMetadata");
+test("vier Kanaele sind definiert und geordnet", () => {
+  assert.deepStrictEqual(ChannelMetadata.CHANNEL_IDS, ["alpha", "beta", "rc", "stable"]);
+  assert.strictEqual(ChannelMetadata.getAllUpdateChannelMetadata().length, 4);
 });
-
-test("User-Settings mit updateChannel haben Priorität", () => {
-  const UpdateChannel = require("../../electron/core/updates/UpdateChannel");
-  const settings = { updateChannel: CHANNELS.ALPHA };
-  assert.strictEqual(UpdateChannel.getUpdateChannel(settings, "1.0.7"), CHANNELS.ALPHA);
+test("RC-Metadaten enthalten Label, Farbe und Icon", () => {
+  const rc = ChannelMetadata.CHANNEL_METADATA.rc;
+  assert.strictEqual(rc.label, "Release Candidate");
+  assert.strictEqual(rc.shortLabel, "RC");
+  assert.strictEqual(rc.color, "#8b5cf6");
+  assert.ok(rc.icon.includes("<svg"));
 });
-
-test("Version-Fallback ohne Settings", () => {
-  assert.strictEqual(getUpdateChannel(null, "1.0.7-alpha.1"), CHANNELS.ALPHA);
+test("Alpha ist rot, Beta orange, Stable gruen", () => {
+  assert.strictEqual(ChannelMetadata.CHANNEL_METADATA.alpha.color, "#ef4444");
+  assert.strictEqual(ChannelMetadata.CHANNEL_METADATA.beta.color, "#f59e0b");
+  assert.strictEqual(ChannelMetadata.CHANNEL_METADATA.stable.color, "#22c55e");
 });
-
-test("Stable Fallback ohne Settings und Version", () => {
-  assert.strictEqual(getUpdateChannel(null, null), CHANNELS.STABLE);
-});
-
-test("User-Settings mit ungültigem Channel fallen auf Version zurück", () => {
-  const settings = { updates: { channel: "invalid" } };
-  assert.strictEqual(getUpdateChannel(settings, "1.0.7-beta.1"), CHANNELS.BETA);
-});
-
-console.log("\n[4] Pre-Release Erkennung");
-test("1.0.7 ist kein Pre-Release", () => {
-  assert.strictEqual(isPrerelease("1.0.7"), false);
-});
-
-test("1.0.7-alpha.1 ist Pre-Release", () => {
-  assert.strictEqual(isPrerelease("1.0.7-alpha.1"), true);
-});
-
-test("1.0.7-beta.1 ist Pre-Release", () => {
-  assert.strictEqual(isPrerelease("1.0.7-beta.1"), true);
-});
-
-test("1.0.7-rc.1 ist Pre-Release", () => {
-  assert.strictEqual(isPrerelease("1.0.7-rc.1"), true);
-});
-
-console.log("\n[5] Release-Channel Ableitung (alpha/beta/stable)");
-test("1.0.7-alpha.1 -> alpha (nicht beta, nicht stable)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.1"), CHANNELS.ALPHA);
-});
-
-test("1.0.7-alpha.2 -> alpha (nicht beta, nicht stable)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.2"), CHANNELS.ALPHA);
-});
-
-test("1.0.7-beta.1 -> beta (nicht alpha, nicht stable)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.1"), CHANNELS.BETA);
-});
-
-test("1.0.7-beta.2 -> beta (nicht alpha, nicht stable)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.2"), CHANNELS.BETA);
-});
-test("1.0.7-beta.3 -> beta (nicht alpha, nicht stable)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.3"), CHANNELS.BETA);
-});
-
-test("1.0.7 -> stable", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7"), CHANNELS.STABLE);
-});
-
-test("1.0.7-alpha.0 -> alpha (Prerelease-Star-Nummer 0)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.0"), CHANNELS.ALPHA);
-});
-
-test("1.0.7-alpha.9 -> alpha", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-alpha.9"), CHANNELS.ALPHA);
-});
-
-test("1.0.7-beta.0 -> beta (Prerelease-Star-Nummer 0)", () => {
-  assert.strictEqual(detectChannelFromVersion("1.0.7-beta.0"), CHANNELS.BETA);
-});
-
-test("1.1.0-rc.1 kann als Beta-kompatibel markiert werden", () => {
-  assert.strictEqual(detectChannelFromVersion("1.1.0-rc.1"), CHANNELS.BETA);
-});
-
-console.log("\n[6] central channel meta / labelable metadata" );
-test("ChannelMetadata alpha/beta/stable existieren", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  assert.ok(ChannelMetadata.CHANNEL_METADATA.alpha, "alpha metadata")
-  assert.ok(ChannelMetadata.CHANNEL_METADATA.beta, "beta metadata")
-  assert.ok(ChannelMetadata.CHANNEL_METADATA.stable, "stable metadata")
-});
-
-test("Channel-Meta enthält id/label/color/shortLabel", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  const a = ChannelMetadata.CHANNEL_METADATA.alpha;
-  assert.strictEqual(a.id, "alpha");
-  assert.strictEqual(a.label, "Alpha");
-  assert.ok(a.color);
-  assert.strictEqual(a.shortLabel, "Alpha");
-});
-
-test("ChannelMetadaten-IDs sind alpha/beta/stable", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  assert.deepStrictEqual(ChannelMetadata.CHANNEL_IDS, ["alpha", "beta", "stable"]);
-});
-
-test("getAllUpdateChannelMetadata enthält alpha/beta/stable", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  const list = ChannelMetadata.getAllUpdateChannelMetadata();
-  assert.strictEqual(list.length, 3);
-  assert.ok(list.some((m) => m.id === "alpha"));
-  assert.ok(list.some((m) => m.id === "beta"));
-  assert.ok(list.some((m) => m.id === "stable"));
-});
-
-test("ChannelMetadata alpha enthält gültiges Icon-SVG", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  const icon = ChannelMetadata.CHANNEL_METADATA.alpha.icon;
-  assert.ok(typeof icon === "string", "Icon ist String");
-  assert.ok(icon.includes("<svg"), "Icon enthält <svg>");
-  assert.ok(icon.includes("viewBox"), "Icon enthält viewBox");
-  assert.ok(icon.includes("currentColor"), "Icon enthält currentColor");
-});
-
-test("ChannelMetadata beta enthält gültiges Icon-SVG", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  const icon = ChannelMetadata.CHANNEL_METADATA.beta.icon;
-  assert.ok(typeof icon === "string", "Icon ist String");
-  assert.ok(icon.includes("<svg"), "Icon enthält <svg>");
-  assert.ok(icon.includes("viewBox"), "Icon enthält viewBox");
-  assert.ok(icon.includes("currentColor"), "Icon enthält currentColor");
-});
-
-test("ChannelMetadata stable enthält gültiges Icon-SVG", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  const icon = ChannelMetadata.CHANNEL_METADATA.stable.icon;
-  assert.ok(typeof icon === "string", "Icon ist String");
-  assert.ok(icon.includes("<svg"), "Icon enthält <svg>");
-  assert.ok(icon.includes("viewBox"), "Icon enthält viewBox");
-  assert.ok(icon.includes("currentColor") || icon.includes("stroke"), "Icon enthält currentColor oder stroke");
-});
-
-test("ChannelMetadata-Copy enthält mindenfalls Icon", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
-  const copied = ChannelMetadata.getUpdateChannelMetadata("alpha");
-  assert.ok(copied.icon && copied.icon.trim(), "Copied alpha enthält Icon");
-});
-
-test("Alle Channel-Metadata enthalten Icon, Label und Farbe", () => {
-  const ChannelMetadata = require("../../electron/core/updates/ChannelMetadata");
+test("jeder Kanal hat Icon, Label, Kurzlabel und Beschreibung", () => {
   for (const id of ChannelMetadata.CHANNEL_IDS) {
     const meta = ChannelMetadata.CHANNEL_METADATA[id];
-    assert.ok(meta.icon && meta.icon.trim(), `${id} enthält Icon`);
-    assert.ok(meta.label, `${id} enthält Label`);
-    assert.ok(meta.color, `${id} enthält Farbe`);
+    assert.ok(meta.icon && meta.icon.includes("<svg"), `${id} Icon`);
+    assert.ok(meta.label, `${id} Label`);
+    assert.ok(meta.shortLabel, `${id} Kurzlabel`);
+    assert.ok(meta.description, `${id} Beschreibung`);
   }
+});
+test("getUpdateChannelMetadata liefert eine defensive Kopie", () => {
+  const copy = ChannelMetadata.getUpdateChannelMetadata("rc");
+  assert.strictEqual(copy.id, "rc");
+  assert.strictEqual(Object.isFrozen(copy), true);
+});
+
+console.log("\n[7] UpdateState");
+test("CHANNELS enthaelt RC", () => {
+  assert.strictEqual(UpdateState.CHANNELS.RC, "rc");
+});
+test("Default-State startet auf stable", () => {
+  assert.strictEqual(UpdateState.createDefaultState().channel, "stable");
 });
 
 console.log("\n==========================================");

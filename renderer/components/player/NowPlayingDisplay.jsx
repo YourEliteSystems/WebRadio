@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useUnifiedPlayer } from '../../hooks/useUnifiedPlayer';
+import { useTranslation } from '../../localization/index.js';
 
 const NOW_PLAYING_DISPLAY_DURATION = 5000; // 5 Sekunden
 
@@ -19,7 +20,7 @@ function readMode() {
   return MODES.ONCE;
 }
 
-function getNowPlayingContent(state) {
+function getNowPlayingContent(state, unknownArtistLabel) {
   if (!state) return null;
 
   const { state: playerState, title, artist, artwork, source } = state;
@@ -47,7 +48,7 @@ function getNowPlayingContent(state) {
   }
 
   if (!displayArtist) {
-    displayArtist = 'Unbekannter Interpret';
+    displayArtist = unknownArtistLabel;
   }
 
   return {
@@ -67,6 +68,7 @@ function getContentIdentity(content) {
 
 export default function NowPlayingDisplay() {
   const { playerState } = useUnifiedPlayer();
+  const { t } = useTranslation();
   const mode = readMode();
 
   const [visible, setVisible] = useState(false);
@@ -119,7 +121,7 @@ export default function NowPlayingDisplay() {
     const handleState = (state) => {
       if (!state) return;
 
-      const content = getNowPlayingContent(state);
+      const content = getNowPlayingContent(state, t('player.unknownArtist'));
       if (mode === MODES.OFF) {
         hide();
         return;
@@ -171,7 +173,7 @@ export default function NowPlayingDisplay() {
         timerRef.current = null;
       }
     };
-  }, [mode, visible]);
+  }, [mode, visible, t]);
 
   // Mode-Änderungen dürfen im ONCE-Modus nicht den aktuellen "alten"
   // Inhalt als neuen Titelwechsel interpretieren.

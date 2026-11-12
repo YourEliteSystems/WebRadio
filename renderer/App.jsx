@@ -11,6 +11,7 @@ import { useFavorites } from './hooks/useFavorites';
 import { useUpdateInfo } from './hooks/useUpdateInfo';
 import { subscribe as subscribeNav, getNavigationTree } from './ui/navigationRegistry';
 import InlineSvg from './components/InlineSvg.jsx';
+import { useTranslation } from './localization/index.js';
 
 // Fallback-Icon für das Update-Badge, solange die Channel-Metadaten über IPC
 // noch nicht verfügbar sind. Entspricht dem Beta-Icon aus ChannelMetadata,
@@ -19,7 +20,15 @@ const FALLBACK_CHANNEL_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8 8 0 0 1 4.07 11H6V9H4.07A8 8 0 0 1 11 4.07V6h2V4.07A8 8 0 0 1 19.93 9H18v2h1.93A8 8 0 0 1 13 16.93z"/></svg>';
 
 export default function App() {
+  const { t } = useTranslation();
   const [currentView, setCurrentView] = useState('home');
+
+  // Fenstertitel (Taskleiste) an die aktive Sprache anpassen.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = t('app.windowTitle');
+    }
+  }, [t]);
 
   // Ensure currentView always points to a valid navigation item.
   // Navigation is loaded async (syncWithMain in RendererPluginManager),
@@ -294,16 +303,26 @@ export default function App() {
     <>
       <div className="titlebar">
         <div className="titlebar-left">
-          <img className="app-logo" src="../assets/icons/tray.png" alt="WebRadio" />
+          <img className="app-logo" src="../assets/icons/tray.png" alt={t('app.logoAlt')} />
           <span className="app-title">WebRadio</span>
           {version && (
             <span
               className={`app-version ${versionChannelMeta?.id || (isPrerelease ? 'beta' : '')}`}
               style={{ '--update-channel-color': versionChannelMeta?.color }}
-              title={`WebRadio ${version} – ${versionChannelMeta?.label ?? (isPrerelease ? 'Beta' : 'Stable')}-Build`}
+              title={t('titlebar.versionTooltip', {
+                version,
+                channel: versionChannelMeta?.label ?? (isPrerelease ? 'Beta' : 'Stable')
+              })}
             >
               v{version}
-              {isPrerelease && <span className="app-version-badge">{versionChannelMeta?.shortLabel ?? (isPrerelease ? 'BETA' : '')}</span>}
+              {versionChannelMeta?.shortLabel && (
+                <span
+                  className={`app-version-badge ${versionChannelMeta.id}`}
+                  style={{ '--update-channel-color': versionChannelMeta.color }}
+                >
+                  {versionChannelMeta.shortLabel}
+                </span>
+              )}
             </span>
           )}
           {updateInfo && (
@@ -311,7 +330,10 @@ export default function App() {
               className={`update-badge ${channelMeta?.id || 'stable'}`}
               onClick={() => window.api?.openSettings?.()}
               style={{ '--update-channel-color': channelMeta?.color }}
-              title={`Update verfügbar: v${updateInfo.version} (${channelMeta?.label ?? 'Stable'})`}
+              title={t('titlebar.updateAvailable', {
+                version: updateInfo.version,
+                channel: channelMeta?.label ?? 'Stable'
+              })}
             >
               {/* Kanal-Icon: SVG-String aus den Core-Metadaten, muss als
                   Inline-SVG gerendert werden (React würde den String sonst als
@@ -320,18 +342,33 @@ export default function App() {
                 className="update-badge-icon"
                 markup={channelMeta?.icon || FALLBACK_CHANNEL_ICON}
               />
-              Update v{updateInfo.version}
+              {t('titlebar.updateBadge', { version: updateInfo.version })}
             </button>
           )}
         </div>
         <div className="titlebar-right">
-          <button className="window-btn" onClick={() => handleWindowControl('minimize')}>
+          <button
+            className="window-btn"
+            onClick={() => handleWindowControl('minimize')}
+            aria-label={t('titlebar.minimize')}
+            title={t('titlebar.minimize')}
+          >
             <svg viewBox="0 0 10 1"><rect width="10" height="1" /></svg>
           </button>
-          <button className="window-btn" onClick={() => handleWindowControl('maximize')}>
+          <button
+            className="window-btn"
+            onClick={() => handleWindowControl('maximize')}
+            aria-label={t('titlebar.maximize')}
+            title={t('titlebar.maximize')}
+          >
             <svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" /></svg>
           </button>
-          <button className="window-btn close" onClick={() => handleWindowControl('close')}>
+          <button
+            className="window-btn close"
+            onClick={() => handleWindowControl('close')}
+            aria-label={t('titlebar.close')}
+            title={t('titlebar.close')}
+          >
             <svg viewBox="0 0 10 10"><path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" /></svg>
           </button>
         </div>
@@ -364,7 +401,7 @@ export default function App() {
           {currentView === 'home' ? (
             <>
               <div className="content-header">
-                <h1>Entdecken</h1>
+                <h1>{t('home.title')}</h1>
               </div>
               <StationGrid
                 stations={stations}

@@ -7,8 +7,11 @@ import UpdatesSettings from './UpdatesSettings';
 import AboutSettings from './AboutSettings';
 import DiagnosticsSettings from './DiagnosticsSettings';
 import PlayerSettings from './PlayerSettings';
+import LanguageSettings from './LanguageSettings';
+import { useTranslation } from '../../localization/index.js';
 
 const SettingsApp = () => {
+  const { t, locale } = useTranslation();
   const [currentPage, setCurrentPage] = useState('integrations');
   const [themes, setThemes] = useState([]);
   const [activeTheme, setActiveTheme] = useState(null);
@@ -78,6 +81,19 @@ const SettingsApp = () => {
     }
   }, [loadThemes]);
 
+  // Theme-Metadaten sind lokalisiert: bei einem Sprachwechsel neu laden,
+  // damit offene Theme-Einstellungen sofort die neue Sprache zeigen.
+  useEffect(() => {
+    loadThemes();
+  }, [loadThemes, locale]);
+
+  // Fenstertitel an die aktive Sprache anpassen (Linux/Windows-Taskleiste).
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = t('app.settingsWindowTitle');
+    }
+  }, [t, currentPage]);
+
   // Fensterzustand synchronisieren
   useEffect(() => {
     const updateMaximizedState = async () => {
@@ -127,6 +143,8 @@ const SettingsApp = () => {
         return <UpdatesSettings />;
       case 'player':
         return <PlayerSettings />;
+      case 'language':
+        return <LanguageSettings />;
       case 'about':
         return <AboutSettings />;
       case 'diagnostics':
@@ -142,16 +160,31 @@ const SettingsApp = () => {
         <div className="titlebar-left">
           <img className="app-logo" src="../assets/icons/tray.png" alt="WebRadio" />
           <span className="app-title">WebRadio</span>
-          <span style={{fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px'}}>· Einstellungen</span>
+          <span style={{fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px'}}>· {t('app.settingsSuffix')}</span>
         </div>
         <div className="titlebar-right">
-          <button className="window-btn" onClick={() => handleWindowControl('minimize')}>
+          <button
+            className="window-btn"
+            onClick={() => handleWindowControl('minimize')}
+            aria-label={t('titlebar.minimize')}
+            title={t('titlebar.minimize')}
+          >
             <svg viewBox="0 0 10 1"><rect width="10" height="1" /></svg>
           </button>
-          <button className="window-btn" onClick={() => handleWindowControl('maximize')}>
+          <button
+            className="window-btn"
+            onClick={() => handleWindowControl('maximize')}
+            aria-label={t('titlebar.maximize')}
+            title={t('titlebar.maximize')}
+          >
             <svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" /></svg>
           </button>
-          <button className="window-btn close" onClick={() => handleWindowControl('close')}>
+          <button
+            className="window-btn close"
+            onClick={() => handleWindowControl('close')}
+            aria-label={t('titlebar.close')}
+            title={t('titlebar.close')}
+          >
             <svg viewBox="0 0 10 10"><path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" /></svg>
           </button>
         </div>

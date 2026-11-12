@@ -11,3 +11,4 @@ export { default as UpdatesSettings } from './UpdatesSettings';
 export { default as AboutSettings } from './AboutSettings';
 export { default as DiagnosticsSettings } from './DiagnosticsSettings';
 export { default as PlayerSettings } from './PlayerSettings';
+export { default as LanguageSettings } from './LanguageSettings';

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useUnifiedPlayer } from '../hooks/useUnifiedPlayer';
 import { getAnalyser } from '../services/playerService';
 import { applyThemeCss, resolveActiveTheme } from '../services/themeService';
+import { useTranslation } from '../localization/index.js';
 
 /**
  * PlayerBar – Unified Player API Consumer
@@ -28,6 +29,7 @@ export default function PlayerBar({
   isFavorite,
   onToggleFavorite
 }) {
+  const { t } = useTranslation();
   const canvasRef = useRef(null);
   const [themes, setThemes] = useState([]);
   const [currentTheme, setCurrentTheme] = useState('');
@@ -245,7 +247,7 @@ export default function PlayerBar({
           className="np-logo"
           src={artworkSrc}
           onError={(e) => { e.target.src = '../assets/default-logo.png'; }}
-          alt="logo"
+          alt={t('app.logoAlt')}
         />
         <div className="np-info">
           <div className="np-station">{displayName}</div>
@@ -260,7 +262,8 @@ export default function PlayerBar({
           <button
             className="np-favorite-btn"
             onClick={onToggleFavorite}
-            title="Favorit"
+            title={t('player.favorite')}
+            aria-label={t('player.favorite')}
             style={{
               color: isFavorite ? '#ef4444' : 'var(--text-muted)'
             }}
@@ -277,7 +280,8 @@ export default function PlayerBar({
           <button
             className="np-favorite-btn"
             onClick={onToggleFavorite}
-            title="Favorit"
+            title={t('player.favorite')}
+            aria-label={t('player.favorite')}
             style={{
               color: isFavorite ? '#ef4444' : 'var(--text-muted)'
             }}
@@ -296,7 +300,8 @@ export default function PlayerBar({
         <button
           className={`player-btn play${effectivePlaying ? ' active' : ''}`}
           onClick={handlePlay}
-          title="Play / Resume"
+          title={t('player.play')}
+          aria-label={t('player.play')}
         >
           <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor"
             strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -306,7 +311,8 @@ export default function PlayerBar({
         <button
           className="player-btn"
           onClick={handleStop}
-          title="Stop"
+          title={t('player.stop')}
+          aria-label={t('player.stop')}
         >
           <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor"
             strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -328,8 +334,10 @@ export default function PlayerBar({
           <button
             className="player-btn mute-btn"
             onClick={handleMuteToggle}
-            title={effectiveMuted ? 'Stumm (klicken zum Einschalten)' : `Lautstärke: ${Math.round(effectiveVolume * 100)}%`}
-            aria-label={effectiveMuted ? 'Ton einschalten' : 'Ton ausschalten'}
+            title={effectiveMuted
+              ? t('player.mutedTitle')
+              : t('player.volumeTitle', { percent: Math.round(effectiveVolume * 100) })}
+            aria-label={effectiveMuted ? t('player.unmute') : t('player.mute')}
           >
             {effectiveMuted || effectiveVolume === 0 ? (
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor"
@@ -356,13 +364,18 @@ export default function PlayerBar({
             max="1"
             step="0.01"
             value={effectiveVolume}
-            aria-label="Lautstärke"
+            aria-label={t('player.volume')}
             onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
           />
           <span className="volume-label">{Math.round(effectiveVolume * 100)}%</span>
         </div>
         <canvas ref={canvasRef} id="vu" width="100" height="30"></canvas>
-        <button className="player-btn" onClick={openSettings} title="Einstellungen">
+        <button
+          className="player-btn"
+          onClick={openSettings}
+          title={t('player.settings')}
+          aria-label={t('player.settings')}
+        >
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor"
             strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3"></circle>

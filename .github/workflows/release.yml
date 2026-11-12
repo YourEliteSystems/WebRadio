@@ -118,10 +118,9 @@ jobs:
           echo "IS_PRERELEASE   = $IS_PRERELEASE"
 
           # Update channel
-          #   latest, beta, alpha
-          #   rc and nightly are treated as release-eligible channels, but NOT
-          #   forwarded to electron-builder as non-latest update channels because
-          #   the existing electron-builder.yml currently defines only latest/beta.
+          #   latest, beta, alpha, rc
+          #   RC builds get their own rc.yml feed so installed RC versions can
+          #   query it without ever mixing with stable or beta metadata.
           UPDATE_CHANNEL="latest"
           if [[ "$VERSION" =~ -beta(\.|$) ]]; then
             UPDATE_CHANNEL="beta"
@@ -130,12 +129,15 @@ jobs:
             UPDATE_CHANNEL="alpha"
           fi
 
-          if [[ "$VERSION" =~ -(rc|nightly)(\.|$) ]]; then
-            # Release notes / GitHub pre-release still apply, but keep electron-updater
-            # channel on latest unless the publish config is extended explicitly.
-            UPDATE_CHANNEL="latest"
+          if [[ "$VERSION" =~ -rc(\.|$) ]]; then
+            UPDATE_CHANNEL="rc"
           fi
 
+          if [[ "$VERSION" =~ -nightly(\.|$) ]]; then
+            # Nightly builds stay on the stable feed until a dedicated channel
+            # exists; they never become a GitHub stable release.
+            UPDATE_CHANNEL="latest"
+          fi
           echo "UPDATE_CHANNEL  = $UPDATE_CHANNEL"
 
           # Outputs setzen
@@ -187,7 +189,7 @@ jobs:
         run: |
           Write-Host "UPDATE_CHANNEL = ${{ env.UPDATE_CHANNEL }}"
 
-          $ymlFiles = Get-ChildItem -Path dist -Filter '*.yml' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^latest.*\.yml$' -or $_.Name -match '^beta.*\.yml$' }
+          $ymlFiles = Get-ChildItem -Path dist -Filter '*.yml' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(latest|beta|alpha|rc).*\.yml$' }
 
           Write-Host "YAML-Dateien in dist/:"
           if ($ymlFiles.Count -eq 0) {
@@ -205,6 +207,8 @@ jobs:
             $expectedForChannel = @('beta.yml', 'beta-linux.yml')
           } elseif ($env.UPDATE_CHANNEL -eq 'alpha') {
             $expectedForChannel = @('alpha.yml', 'alpha-linux.yml')
+          } elseif ($env:UPDATE_CHANNEL -eq 'rc') {
+            $expectedForChannel = @('rc.yml', 'rc-linux.yml')
           } else {
             $expectedForChannel = @('latest.yml', 'latest-linux.yml')
           }
@@ -343,6 +347,8 @@ jobs:
             expected_for_channel=(beta-linux.yml beta-linux.json)
           elif [[ "$UPDATE_CHANNEL" == "alpha" ]]; then
             expected_for_channel=(alpha-linux.yml alpha-linux.json)
+          elif [[ "$UPDATE_CHANNEL" == "rc" ]]; then
+            expected_for_channel=(rc-linux.yml rc-linux.json)
           else
             expected_for_channel=(latest-linux.yml latest-linux.json)
           fi
@@ -443,9 +449,11 @@ jobs:
             -o -name "latest*.yml" \
             -o -name "beta*.yml" \
             -o -name "alpha*.yml" \
+            -o -name "rc*.yml" \
             -o -name "latest*.json" \
             -o -name "beta*.json" \
             -o -name "alpha*.json" \
+            -o -name "rc*.json" \
             -o -name "*.txt" \
           \) ! -name "SHA256SUMS.txt" | while read f; do
             cp "$f" release-artifacts/

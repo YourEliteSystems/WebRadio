@@ -37,12 +37,35 @@ class ThemeManager {
 
     loadThemes() {
         const themes = ThemeLoader.discoverThemes();
-        
+
         for (const theme of themes) {
             this.themes.set(theme.id, theme);
+            this.syncThemeLocalization(theme);
         }
-        
+
         logger.info(`${themes.length} Themes geladen.`);
+    }
+
+    /**
+     * Stellt die lokalisierten Metadaten eines Themes bereit (nur Daten).
+     * Die Laufzeit liest sie ausschließlich aus `userData`.
+     */
+    syncThemeLocalization(theme) {
+        try {
+            const LocalizationService = require("../localization/LocalizationService");
+            if (theme.localization) {
+                const result = LocalizationService.provisionThemeCatalogs(theme.id, theme.localization);
+                if (!result.ok) {
+                    logger.warn(
+                        `Theme-Lokalisierung für "${theme.id}" abgelehnt: ${(result.errors || []).join("; ")}`
+                    );
+                }
+                return;
+            }
+            LocalizationService.loadThemeCatalogsFromStore(theme.id);
+        } catch (err) {
+            logger.warn(`Theme-Lokalisierung für "${theme.id}" fehlgeschlagen: ${err.message}`);
+        }
     }
 
     /**
@@ -90,6 +113,7 @@ class ThemeManager {
             if (!currentTheme) {
                 // Neues Theme
                 this.themes.set(id, newTheme);
+                this.syncThemeLocalization(newTheme);
                 result.added.push(id);
                 logger.info(
                     `Theme neu geladen (Rescan): ${newTheme.name || id}`
@@ -103,6 +127,7 @@ class ThemeManager {
 
                 if (oldCss !== newCss || oldSource !== newSource) {
                     this.themes.set(id, newTheme);
+                    this.syncThemeLocalization(newTheme);
                     result.changed.push(id);
                     logger.info(
                         `Theme geändert (Rescan): ${newTheme.name || id}`
@@ -117,6 +142,9 @@ class ThemeManager {
         for (const [id, theme] of currentThemes) {
             if (!discoveredThemes.has(id)) {
                 this.themes.delete(id);
+                try {
+                    require("../localization/LocalizationService").removeThemeCatalogs(id);
+                } catch { /* Lokalisierung ggf. nicht initialisiert */ }
                 result.removed.push(id);
                 logger.info(
                     `Theme entfernt (Rescan): ${theme?.name || id}`

@@ -229,6 +229,33 @@ Future versions of WebRadio may use this information to prevent incompatible the
 
 ---
 
+## localization
+
+Optional. Declares localized metadata as data: `name`, `description`,
+`settings` (setting labels) and `help` (help texts). WebRadio provisions the
+catalogs under `userData/localization/themes/<theme-id>/` and reads them from
+there; a missing entry falls back to the plain `name`/`description` value.
+
+```json
+{
+    "localization": {
+        "de-DE": { "name": "Mitternacht", "description": "Dunkles Theme" },
+        "en-US": { "name": "Midnight", "description": "Dark theme" }
+    }
+}
+```
+
+Rules:
+
+* supported locales only (`de-DE`, `en-US`)
+* strings and flat/nested objects with string values
+* the `theme.` prefix is reserved for the theme's own namespace
+* translations are data, never executable code
+
+See [Localization](10-Localization.md) for details.
+
+---
+
 # Validation
 
 Before a theme is registered, the ThemeValidator verifies the manifest.

@@ -2,6 +2,7 @@ const { BrowserWindow } = require("electron");
 const path = require("path");
 const { getWindowIcon } = require("../icons");
 const LogManager = require("../diagnostics/logging/LogManager");
+const LocalizationService = require("../localization/LocalizationService");
 
 const logger = LogManager.getLogger("RendererDiagnostics");
 
@@ -67,7 +68,7 @@ function createMainWindow(isDev) {
     ...(iconPath ? { icon: iconPath } : {}),
     // WM_CLASS für Linux Desktop-Integration (verhindert Chromium-Instanz-Gruppierung)
     // Muss mit StartupWMClass in .desktop-Datei übereinstimmen
-    ...(process.platform === 'linux' ? { title: 'WebRadio' } : {}),
+    ...(process.platform === 'linux' ? { title: LocalizationService.t('app.windowTitle') } : {}),
 
     webPreferences: {
       preload: path.join(__dirname, "../../preload.js"),

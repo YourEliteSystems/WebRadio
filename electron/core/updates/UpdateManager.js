@@ -29,12 +29,14 @@ const { app, BrowserWindow, Notification } = require("electron");
 
 const LogManager = require("../diagnostics/logging/LogManager");
 const SettingsManager = require("../storage/SettingsManager");
+const LocalizationService = require("../localization/LocalizationService");
 
 const UpdateState = require("./UpdateState");
 const UpdateChannel = require("./UpdateChannel");
 const ChannelStore = require("./settings");
 const ChannelMetadata = require("./ChannelMetadata");
 const MarkdownSanitizer = require("./MarkdownSanitizer");
+const VersionCompare = require("./VersionCompare");
 
 // Beta 4: Provider-Routing. Die bestehende electron-updater-Logik
 // (Windows/NSIS + Linux AppImage) bleibt unverändert. Der
@@ -599,6 +601,21 @@ class UpdateManager {
             const result = await autoUpdater.checkForUpdates();
             return this._handleCheckResult(result);
         } catch (err) {
+            const message = (err && err.message) || String(err);
+            // Ein noch nicht veroeffentlichter Kanal (z. B. rc.yml fehlt) ist
+            // kein Netzwerkfehler: Es gibt schlicht kein Update. Das muss
+            // die Oberflaeche als "aktuell" und nicht als Fehler anzeigen.
+            if (
+                /no published versions/i.test(message) ||
+                /no update available/i.test(message) ||
+                /channel file.*not found/i.test(message) ||
+                /cannot find channel/i.test(message) ||
+                err?.code === "ERR_UPDATER_CHANNEL_FILE_NOT_FOUND"
+            ) {
+                logger.info(`[Updater] Kein Update im Kanal ${this._state.channel}: ${message}`);
+                this._handleNoUpdate();
+                return this._buildCheckResult("up-to-date");
+            }
             logger.error(`[Updater] Check fehlgeschlagen: ${err.message}`);
             this._setStatus(UpdateState.STATES.ERROR);
             this._state.error = UpdateState.buildErrorPayload(
@@ -640,6 +657,15 @@ class UpdateManager {
             return this._buildErrorResult(
                 UpdateState.ERROR_CODES.CHECK_FAILED,
                 "Kein Update zum Herunterladen vorhanden"
+            );
+        }
+
+        if (!VersionCompare.isNewer(this._cachedUpdateInfo.version, this.getCurrentVersion())) {
+            this._cachedUpdateInfo = null;
+            this._handleNoUpdate({ version: this.getCurrentVersion() });
+            return this._buildErrorResult(
+                UpdateState.ERROR_CODES.NOT_AVAILABLE,
+                "Die angebotene Version ist nicht neuer als die installierte"
             );
         }
 
@@ -1052,6 +1078,37 @@ class UpdateManager {
             return;
         }
 
+        // Semantische Sicherheitsgrenze: Nur eine echt neuere Version darf
+        // als Update angeboten werden. Ein falscher Feed, veraltete Metadaten
+        // oder eine Downgrade-Konfiguration koennen damit keine aeltere
+        // Version (z. B. 1.0.7 bei installierter 1.0.8-rc.1) anzeigen.
+        if (!VersionCompare.isValid(info.version)) {
+            logger.warn(`[Updater] Ungueltige Update-Version abgelehnt: ${JSON.stringify(info.version)}`);
+            this._setStatus(UpdateState.STATES.ERROR);
+            this._state.availableVersion = null;
+            this._state.error = UpdateState.buildErrorPayload(
+                UpdateState.ERROR_CODES.INVALID_RESPONSE,
+                "Ungueltige Update-Version"
+            );
+            this._broadcastState();
+            return;
+        }
+
+        const installedVersion = this.getCurrentVersion();
+        if (!VersionCompare.isValid(installedVersion)) {
+            logger.warn(`[Updater] Installierte Version ist ungueltig: ${JSON.stringify(installedVersion)}`);
+            this._handleNoUpdate({ version: installedVersion });
+            return;
+        }
+
+        if (!VersionCompare.isNewer(info.version, installedVersion)) {
+            logger.info(
+                `[Updater] Update abgelehnt (nicht neuer): ${info.version} <= ${installedVersion}`
+            );
+            this._handleNoUpdate({ version: installedVersion });
+            return;
+        }
+
         this._cachedUpdateInfo = info;
         this._state.availableVersion = info.version;
         this._state.releaseNotesRaw = this._extractReleaseNotes(info);
@@ -1124,7 +1181,11 @@ class UpdateManager {
         }
         // Die _handleAvailableUpdate / _handleNoUpdate Listener
         // haben den State bereits korrekt gesetzt.
-        if (this._state.status === UpdateState.STATES.AVAILABLE) {
+        if (
+            this._state.status === UpdateState.STATES.AVAILABLE &&
+            this._state.availableVersion &&
+            VersionCompare.isNewer(this._state.availableVersion, this.getCurrentVersion())
+        ) {
             return this._buildCheckResult("available");
         }
         if (this._state.status === UpdateState.STATES.ERROR) {
@@ -1293,8 +1354,11 @@ class UpdateManager {
             const meta = ChannelMetadata.getUpdateChannelMetadata(this._state.channel);
             const channelLabel = meta ? meta.label : this._state.channel;
             const n = new Notification({
-                title: "WebRadio – Update verfügbar",
-                body: `WebRadio ${version} (${channelLabel}) ist verfügbar.`,
+                title: LocalizationService.t("updates.notificationTitle"),
+                body: LocalizationService.t("updates.notificationBody", {
+                    version,
+                    channel: channelLabel
+                }),
                 silent: false
             });
             n.show();

@@ -9,6 +9,7 @@ const LogManager = require('../diagnostics/logging/LogManager');
 const PluginPermissions = require('./PluginPermissions');
 const CapabilityRegistry = require('./CapabilityRegistry');
 const PluginHttpServer = require('./PluginHttpServer');
+const LocalizationService = require('../localization/LocalizationService');
 
 const logger = LogManager.getLogger('PluginManager');
 
@@ -72,6 +73,7 @@ class PluginManager {
     for (const plugin of discovered) {
       const pluginConfig = config.plugins?.[plugin.id];
       this.plugins.set(plugin.id, plugin);
+      this.registerPluginLocalization(plugin);
       if (pluginConfig && pluginConfig.enabled === false) {
         plugin.loaded = false;
         continue;
@@ -88,8 +90,66 @@ class PluginManager {
     this.writeConfig(config);
     const plugin = this.plugins.get(id);
     if (!plugin) return;
-    if (enabled) PluginRuntime.start(plugin);
-    else PluginRuntime.stop(plugin);
+    if (enabled) {
+      this.registerPluginLocalization(plugin);
+      PluginRuntime.start(plugin);
+    } else {
+      PluginRuntime.stop(plugin);
+      this.unregisterPluginLocalization(id);
+    }
+  }
+
+  /**
+     * Stellt die Übersetzungen eines Plugins bereit.
+     *
+     * Deklariert das Manifest `localization`, werden die Kataloge validiert
+     * und in `userData/localization/plugins/<id>/` provisioniert. Die
+     * Laufzeit liest anschließend ausschließlich aus `userData`. Ohne
+     * Manifest-Deklaration werden bereits provisionierte Kataloge geladen
+     * (z. B. nach einem Neustart).
+     *
+     * Es wird ausschließlich Datenmaterial (JSON-Objekte) verarbeitet – für
+     * die Lokalisierung wird niemals fremder JavaScript-Code ausgeführt.
+     */
+    registerPluginLocalization(plugin) {
+        if (!plugin) return;
+        const manifest = plugin.manifest || plugin;
+        const pluginId = manifest.id || plugin.id;
+        if (typeof pluginId !== "string") return;
+
+        try {
+            if (manifest.localization) {
+                const result = LocalizationService.provisionPluginCatalogs(
+                    pluginId,
+                    manifest.localization
+                );
+                if (!result.ok) {
+                    logger.warn(
+                        `[PluginManager] Lokalisierung für "${pluginId}" abgelehnt: ` +
+                        `${(result.errors || []).join("; ")}`
+                    );
+                }
+                return;
+            }
+
+            LocalizationService.loadPluginCatalogsFromStore(pluginId);
+        } catch (err) {
+            logger.warn(`[PluginManager] Lokalisierung für "${pluginId}" fehlgeschlagen: ${err.message}`);
+        }
+    }
+
+  /**
+   * Entfernt die Übersetzungen eines deaktivierten Plugins.
+   */
+  unregisterPluginLocalization(pluginId) {
+    try {
+            const manager = LocalizationService.manager;
+            if (manager) manager.unregisterPluginTranslations(pluginId);
+            // Scoped API inklusive Sprachwechsel-Listenern freigeben.
+            LocalizationService.disposePluginAPI(pluginId);
+    } catch (err) {
+      logger.warn(`[PluginManager] Lokalisierung für "${pluginId}" konnte nicht entfernt werden: ${err.message}`);
+    }
   }
 
   rescan() {
@@ -108,6 +168,7 @@ class PluginManager {
 
       if (!existing) {
         this.plugins.set(pluginId, plugin);
+                this.registerPluginLocalization(plugin);
         if (enabled) {
           const started = PluginRuntime.start(plugin);
           if (started) {
@@ -125,6 +186,7 @@ class PluginManager {
           PluginRuntime.stop(existing);
           this.plugins.delete(pluginId);
           this.plugins.set(pluginId, plugin);
+          this.registerPluginLocalization(plugin);
           if (enabled) {
             PluginRuntime.start(plugin);
             result.changed.push(pluginId);
@@ -159,6 +221,9 @@ class PluginManager {
           try {
             PluginRuntime.stop(plugin);
             this.plugins.delete(existingId);
+            // Kataloge eines endgültig entfernten Plugins werden kontrolliert
+            // gelöscht; andere Plugins bleiben unberührt.
+            LocalizationService.removePluginCatalogs(existingId);
             result.removed.push(existingId);
             logger.info(`Plugin entfernt (Rescan): ${plugin?.manifest?.name || existingId}`);
           } catch (err) {
@@ -233,7 +298,14 @@ class PluginManager {
       if (PluginPermissions.usesPluginHttpEnvironment(manifest)) {
         const origin = PluginHttpServer.getUrl();
         if (origin) {
-          scripts.push(`${origin}/plugins/${pluginId}/${manifest.renderer}`);
+          // Die Plugin-ID wird mitgeliefert, weil der Ordner-/URL-Name vom
+          // Manifest abweichen kann (z. B. Ordner `youtube`,
+          // ID `youtube-integration`). Der Renderer ordnet das Skript danach
+          // eindeutig dem Plugin zu.
+          scripts.push({
+            url: `${origin}/plugins/${pluginId}/${manifest.renderer}`,
+            pluginId
+          });
         } else {
           logger.error(
             `Renderer-Skript für Plugin "${pluginId}" kann nicht geladen werden: ` +
@@ -245,7 +317,10 @@ class PluginManager {
 
       const rendererAbsPath = path.join(plugin.path, manifest.renderer);
       if (fs.existsSync(rendererAbsPath)) {
-        scripts.push('file:///' + rendererAbsPath.replace(/\\/g, '/'));
+        scripts.push({
+          url: 'file:///' + rendererAbsPath.replace(/\\/g, '/'),
+          pluginId
+        });
       }
     }
     return scripts;

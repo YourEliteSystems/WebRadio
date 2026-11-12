@@ -36,8 +36,9 @@
   /* Farbskalen für die Release-Kanäle. Die Werte stammen aus der zentralen
    * ChannelMetadata / ReleaseChannel-Resolver-Logik und werden durch die
    * Renderer-UI aber nicht unmittelbar überschrieben. */
-  --release-alpha: #a855f7;   /* Violet / Purple */
+  --release-alpha: #ef4444;   /* Rot */
   --release-beta:  #f59e0b;   /* Orange */
+  --release-rc:    #8b5cf6;   /* Violett */
   --release-stable:#22c55e;   /* Grün */
 }
 
@@ -834,6 +835,30 @@ canvas#vu {
   border-color: rgba(245, 158, 11, 0.6);
 }
 
+.update-badge.alpha {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: var(--release-alpha);
+  animation-name: badgePulseAlpha;
+}
+
+.update-badge.alpha:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.update-badge.rc {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.35);
+  color: var(--release-rc);
+  animation-name: badgePulseRc;
+}
+
+.update-badge.rc:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
 @keyframes badgePulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
   50%       { box-shadow: 0 0 0 4px rgba(99, 102, 241, 0); }
@@ -842,6 +867,16 @@ canvas#vu {
 @keyframes badgePulseBeta {
   0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
   50%       { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0); }
+}
+
+@keyframes badgePulseAlpha {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50%       { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
+
+@keyframes badgePulseRc {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  50%       { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0); }
 }
 
 /* App-Version Label in der Titlebar */
@@ -863,8 +898,8 @@ canvas#vu {
 }
 
 .app-version.alpha {
-  background: rgba(168, 85, 247, 0.08);
-  border-color: rgba(168, 85, 247, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
   color: var(--release-alpha);
 }
 
@@ -872,6 +907,12 @@ canvas#vu {
   background: rgba(245, 158, 11, 0.08);
   border-color: rgba(245, 158, 11, 0.25);
   color: var(--release-beta);
+}
+
+.app-version.rc {
+  background: rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.25);
+  color: var(--release-rc);
 }
 
 .app-version.stable {
@@ -887,8 +928,8 @@ canvas#vu {
   font-weight: 700;
   letter-spacing: 0.6px;
   border-radius: 3px;
-  background: rgba(245, 158, 11, 0.22);
-  color: #f59e0b;
+  background: color-mix(in srgb, var(--update-channel-color, #22c55e) 22%, transparent);
+  color: var(--update-channel-color, #22c55e);
 }
 
 /* Now Playing Display */
@@ -1069,6 +1110,12 @@ canvas#vu {
   border: 1px solid color-mix(in srgb, var(--release-stable) 30%, transparent);
 }
 
+.channel-badge.rc {
+  color: var(--release-rc);
+  background: color-mix(in srgb, var(--release-rc) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--release-rc) 30%, transparent);
+}
+
 /* Channel Options */
 .channel-options {
   display: flex;
@@ -1160,7 +1207,8 @@ canvas#vu {
 
 /* Channel Hints */
 .beta-hint,
-.alpha-hint {
+.alpha-hint,
+.rc-hint {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1190,5 +1238,16 @@ canvas#vu {
 
 .alpha-hint svg {
   color: var(--update-channel-color, #ef4444);
+  flex-shrink: 0;
+}
+
+.rc-hint {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: var(--update-channel-color, #8b5cf6);
+}
+
+.rc-hint svg {
+  color: var(--update-channel-color, #8b5cf6);
   flex-shrink: 0;
 }

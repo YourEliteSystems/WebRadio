@@ -23,6 +23,8 @@ function create(meta = {}) {
   const playerSubscriptions = new Set();
   const webSessionSubscriptions = new Set();
   const webSessionSessions = new Set();
+  /** @type {Object|null|false} Lazy erzeugte, gescopte Localization API. */
+  let localizationApi = null;
 
   function checkNavPermission() {
     if (!PluginPermissions.hasPermission(permissions, "navigation")) {
@@ -440,6 +442,41 @@ function create(meta = {}) {
       webSessionSubscriptions.clear();
       PluginWebSessionManager.hidePlugin(pluginId);
       webSessionSessions.clear();
+      try {
+        const LocalizationService = require("../localization/LocalizationService");
+        LocalizationService.disposePluginAPI(pluginId);
+      } catch { /* Lokalisierung ist beim Herunterfahren ggf. bereits beendet */ }
+      localizationApi = null;
+    },
+
+    /**
+     * Plugin-Lokalisierung.
+     *
+     * Strikt auf `plugin.<pluginId>.*` beschränkt: relative Schlüssel werden
+     * automatisch qualifiziert, fremde Namensräume und Anwendungstexte werden
+     * abgelehnt. Es gibt keine Schreibfunktion – Kataloge verwaltet
+     * ausschließlich der Core.
+     *
+     * Lazy erzeugt, damit Headless-Kontexte ohne initialisierte Lokalisierung
+     * weiterhin funktionieren.
+     */
+    get localization() {
+      if (localizationApi === null) {
+        try {
+          const LocalizationService = require("../localization/LocalizationService");
+          localizationApi = LocalizationService.createPluginAPI(pluginId);
+        } catch (error) {
+          LogManager.getLogger(`Plugin:${pluginId}`).warn(
+            `Localization API nicht verfügbar: ${error.message}`
+          );
+          localizationApi = false;
+        }
+      }
+      // Fehlt die Lokalisierung (z. B. in Headless-Kontexten), bleibt das
+      // Plugin funktionsfähig: `context.localization` ist dann `null`.
+      // Ein Werfen beim Objekt-Spread würde den gesamten Plugin-Kontext
+      // unbrauchbar machen.
+      return localizationApi || null;
     }
 
   };

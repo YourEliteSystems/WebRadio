@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import NavIcon from './NavIcon.jsx';
+import { useTranslation } from '../localization/index.js';
 import { subscribe as subscribeViews, views } from '../ui/componentRegistry';
 import {
   subscribe as subscribeNav,
@@ -22,6 +23,7 @@ export default function Sidebar({
   onLoadFavorites,
   onLoadHistory
 }) {
+  const { t } = useTranslation();
   const [navTree, setNavTree] = useState(() => getNavigationTree());
   const [pluginViews, setPluginViews] = useState(() => new Map(views));
 
@@ -40,6 +42,11 @@ export default function Sidebar({
 
   const sections = navTree.sections || [];
   const topLevelItems = navTree.topLevelItems || [];
+
+  // Kern-Einträge und -Sections tragen einen `labelKey`; Plugin-Einträge
+  // liefern weiterhin ihren eigenen (nicht übersetzbaren) Anzeigenamen.
+  const itemLabel = (item) => (item.labelKey ? t(item.labelKey) : item.label);
+  const sectionLabel = (section) => (section.labelKey ? t(section.labelKey) : section.label);
 
   // IDs aller registrierten Items sammeln, um Doppelungen mit legacy pluginViews zu vermeiden
   const registeredItemIds = new Set();
@@ -65,7 +72,7 @@ export default function Sidebar({
     <aside className="sidebar">
       {/* ── Haupt-Navigation ── */}
       <div className="sidebar-section">
-        <h3>Navigation</h3>
+        <h3>{t('navigation.title')}</h3>
 
         {/* Top-Level Items (ohne Parent) - inkl. Core Radio */}
         {topLevelItems.map(item => (
@@ -78,7 +85,7 @@ export default function Sidebar({
             {/* `icon` ist ein Icon-Name (z. B. "radio", "media") oder SVG-Markup –
                 beides löst <NavIcon/> auf, ohne dass der Rohwert als Text erscheint. */}
             <NavIcon icon={item.icon} className="nav-icon" fallback={<span className="section-dot"></span>} />
-            <span className="nav-label">{item.label}</span>
+            <span className="nav-label">{itemLabel(item)}</span>
           </button>
         ))}
 
@@ -94,11 +101,11 @@ export default function Sidebar({
               <div 
                 className={`nav-section-header ${isCollapsible ? 'collapsible' : ''}`}
                 onClick={() => isCollapsible && toggleSection(section.id)}
-                title={section.label}
+                title={sectionLabel(section)}
               >
                 <div className="nav-section-title">
                   <NavIcon icon={section.icon} className="nav-icon" fallback={<span className="section-dot"></span>} />
-                  <span className="section-label">{section.label}</span>
+                  <span className="section-label">{sectionLabel(section)}</span>
                 </div>
                 {isCollapsible && (
                   <span className={`section-chevron ${isExpanded ? 'expanded' : ''}`}>
@@ -120,7 +127,7 @@ export default function Sidebar({
                       disabled={item.disabled}
                     >
                       <NavIcon icon={item.icon} className="subitem-icon" fallback={<span className="subitem-indicator"></span>} />
-                      <span className="nav-label">{item.label}</span>
+                      <span className="nav-label">{itemLabel(item)}</span>
                     </button>
                   ))}
                 </div>
@@ -146,16 +153,16 @@ export default function Sidebar({
       {/* ── Suche & Filter (Nur in Radio-Ansicht) ── */}
       {currentView === 'home' && (
         <div className="sidebar-section">
-          <h3>Suchen</h3>
+          <h3>{t('search.title')}</h3>
           <input
             type="text"
-            placeholder="Sender suchen..."
+            placeholder={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           />
           <select value={country} onChange={(e) => setCountry(e.target.value)}>
-            <option value="">Alle Länder</option>
+            <option value="">{t('search.allCountries')}</option>
             {countries.map((c) => (
               <option key={c.iso_3166_1} value={c.iso_3166_1}>
                 {c.name} ({c.stationcount})
@@ -163,23 +170,23 @@ export default function Sidebar({
             ))}
           </select>
           <select value={genre} onChange={(e) => setGenre(e.target.value)}>
-            <option value="">Alle Genres</option>
+            <option value="">{t('search.allGenres')}</option>
             {tags.map((t) => (
               <option key={t.name} value={t.name}>
                 {t.name} ({t.stationcount})
               </option>
             ))}
           </select>
-          <button className="btn-primary" onClick={onSearch}>Suchen</button>
+          <button className="btn-primary" onClick={onSearch}>{t('search.action')}</button>
         </div>
       )}
 
       {/* ── Gespeicherte Sender (Nur in Radio-Ansicht) ── */}
       {currentView === 'home' && (
         <div className="sidebar-section">
-          <h3>Meine Sender</h3>
-          <button className="btn-secondary" onClick={onLoadFavorites}>Favoriten laden</button>
-          <button className="btn-secondary" onClick={onLoadHistory}>Verlauf laden</button>
+          <h3>{t('library.title')}</h3>
+          <button className="btn-secondary" onClick={onLoadFavorites}>{t('library.loadFavorites')}</button>
+          <button className="btn-secondary" onClick={onLoadHistory}>{t('library.loadHistory')}</button>
         </div>
       )}
     </aside>

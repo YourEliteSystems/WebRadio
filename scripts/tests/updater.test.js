@@ -267,10 +267,10 @@ test("Stable-Konfiguration hat allowPrerelease=false", () => {
     assert.strictEqual(cfg.channel, null);
 });
 
-test("Stable-Konfiguration erlaubt Downgrade wenn aktuelle Version Beta ist", () => {
+test("Stable-Konfiguration verbietet Downgrade auch bei installierter Beta", () => {
     const cfg = UpdateChannel.getUpdaterConfig("stable", "1.0.6-beta.2");
     assert.strictEqual(cfg.allowPrerelease, false);
-    assert.strictEqual(cfg.allowDowngrade, true, "Beta -> Stable Wechsel muss Downgrade erlauben");
+    assert.strictEqual(cfg.allowDowngrade, false, "Ältere Versionen dürfen nie als reguläres Update angeboten werden");
     assert.strictEqual(cfg.channel, null);
 });
 
@@ -279,11 +279,18 @@ test("Stable-Konfiguration verbietet Downgrade wenn aktuelle Version Stable ist"
     assert.strictEqual(cfg.allowDowngrade, false);
 });
 
-test("Beta-Konfiguration hat allowPrerelease=true und allowDowngrade=true (mit Pre-Release Version)", () => {
+test("Beta-Konfiguration hat allowPrerelease=true und allowDowngrade=false", () => {
     const cfg = UpdateChannel.getUpdaterConfig("beta", "1.0.6-beta.1");
     assert.strictEqual(cfg.allowPrerelease, true);
-    assert.strictEqual(cfg.allowDowngrade, true);
+    assert.strictEqual(cfg.allowDowngrade, false);
     assert.strictEqual(cfg.channel, "beta");
+});
+
+test("RC-Konfiguration nutzt den rc-Feed ohne Downgrade", () => {
+    const cfg = UpdateChannel.getUpdaterConfig("rc", "1.0.8-rc.1");
+    assert.strictEqual(cfg.channel, "rc");
+    assert.strictEqual(cfg.allowPrerelease, true);
+    assert.strictEqual(cfg.allowDowngrade, false);
 });
 
 test("Ungültiger Channel wirft Fehler", () => {
@@ -303,8 +310,24 @@ test("Beta-PreRelease-Filter erlaubt Beta, lehnt Alpha ab", () => {
     assert.strictEqual(f({ version: "1.0.6" }), true);
     assert.strictEqual(f({ version: "1.0.6-beta.1" }), true);
     assert.strictEqual(f({ version: "1.0.6-rc.1" }), true);
-    assert.strictEqual(f({ version: "1.0.6-nightly.2" }), true);
+    assert.strictEqual(f({ version: "1.0.6-nightly.2" }), false);
     assert.strictEqual(f({ version: "1.0.7-alpha.3" }), false);
+});
+
+test("RC-Filter erlaubt RC und Stable, lehnt Beta und Alpha ab", () => {
+    const f = UpdateChannel.getAllowedPreReleaseFilter("rc");
+    assert.strictEqual(f({ version: "1.0.8" }), true);
+    assert.strictEqual(f({ version: "1.0.8-rc.2" }), true);
+    assert.strictEqual(f({ version: "1.0.8-beta.4" }), false);
+    assert.strictEqual(f({ version: "1.0.8-alpha.1" }), false);
+});
+
+test("Alpha-Filter erlaubt Alpha, Beta, RC und Stable", () => {
+    const f = UpdateChannel.getAllowedPreReleaseFilter("alpha");
+    assert.strictEqual(f({ version: "1.0.8-alpha.1" }), true);
+    assert.strictEqual(f({ version: "1.0.8-beta.1" }), true);
+    assert.strictEqual(f({ version: "1.0.8-rc.1" }), true);
+    assert.strictEqual(f({ version: "1.0.8" }), true);
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -444,55 +467,49 @@ test("Erlaubt normales Markdown", () => {
 console.log("\n[5] Test-Matrix: Channel × Version");
 
 function evaluateMatrix(currentVersion, channel, availableVersion) {
-    // Simuliert die electron-updater-Logik: Stable lässt keine
-    // Pre-Releases zu. Beta lässt Beta + Stable zu, lehnt Alpha ab.
+    // Bildet die reale Entscheidung ab: Kanal-Filter (Stage-Promotion)
+    // plus semantischer Versionsvergleich. Eine aeltere oder gleiche
+    // Version ist niemals ein Update.
     if (!UpdateChannel.isValidChannel(channel)) return "INVALID";
-
-    const isPre = UpdateChannel.isPrerelease(availableVersion);
-    const isAlpha = /-alpha(\.|$)/i.test(availableVersion);
-
-    if (channel === "stable") {
-        if (isPre) return "NO_UPDATE";
-        if (availableVersion === currentVersion) return "NO_UPDATE";
-        return "UPDATE";
-    }
-
-    // Beta
-    if (isAlpha) return "NO_UPDATE";
-    if (availableVersion === currentVersion) return "NO_UPDATE";
+    const filter = UpdateChannel.getAllowedPreReleaseFilter(channel);
+    if (!filter({ version: availableVersion })) return "NO_UPDATE";
+    const VersionCompare = require("../../electron/core/updates/VersionCompare");
+    if (!VersionCompare.isValid(availableVersion)) return "INVALID_VERSION";
+    if (!VersionCompare.isNewer(availableVersion, currentVersion)) return "NO_UPDATE";
     return "UPDATE";
 }
 
 const matrix = [
+    // Spezifikations-Tabelle (RC-Unterstuetzung)
+    ["1.0.7", "rc", "1.0.8-rc.1", "UPDATE"],
+    ["1.0.8-rc.1", "rc", "1.0.8-rc.2", "UPDATE"],
+    ["1.0.8-rc.1", "rc", "1.0.8", "UPDATE"],
+    ["1.0.8-rc.2", "rc", "1.0.8-rc.1", "NO_UPDATE"],
+    ["1.0.8", "stable", "1.0.7", "NO_UPDATE"],
+    ["1.0.8", "stable", "1.0.8", "NO_UPDATE"],
+    ["1.0.8-beta.1", "beta", "1.0.8-rc.1", "UPDATE"],
+    ["1.0.8-rc.1", "beta", "1.0.8-beta.1", "NO_UPDATE"],
+    // Weitere Kanal-/Downgrade-Szenarien
     ["1.0.5", "stable", "1.0.6", "UPDATE"],
     ["1.0.5", "stable", "1.0.6-beta.2", "NO_UPDATE"],
-    ["1.0.5", "beta",   "1.0.6-beta.2", "UPDATE"],
+    ["1.0.5", "beta", "1.0.6-beta.2", "UPDATE"],
     ["1.0.6-beta.1", "beta", "1.0.6-beta.2", "UPDATE"],
     ["1.0.6-beta.2", "beta", "1.0.6", "UPDATE"],
     ["1.0.6", "stable", "1.0.6-beta.3", "NO_UPDATE"],
     ["1.0.6-beta.2", "beta", "1.0.6-beta.2", "NO_UPDATE"],
-    ["1.0.6-beta.2", "stable", "1.0.5", "DOWNGRADE_BLOCKED"]
+    ["1.0.6-beta.2", "stable", "1.0.5", "NO_UPDATE"],
+    ["1.0.8-alpha.1", "alpha", "1.0.8-beta.1", "UPDATE"],
+    ["1.0.8-alpha.1", "beta", "1.0.8-alpha.2", "NO_UPDATE"],
+    ["1.0.8-rc.1", "stable", "1.0.8-rc.2", "NO_UPDATE"],
+    ["1.0.8", "stable", "1.0.9", "UPDATE"]
 ];
 
 matrix.forEach(([current, channel, available, expected]) => {
     test(`Matrix: ${current} (${channel}) -> ${available} erwartet ${expected}`, () => {
-        const got = evaluateMatrix(current, channel, available);
-        // Für Stable -> ältere Version ist KEIN automatischer Pfad,
-        // aber die Logik erlaubt es prinzipiell (allowDowngrade=false).
-        // Der Test prüft das "offensichtliche" Verhalten.
-        if (expected === "DOWNGRADE_BLOCKED") {
-            // Stable: ein älteres Stable wird prinzipiell angeboten
-            // (UpdateManager nutzt aber allowDowngrade=false, also
-            // wird es nicht automatisch installiert). Wir betrachten
-            // das als semantisch "kein Update" für den Renderer.
-            assert.ok(["UPDATE", "NO_UPDATE"].includes(got));
-        } else {
-            assert.strictEqual(got, expected);
-        }
+        assert.strictEqual(evaluateMatrix(current, channel, available), expected);
     });
 });
 
-// ─────────────────────────────────────────────────────────────
 // 6. UpdateManager – Initialisierung & State
 // ─────────────────────────────────────────────────────────────
 console.log("\n[6] UpdateManager: Initialisierung & State");
@@ -662,6 +679,31 @@ test("checkForUpdates Fehler -> error state", async () => {
     assert.strictEqual(state.error.code, "UPDATER_CHECK_FAILED");
 });
 
+test("Fehlender Kanal-Feed gilt als up-to-date, nicht als Fehler", async () => {
+    updateManager.initialize();
+    updateManager._setTestAutoUpdater(fakeAutoUpdater);
+    updateManager._initialized = false;
+    updateManager.initialize();
+    setSupportedTestProvider(updateManager);
+
+    const original = fakeAutoUpdater.checkForUpdates;
+    fakeAutoUpdater.checkForUpdates = async () => {
+        const err = new Error("No published versions on GitHub");
+        err.code = "ERR_UPDATER_CHANNEL_FILE_NOT_FOUND";
+        throw err;
+    };
+
+    try {
+        const result = await updateManager.checkForUpdates();
+        assert.strictEqual(result.status, "up-to-date");
+        const state = updateManager.getState();
+        assert.strictEqual(state.status, "up-to-date");
+        assert.strictEqual(state.error, null);
+    } finally {
+        fakeAutoUpdater.checkForUpdates = original;
+    }
+});
+
 test("downloadUpdate löst Download-Flow aus", async () => {
     updateManager.initialize();
     updateManager._setTestAutoUpdater(fakeAutoUpdater);
@@ -754,6 +796,24 @@ test("Listener wird nicht doppelt registriert (set-Semantik)", () => {
 // ─────────────────────────────────────────────────────────────
 console.log("\n[8] Channel-Persistenz");
 
+test("Aeltere Version wird nicht als Update angeboten (SemVer-Guard)", () => {
+    updateManager.initialize();
+    updateManager.setChannel("alpha");
+    updateManager._handleAvailableUpdate({ version: "1.0.5" });
+    const state = updateManager.getState();
+    assert.strictEqual(state.availableVersion, null, "keine aeltere Version anbieten");
+    assert.strictEqual(state.status, "up-to-date");
+});
+
+test("Ungueltige Update-Version fuehrt zu Fehler ohne Update-Angebot", () => {
+    updateManager.initialize();
+    updateManager._handleAvailableUpdate({ version: "kaputt" });
+    const state = updateManager.getState();
+    assert.strictEqual(state.availableVersion, null);
+    assert.strictEqual(state.status, "error");
+    assert.strictEqual(state.error.code, "UPDATER_INVALID_RESPONSE");
+});
+
 test("setChannel(beta) persistiert über Neustart hinweg", () => {
     const StorageManager = require("../../electron/core/storage/StorageManager");
     StorageManager.initialize();
@@ -800,6 +860,28 @@ test("setChannel(alpha) persistiert über Neustart hinweg", () => {
     assert.strictEqual(fresh.getChannel(), "alpha",
         "Alpha-Channel muss nach Neustart aus Settings geladen werden");
     assert.strictEqual(fresh.getStoredChannel(), "alpha");
+    fresh.dispose();
+});
+
+test("setChannel(rc) persistiert über Neustart hinweg", () => {
+    const StorageManager = require("../../electron/core/storage/StorageManager");
+    StorageManager.initialize();
+
+    updateManager.initialize();
+    updateManager.setChannel("rc");
+
+    // Simulierter Neustart: Cache leeren
+    for (const key of Object.keys(require.cache)) {
+        if (key.includes(path.join("electron", "core", "updates")) ||
+            key.includes(path.join("electron", "core", "storage"))) {
+            delete require.cache[key];
+        }
+    }
+    const fresh = require("../../electron/core/updates").updateManager;
+    fresh.initialize();
+    assert.strictEqual(fresh.getChannel(), "rc",
+        "RC-Channel muss nach Neustart aus Settings geladen werden");
+    assert.strictEqual(fresh.getStoredChannel(), "rc");
     fresh.dispose();
 });
 

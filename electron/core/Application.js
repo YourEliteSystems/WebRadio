@@ -57,6 +57,12 @@ const { createTray, destroyTray } = require("./system/tray");
 const streamManager = require("./audio/streamManager");
 
 // ─────────────────────────────────────────────
+// Localization
+// ─────────────────────────────────────────────
+
+const LocalizationService = require("./localization/LocalizationService");
+
+// ─────────────────────────────────────────────
 // Updater
 // ─────────────────────────────────────────────
 
@@ -79,6 +85,7 @@ const mediaHubProvider        = require("./player/MediaHubProvider");
 const discordPresenceAdapter = require("./player/DiscordPresenceAdapter");
 const PluginHttpServer       = require("./plugins/PluginHttpServer");
 const PluginWebSessionManager = require("./plugins/PluginWebSessionManager");
+const PluginUpdateRuntime = require("./plugins/update/PluginUpdateRuntime");
 
 const LogManager = require("./diagnostics/logging/LogManager");
 const CrashHandler = require("./diagnostics/CrashHandler");
@@ -178,6 +185,12 @@ class Application {
         await this.initializeDiagnostics();
         BootupDiagnostics.markComplete("diagnostics-init");
 
+        // Lokalisierung vor dem ersten Fenster initialisieren: Fenstertitel,
+        // Tray und native Benachrichtigungen benötigen die aktive Sprache.
+        BootupDiagnostics.markStart("localization-init");
+        await this.initializeLocalization();
+        BootupDiagnostics.markComplete("localization-init");
+
         BootupDiagnostics.markStart("window-created");
         await this.initializeWindow();
         BootupDiagnostics.markComplete("window-created");
@@ -197,6 +210,10 @@ class Application {
         BootupDiagnostics.markStart("plugins-init");
         await this.initializePlugins();
         BootupDiagnostics.markComplete("plugins-init");
+
+        BootupDiagnostics.markStart("plugin-updates-init");
+        await this.initializePluginUpdates();
+        BootupDiagnostics.markComplete("plugin-updates-init");
 
         BootupDiagnostics.markStart("player-init");
         await this.initializePlayer();
@@ -237,6 +254,14 @@ class Application {
 
         logger.info("WebRadio successfully started.");
 
+    }
+
+    // ─────────────────────────────────────────
+    // Localization
+    // ─────────────────────────────────────────
+
+    async initializeLocalization() {
+        LocalizationService.initialize();
     }
 
     // ─────────────────────────────────────────
@@ -422,7 +447,18 @@ class Application {
         logger.info("Plugins initialisiert");
     }
 
+    async initializePluginUpdates() {
+        // Der Update-Dienst benötigt den geladenen PluginManager (installierte
+        // Manifeste, Aktivierungsstatus) und startet ausschließlich die
+        // automatische *Suche* – niemals eine automatische Installation.
+        PluginUpdateRuntime.initialize();
+    }
+
     async shutdownPlugins() {
+        // PluginUpdateRuntime zuerst stoppen, damit laufende Downloads keine
+        // Plugin-Verzeichnisse mehr verändern, während sie entladen werden.
+        PluginUpdateRuntime.shutdown();
+
         // PluginHttpServer stoppt zuerst – damit Renderer-Skripte nicht mehr
         // verfügbar sind, bevor Plugins selbst beendet werden.
         await PluginHttpServer.stop();

@@ -4,6 +4,8 @@ dist/*
 .temp-dist-check
 .temp-dist-check/*
 
+ui-audit/*
+
 protected
 protected/*
 

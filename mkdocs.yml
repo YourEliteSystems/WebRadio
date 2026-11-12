@@ -85,6 +85,8 @@ nav:
       - Medientasten: architecture/08-MediaKeys.md
       - Infobereich: architecture/09-Tray.md
       - Aktualisierungen: architecture/10-Updater.md
+      - Lokalisierung: LOCALIZATION.md
+      - Localization-API: LOCALIZATION_API.md
   - API-Referenz:
       - Überblick: api-reference/README.md
       - Anwendung: api-reference/Application.md
@@ -123,6 +125,8 @@ nav:
       - Hallo Welt: plugin-sdk/11-HelloWorld.md
       - Häufige Fragen (FAQ): plugin-sdk/12-FAQ.md
       - Fähigkeiten und Plugin-HTTP: plugin-sdk/13-Capabilities.md
+      - Lokalisierung: plugin-sdk/14-Localization.md
+      - Plugin-Updates: PLUGIN_UPDATES.md
   - Theme-SDK:
       - Überblick: theme-sdk/README.md
       - Erste Schritte: theme-sdk/01-GettingStarted.md
@@ -134,6 +138,7 @@ nav:
       - Bewährte Vorgehensweisen: theme-sdk/07-BestPractices.md
       - Hallo Theme: theme-sdk/08-HelloTheme.md
       - Häufige Fragen (FAQ): theme-sdk/09-FAQ.md
+      - Lokalisierung: theme-sdk/10-Localization.md
   - Integrationen:
       - Integrations-SDK: IntegrationSDK.md
       - Geprüfte Integrationen: VERIFIED_INTEGRATIONS.md
@@ -150,6 +155,8 @@ nav:
       - Übersetzungsplan: TRANSLATION_PLAN.md
       - Versionierung: VERSIONING.md
       - Download-Statistik: DOWNLOAD_STATS.md
+  - Release Notes:
+      - WebRadio 1.0.8 RC1: releases/1.0.8-rc.1.md
   - Datenschutz:
       - Datenschutz: PRIVACY.md
       - Drittanbieter-Komponenten: THIRD_PARTY_NOTICES.md

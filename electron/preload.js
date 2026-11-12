@@ -427,6 +427,70 @@ contextBridge.exposeInMainWorld("pluginHttpAPI", {
   getAssetUrl: (pluginId, relativePath)   => ipcRenderer.invoke("plugin:getAssetUrl", pluginId, relativePath)
 });
 
+// ─────────────────────────────────────────────
+// LOCALIZATION API
+// Liest den Sprachzustand, setzt die Sprachpräferenz und abonniert
+// Sprachwechsel. Übersetzungstexte laufen nicht über IPC – beide Prozesse
+// nutzen dieselben, zur Build-Zeit gebündelten Kataloge.
+// ─────────────────────────────────────────────
+// Einmaliger synchroner Bootstrap: Die Kataloge liegen ausschließlich in
+// userData und werden vom Main-Prozess genau einmal vor dem Renderer-Start
+// gelesen. Danach arbeitet der Renderer mit dieser Kopie; es gibt keine
+// zweite Katalogquelle (kein gebündeltes JSON im Renderer).
+let localizationInitial = null;
+try {
+  const bootstrap = ipcRenderer.sendSync("localization:bootstrap");
+  if (bootstrap && bootstrap.ok) {
+    localizationInitial = {
+      state: bootstrap.state,
+      catalogs: bootstrap.catalogs
+    };
+  }
+} catch (error) {
+  console.warn("[i18n] Bootstrap nicht verfügbar:", error && error.message);
+}
+
+contextBridge.exposeInMainWorld("localizationAPI", {
+  initial: localizationInitial,
+  getCatalogs: () => ipcRenderer.invoke("localization:get-catalogs"),
+  getState: () => ipcRenderer.invoke("localization:get-state"),
+  setLanguage: (preference) => ipcRenderer.invoke("localization:set-language", preference),
+  getPluginTranslations: (pluginId) => ipcRenderer.invoke("localization:get-plugin-translations", pluginId),
+  getPluginCatalogs: (pluginId) => ipcRenderer.invoke("localization:get-plugin-catalogs", pluginId),
+  getThemeCatalogs: (themeId) => ipcRenderer.invoke("localization:get-theme-catalogs", themeId),
+  onChanged: (callback) => {
+    if (typeof callback !== "function") {
+      throw new TypeError("localizationAPI.onChanged erwartet eine Funktion");
+    }
+    const handler = (_event, state) => callback(state);
+    ipcRenderer.on("localization:changed", handler);
+    return () => ipcRenderer.removeListener("localization:changed", handler);
+  }
+});
+
+// ─────────────────────────────────────────────
+// PLUGIN-UPDATES API
+// Prüft, lädt und installiert Plugin-Updates. Alle sicherheitsrelevanten
+// Prüfungen (HTTPS, Signatur, Prüfsumme, Plugin-ID) erfolgen im Main-Prozess.
+// ─────────────────────────────────────────────
+contextBridge.exposeInMainWorld("pluginUpdatesAPI", {
+  getState: () => ipcRenderer.invoke("pluginUpdates:get-state"),
+  check: (options) => ipcRenderer.invoke("pluginUpdates:check", options),
+  checkPlugin: (id, options) => ipcRenderer.invoke("pluginUpdates:check-plugin", id, options),
+  apply: (id, options) => ipcRenderer.invoke("pluginUpdates:apply", id, options),
+  cancel: () => ipcRenderer.invoke("pluginUpdates:cancel"),
+  setChannel: (id, channel) => ipcRenderer.invoke("pluginUpdates:set-channel", id, channel),
+  setSettings: (patch) => ipcRenderer.invoke("pluginUpdates:set-settings", patch),
+  onChanged: (callback) => {
+    if (typeof callback !== "function") {
+      throw new TypeError("pluginUpdatesAPI.onChanged erwartet eine Funktion");
+    }
+    const handler = (_event, state) => callback(state);
+    ipcRenderer.on("pluginUpdates:changed", handler);
+    return () => ipcRenderer.removeListener("pluginUpdates:changed", handler);
+  }
+});
+
 // UPDATES API (Zentral und abwärtskompatibel auf window.updatesAPI und window.updateAPI)
 // `updatesAPI` wird bereits oben exponiert (Zeile 134). Ein zweiter
 // `exposeInMainWorld("updatesAPI", …)`-Aufruf wirft in Electron

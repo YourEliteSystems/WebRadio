@@ -139,6 +139,10 @@ class ThemeLoader {
           author: manifest.author || "",
           description: manifest.description || "",
           preview: manifest.preview || "",
+          // Übersetzungen sind reine Daten (JSON) und werden niemals als
+          // Code ausgeführt. Die Laufzeit liest sie ausschließlich aus
+          // userData/localization/themes/<id>/.
+          localization: manifest.localization || null,
           css: path.join(
             themesPath,
             folder.name,

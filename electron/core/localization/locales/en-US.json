@@ -1,0 +1,360 @@
+{
+  "app": {
+    "name": "WebRadio",
+    "windowTitle": "WebRadio",
+    "settingsWindowTitle": "WebRadio – Settings",
+    "settingsSuffix": "Settings",
+    "tagline": "Your modern radio experience",
+    "description": "WebRadio was built to make listening to your favourite stations simple and stylish. Plugin support, adjustable themes and automatic updates keep you up to date.",
+    "copyright": "© 2025 YourEliteSystems. All rights reserved.",
+    "developer": "Developer",
+    "platform": "Platform",
+    "version": "Version",
+    "logoAlt": "WebRadio"
+  },
+  "common": {
+    "openFolder": "Open folder",
+    "reload": "↺ Reload",
+    "rescanning": "↺ Rescanning…",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "none": "–"
+  },
+  "titlebar": {
+    "minimize": "Minimise",
+    "maximize": "Maximise",
+    "close": "Close",
+    "updateAvailable": "Update available: v{version} ({channel})",
+    "updateBadge": "Update v{version}",
+    "versionTooltip": "WebRadio {version} – {channel} build"
+  },
+  "navigation": {
+    "title": "Navigation",
+    "radio": "Radio",
+    "home": "Home",
+    "settings": "Settings",
+    "plugins": "Plugins"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search stations...",
+    "allCountries": "All countries",
+    "allGenres": "All genres",
+    "action": "Search"
+  },
+  "library": {
+    "title": "My stations",
+    "loadFavorites": "Load favourites",
+    "loadHistory": "Load history"
+  },
+  "home": {
+    "title": "Discover",
+    "empty": "No stations found. Use the search in the sidebar."
+  },
+  "player": {
+    "favorite": "Favourite",
+    "play": "Start playback",
+    "stop": "Stop",
+    "volume": "Volume",
+    "volumeTitle": "Volume: {percent}%",
+    "mutedTitle": "Muted (click to unmute)",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "settings": "Settings",
+    "unknownArtist": "Unknown artist"
+  },
+  "settings": {
+    "title": "Settings",
+    "nav": {
+      "integrations": "Integrations",
+      "plugins": "Plugins",
+      "themes": "Themes",
+      "updates": "Updates",
+      "player": "Player",
+      "language": "Language",
+      "about": "About",
+      "diagnostics": "Diagnostics"
+    },
+    "group": {
+      "general": "General",
+      "system": "System"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "subtitle": "Connect external services",
+      "discordTitle": "Discord Rich Presence",
+      "discordEnable": "Enable Discord Rich Presence",
+      "discordDescription": "Shows the current song in your Discord status"
+    },
+    "plugins": {
+      "title": "Plugins",
+      "subtitle": "Enable or disable extensions",
+      "cardTitle": "Installed plugins",
+      "empty": "No plugins found",
+      "enable": "Enable",
+      "disable": "Disable",
+      "updates": {
+        "sectionTitle": "Plugin updates",
+        "sectionHint": "Updates are installed only after your confirmation.",
+        "checkAll": "Check for updates",
+        "checkOne": "Check",
+        "checking": "Checking …",
+        "autoCheck": "Check for updates automatically",
+        "autoCheckHint": "Checks at startup and periodically. Updates are never installed automatically.",
+        "lastChecked": "Last checked",
+        "neverChecked": "Not checked yet",
+        "installedVersion": "Installed",
+        "availableVersion": "Available",
+        "channel": "Channel",
+        "developer": "Developer",
+        "source": "Update source",
+        "sourceMissing": "No update source configured",
+        "changelog": "What's new",
+        "changelogEmpty": "No changelog provided",
+        "integrity": "Integrity",
+        "integrityVerified": "Checksum verified",
+        "integrityFailed": "Verification failed",
+        "integrityPending": "Not verified yet",
+        "signature": "Signature",
+        "signatureValid": "Signed and valid",
+        "signatureUnsigned": "Not signed",
+        "signatureUnknown": "Unknown key",
+        "signatureInvalid": "Invalid signature",
+        "update": "Update",
+        "updateAll": "Update all",
+        "cancel": "Cancel",
+        "close": "Close",
+        "backupNote": "The previous version is kept as a backup.",
+        "downloadHost": "Download from",
+        "status": {
+          "idle": "Ready",
+          "checking": "Checking …",
+          "up_to_date": "Up to date",
+          "update_available": "Update available",
+          "incompatible": "Incompatible",
+          "not_published": "Not published",
+          "channel_mismatch": "Other channel",
+          "no_source": "No source",
+          "downloading": "Downloading …",
+          "installing": "Installing …",
+          "updated": "Updated",
+          "error": "Error",
+          "rollback_failed": "Recovery failed"
+        },
+        "permissions": {
+          "title": "New permissions",
+          "intro": "The new version requests additional permissions. Nothing is installed without your confirmation.",
+          "added": "New",
+          "removed": "Removed",
+          "capabilities": "Additional capabilities",
+          "confirm": "Confirm and update",
+          "cancel": "Cancel",
+          "none": "No changes"
+        },
+        "unsigned": {
+          "title": "Unsigned update",
+          "warning": "This update has no signature. The checksum and plugin ID are verified, but the origin is not cryptographically confirmed.",
+          "confirm": "Install anyway"
+        },
+        "hints": {
+          "noSource": "Developers configure update.manifestUrl in plugin.json.",
+          "incompatible": "This version requires a different WebRadio version.",
+          "notPublished": "This plugin is not published in the WebRadio catalog.",
+          "channelMismatch": "The manifest belongs to a different update channel.",
+          "catalog": "The plugin catalog is unreachable.",
+          "permissions": "Nothing is installed until the new permissions are confirmed."
+        },
+        "result": {
+          "success": "Update installed.",
+          "rolledBack": "Update failed – the previous version was restored.",
+          "rollbackFailed": "Update and recovery both failed. The backup is preserved."
+        },
+        "permissionNames": {
+          "events": "Events",
+          "storage": "Storage",
+          "settings": "Settings",
+          "theme": "Theme",
+          "ui": "User interface",
+          "navigation": "Navigation",
+          "navigation.register": "Register navigation",
+          "audio": "Audio",
+          "notifications": "Notifications",
+          "network": "Network",
+          "player": "Player",
+          "media-control": "Media control"
+        }
+      }
+    },
+    "themes": {
+      "title": "Themes",
+      "subtitle": "Adjust the look of the app",
+      "cardTitle": "Available themes",
+      "empty": "No themes found"
+    },
+    "player": {
+      "title": "Player settings",
+      "subtitle": "Configure the now-playing display",
+      "cardTitle": "Now-playing display",
+      "offTitle": "Off",
+      "offDescription": "Disable the now-playing display",
+      "onceTitle": "Once per track change",
+      "onceDescription": "Show only when the playing content changes (default)",
+      "persistentTitle": "Persistent",
+      "persistentDescription": "Always keep the display visible",
+      "infoUnified": "The display uses the Unified Player API only and is provider independent.",
+      "infoTechnical": "Technical provider information (e.g. \"Radio – FFmpeg\") is never shown as music information."
+    },
+    "updates": {
+      "title": "Updates",
+      "subtitle": "Keep WebRadio up to date",
+      "status": {
+        "checkingTitle": "Checking for updates…",
+        "checkingSub": "Connecting to the update server",
+        "currentTitle": "You are up to date",
+        "currentSub": "{version} is the latest version",
+        "availableTitle": "Update available – v{version}",
+        "availableSub": "A new version is ready to download",
+        "availableBetaTitle": "Beta update available – v{version}",
+        "availableBetaSub": "Note: beta version – may contain bugs.",
+        "availableAlphaTitle": "Alpha update available – v{version}",
+        "availableAlphaSub": "Note: alpha version – experimental, may contain serious bugs.",
+        "availableRcTitle": "Release candidate update available – v{version}",
+        "availableRcSub": "Note: release candidate – intended for final testing and approval.",
+        "downloadingTitle": "Downloading – v{version}",
+        "downloadingSub": "Downloading the update…",
+        "downloadedTitle": "Update ready – v{version}",
+        "downloadedSub": "The update has been downloaded and is waiting to be installed",
+        "errorTitle": "Could not check for updates",
+        "errorSub": "Please check your internet connection and try again later.",
+        "idleTitle": "Ready",
+        "idleSub": "Select \"Check now\" to look for updates"
+      },
+      "downloadingLabel": "Downloading…",
+      "downloadedTitle": "Update ready",
+      "downloadedDescription": "The update will be installed when WebRadio restarts.",
+      "restartLater": "Restart later",
+      "restartNow": "↻ Restart now",
+      "releaseNotesTitle": "What's new",
+      "checkNow": "Check now",
+      "later": "Later",
+      "download": "⬇ Download update",
+      "autoCheck": "Check for updates on startup",
+      "channelTitle": "Update channel",
+      "channelDescription": "Choose which versions you are offered.",
+      "channelDescriptions": {
+        "stable": "Officially released, stable versions.",
+        "beta": "Early versions with new features, but without full stability.",
+        "alpha": "Experimental pre-release builds ahead of the beta channel.",
+        "rc": "Release candidates for final testing and approval."
+      },
+      "betaHint": "You now receive beta versions as well. These may be unstable.",
+      "alphaHint": "You now receive alpha versions as well. These are experimental and may contain unknown bugs.",
+      "rcHint": "You now receive release candidates. These are intended for final testing and may still contain bugs.",
+      "channelSwitchNote": "The selected channel is active for all update checks immediately. The installed version ({version}) still belongs to the {channel} channel and only changes once an update is installed.",
+      "currentVersion": "Current version: {version}",
+      "installedReleaseType": "Installed release type",
+      "byline": "WebRadio by Your Elite Systems",
+      "betaModal": {
+        "title": "Enable beta versions",
+        "intro": "You are about to switch WebRadio to the beta channel.",
+        "body": "Beta versions are still in development and may not have been fully tested. They can contain bugs, crashes, broken features or other unexpected problems.",
+        "warning": "Only enable the beta channel if you are willing to report possible bugs and to work with less stable versions.",
+        "question": "Do you really want to enable the beta channel?",
+        "confirm": "Enable beta"
+      },
+      "alphaModal": {
+        "title": "Enable alpha versions",
+        "intro": "You are about to switch WebRadio to the alpha channel.",
+        "body": "Alpha versions are experimental builds that have not even reached beta stability. They can contain serious bugs, data loss, crashes or other critical problems.",
+        "warning": "Only developers should enable the alpha channel, and only if they are willing to report critical bugs and to work with very unstable versions.",
+        "question": "Do you really want to enable the alpha channel?",
+        "confirm": "Enable alpha"
+      },
+      "rcModal": {
+        "title": "Enable release candidates",
+        "intro": "You are about to switch WebRadio to the release candidate channel.",
+        "body": "Release candidates are largely complete versions that receive final testing before the stable release. They may still contain bugs that will be fixed before the stable release.",
+        "warning": "Only enable the release candidate channel if you are willing to report remaining bugs.",
+        "question": "Do you really want to enable the release candidate channel?",
+        "confirm": "Enable release candidate"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "subtitle": "Display language of the application",
+      "cardTitle": "Application language",
+      "systemTitle": "System default",
+      "systemDescription": "Detects the system language automatically. Unsupported languages fall back to English.",
+      "activeLanguage": "Active language: {language}",
+      "systemLanguage": "System language: {locale}",
+      "systemUnsupported": "The system language {locale} is not supported. English is used instead.",
+      "instantNote": "Changes apply immediately – no restart required.",
+      "saveError": "The language setting could not be saved."
+    },
+    "about": {
+      "title": "About WebRadio",
+      "subtitle": "Information about the app"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "subtitle": "System health, logs and crash reports",
+      "foldersTitle": "Folders",
+      "logsFolder": "Logs folder",
+      "crashFolder": "Crash folder",
+      "userDataFolder": "App data",
+      "pluginsFolder": "Plugins folder",
+      "themesFolder": "Themes folder",
+      "healthTitle": "Health check",
+      "healthRecheck": "↺ Check again",
+      "healthEmpty": "No checks available",
+      "healthOk": "✓ OK",
+      "healthFail": "✗ {message}",
+      "healthError": "Error",
+      "checks": {
+        "pluginDirectory": "Plugin directory",
+        "themeDirectory": "Theme directory",
+        "pluginData": "Plugin data",
+        "logs": "Logs",
+        "historyFile": "History file",
+        "favoritesFile": "Favorites file",
+        "settingsFile": "Settings file",
+        "registryFile": "Registry file"
+      },
+      "systemTitle": "System info",
+      "systemEmpty": "No system information available",
+      "platform": "Platform",
+      "architecture": "Architecture",
+      "hostname": "Hostname",
+      "cpu": "CPU",
+      "cores": "CPU cores",
+      "ramTotal": "Total RAM",
+      "ramFree": "Free RAM",
+      "crashTitle": "Crash reports",
+      "crashDeleteAll": "🗑 Delete all",
+      "crashEmpty": "No crash reports available ✓"
+    }
+  },
+  "plugins": {
+    "viewError": "Error while rendering the view: {message}",
+    "viewMissing": "No view registered for '{id}'."
+  },
+  "tray": {
+    "show": "Show WebRadio",
+    "playPause": "Play / Pause",
+    "stop": "Stop",
+    "settings": "Settings",
+    "checkUpdates": "Check for updates",
+    "quit": "Quit"
+  },
+  "updates": {
+    "notificationTitle": "WebRadio – Update available",
+    "notificationBody": "WebRadio {version} ({channel}) is available."
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{count} minutes ago",
+    "hoursAgo": "{count} hours ago",
+    "daysAgo": "{count} days ago"
+  }
+}

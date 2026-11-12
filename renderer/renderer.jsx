@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { initPlayer } from './services/playerService';
 import { loadAndApplySavedTheme, listenToThemeChanges } from './services/themeService';
 import { loadRendererPlugins } from './plugins/RendererPluginManager';
+import { LocalizationProvider } from './localization/index.js';
 
 // Initialize audio context and player
 async function bootstrap() {
@@ -22,10 +23,14 @@ async function bootstrap() {
     // 3. Theme-Änderungen von anderen Fenstern empfangen
     listenToThemeChanges();
 
-    // 4. Render React App
+    // 4. Render React App (LocalizationProvider liefert Sprache und Texte)
     const container = document.getElementById('app');
     const root = createRoot(container);
-    root.render(<App />);
+    root.render(
+      <LocalizationProvider>
+        <App />
+      </LocalizationProvider>
+    );
 
     // 5. Renderer-Plugins laden (nach React-Mount, damit uiRegistry bereit ist)
     await loadRendererPlugins();

@@ -179,7 +179,7 @@ Du möchtest WebRadio einfach ausprobieren? Du brauchst **keine Entwicklungsumge
 
 ### Aktuelle Version und Release-Kanäle
 
-Der Quellstand dokumentiert **v1.0.7**. Das ist das aktuelle stabile Release. Für Downloads gelten ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
+Der Quellstand dokumentiert **v1.0.8-rc.1** als Release Candidate. Das letzte stabile Release ist **v1.0.7**. Für Downloads gelten ausschließlich die Dateien und Hinweise, die im jeweiligen offiziellen GitHub Release aufgeführt sind.
 
 - **Stable** – verwenden, wenn ein entsprechender stabiler Release veröffentlicht wurde.
 - **Beta** – Vorabversionen zum Testen; Fehler und Änderungen sind möglich.

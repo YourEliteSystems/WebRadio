@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useTranslation } from '../../localization/index.js';
 
 const ThemesSettings = ({ themes, activeTheme, setActiveTheme }) => {
+  const { t } = useTranslation();
   const [reloading, setReloading] = useState(false);
 
   const openThemesFolder = async () => {
@@ -47,45 +49,51 @@ const ThemesSettings = ({ themes, activeTheme, setActiveTheme }) => {
   return (
     <div className="settings-page">
       <div className="settings-page-header">
-        <h1>Themes</h1>
-        <p>Aussehen der App anpassen</p>
+        <h1>{t('settings.themes.title')}</h1>
+        <p>{t('settings.themes.subtitle')}</p>
       </div>
 
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Verfügbare Themes</span>
+          <span className="settings-card-title">{t('settings.themes.cardTitle')}</span>
           <div style={{display: 'flex', gap: '8px'}}>
             <button onClick={openThemesFolder} className="diag-open-btn">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
               </svg>
-              Ordner öffnen
+              {t('common.openFolder')}
             </button>
-            <button 
+            <button
               onClick={handleReloadThemes}
-              className="btn-secondary" 
+              className="btn-secondary"
               style={{width: 'auto', padding: '6px 14px', fontSize: '12px'}}
               disabled={reloading}
             >
-              {reloading ? '↺ Rescan läuft…' : '↺ Neu laden'}
+              {reloading ? t('common.rescanning') : t('common.reload')}
             </button>
           </div>
         </div>
-        
+
         <div className="theme-grid">
           {themes.length === 0 ? (
             <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '12px 0'}}>
-              Keine Themes gefunden
+              {t('settings.themes.empty')}
             </p>
           ) : (
             themes.map((theme) => (
-              <div 
-                key={theme.id} 
+              <div
+                key={theme.id}
                 className={`theme-card ${activeTheme === theme.id ? 'active' : ''}`}
                 onClick={() => handleThemeSelect(theme.id)}
               >
                 <div className="theme-dot"></div>
-                <span>{theme.name}</span>
+                {/* Theme-Namen stammen aus den Theme-Metadaten der Theme-Datei. */}
+                <div className="theme-text">
+                  <span>{theme.name}</span>
+                  {theme.description ? (
+                    <span className="theme-description">{theme.description}</span>
+                  ) : null}
+                </div>
               </div>
             ))
           )}

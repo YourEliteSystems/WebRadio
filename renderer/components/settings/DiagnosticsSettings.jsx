@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '../../localization/index.js';
 
 const DiagnosticsSettings = () => {
+  const { t, formatDateTime } = useTranslation();
   const [healthChecks, setHealthChecks] = useState([]);
   const [systemInfo, setSystemInfo] = useState(null);
   const [crashReports, setCrashReports] = useState([]);
@@ -24,7 +26,7 @@ const DiagnosticsSettings = () => {
   // Health Check laden
   const loadHealthCheck = useCallback(async () => {
     if (!window.diagnosticsAPI?.getHealth) return;
-    
+
     try {
       setLoadingHealth(true);
       const results = await window.diagnosticsAPI.getHealth();
@@ -39,7 +41,7 @@ const DiagnosticsSettings = () => {
   // System Info laden
   const loadSystemInfo = useCallback(async () => {
     if (!window.diagnosticsAPI?.getSystemInfo) return;
-    
+
     try {
       setLoadingSystem(true);
       const info = await window.diagnosticsAPI.getSystemInfo();
@@ -54,7 +56,7 @@ const DiagnosticsSettings = () => {
   // Crash Reports laden
   const loadCrashReports = useCallback(async () => {
     if (!window.diagnosticsAPI?.getCrashReports) return;
-    
+
     try {
       setLoadingCrash(true);
       const reports = await window.diagnosticsAPI.getCrashReports();
@@ -72,6 +74,25 @@ const DiagnosticsSettings = () => {
     loadSystemInfo();
     loadCrashReports();
   }, [loadDiagPaths, loadHealthCheck, loadSystemInfo, loadCrashReports]);
+
+  // Die Namen der Health-Checks stammen aus dem Diagnostics-Core (englisch).
+  // Bekannte Prüfungen werden lokalisiert, unbekannte technisch unverändert
+  // angezeigt – es wird nie ein Name geraten.
+  const CHECK_LABEL_KEYS = {
+    'Plugin Directory': 'settings.diagnostics.checks.pluginDirectory',
+    'Theme Directory': 'settings.diagnostics.checks.themeDirectory',
+    'Plugin Data': 'settings.diagnostics.checks.pluginData',
+    Logs: 'settings.diagnostics.checks.logs',
+    'History File': 'settings.diagnostics.checks.historyFile',
+    'Favorites File': 'settings.diagnostics.checks.favoritesFile',
+    'Settings File': 'settings.diagnostics.checks.settingsFile',
+    'Registry File': 'settings.diagnostics.checks.registryFile'
+  };
+
+  const checkLabel = (name) => {
+    const labelKey = CHECK_LABEL_KEYS[name];
+    return labelKey ? t(labelKey) : name;
+  };
 
   const openFolder = async (key) => {
     if (!diagPaths || !diagPaths[key]) return;
@@ -104,48 +125,64 @@ const DiagnosticsSettings = () => {
     }
   };
 
+  // Technische Bezeichnungen (Node.js, Electron, Chromium, V8) bleiben
+  // unübersetzt – sie sind Produktnamen, keine Beschriftungen.
+  const systemRows = systemInfo ? [
+    [t('settings.diagnostics.platform'), systemInfo.system?.platform],
+    [t('settings.diagnostics.architecture'), systemInfo.system?.architecture],
+    [t('settings.diagnostics.hostname'), systemInfo.system?.hostname],
+    [t('settings.diagnostics.cpu'), systemInfo.cpu?.model],
+    [t('settings.diagnostics.cores'), systemInfo.cpu?.cores],
+    [t('settings.diagnostics.ramTotal'), systemInfo.memory?.total],
+    [t('settings.diagnostics.ramFree'), systemInfo.memory?.free],
+    ['Node.js', systemInfo.runtime?.node],
+    ['Electron', systemInfo.runtime?.electron],
+    ['Chromium', systemInfo.runtime?.chromium],
+    ['V8', systemInfo.runtime?.v8]
+  ] : [];
+
   return (
     <div className="settings-page">
       <div className="settings-page-header">
-        <h1>Diagnostics</h1>
-        <p>System-Gesundheit, Logs und Absturzberichte</p>
+        <h1>{t('settings.diagnostics.title')}</h1>
+        <p>{t('settings.diagnostics.subtitle')}</p>
       </div>
 
       {/* Ordner-Buttons */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Ordner</span>
+          <span className="settings-card-title">{t('settings.diagnostics.foldersTitle')}</span>
         </div>
         <div className="diag-folder-row">
           <button className="diag-open-btn" onClick={() => openFolder('logs')}>
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
-            Logs-Ordner
+            {t('settings.diagnostics.logsFolder')}
           </button>
           <button className="diag-open-btn" onClick={() => openFolder('crash')}>
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
-            Crash-Ordner
+            {t('settings.diagnostics.crashFolder')}
           </button>
           <button className="diag-open-btn" onClick={() => openFolder('userData')}>
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
-            App-Daten
+            {t('settings.diagnostics.userDataFolder')}
           </button>
           <button className="diag-open-btn" onClick={() => openFolder('plugins')}>
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
-            Plugins-Ordner
+            {t('settings.diagnostics.pluginsFolder')}
           </button>
           <button className="diag-open-btn" onClick={() => openFolder('themes')}>
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
-            Themes-Ordner
+            {t('settings.diagnostics.themesFolder')}
           </button>
         </div>
       </div>
@@ -153,27 +190,33 @@ const DiagnosticsSettings = () => {
       {/* Health Check */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Health Check</span>
+          <span className="settings-card-title">{t('settings.diagnostics.healthTitle')}</span>
           <button onClick={handleReloadHealth} className="btn-secondary" style={{width: 'auto', padding: '6px 14px', fontSize: '12px'}}>
-            ↺ Neu prüfen
+            {t('settings.diagnostics.healthRecheck')}
           </button>
         </div>
         <div id="healthCheckList">
           {loadingHealth ? (
             <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '12px 0'}}>
-              Wird geladen...
+              {t('common.loading')}
             </p>
           ) : healthChecks.length === 0 ? (
             <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '12px 0'}}>
-              Keine Prüfungen vorhanden
+              {t('settings.diagnostics.healthEmpty')}
             </p>
           ) : (
             healthChecks.map((check) => (
               <div key={check.name} className="health-check-item">
                 <span className={`health-dot ${check.success ? 'ok' : 'fail'}`}></span>
-                <span style={{flex: 1, color: 'var(--text-main)'}}>{check.name}</span>
+                <span style={{flex: 1, color: 'var(--text-main)'}}>
+                  {checkLabel(check.name)}
+                </span>
                 <span style={{fontSize: '11px', color: check.success ? '#22c55e' : '#ef4444'}}>
-                  {check.success ? '✓ OK' : '✗ ' + (check.message || 'Fehler')}
+                  {check.success
+                    ? t('settings.diagnostics.healthOk')
+                    : t('settings.diagnostics.healthFail', {
+                        message: check.message || t('settings.diagnostics.healthError')
+                      })}
                 </span>
               </div>
             ))
@@ -184,67 +227,27 @@ const DiagnosticsSettings = () => {
       {/* System Info */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">System Info</span>
+          <span className="settings-card-title">{t('settings.diagnostics.systemTitle')}</span>
         </div>
         <table className="sysinfo-table">
           <tbody>
             {loadingSystem ? (
               <tr>
                 <td colSpan="2" style={{textAlign: 'center', color: 'var(--text-muted)'}}>
-                  Wird geladen...
+                  {t('common.loading')}
                 </td>
               </tr>
             ) : systemInfo ? (
-              <>
-                <tr>
-                  <td>Plattform</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.system?.platform || '–'}</td>
+              systemRows.map(([label, value]) => (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{value || t('common.none')}</td>
                 </tr>
-                <tr>
-                  <td>Architektur</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.system?.architecture || '–'}</td>
-                </tr>
-                <tr>
-                  <td>Hostname</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.system?.hostname || '–'}</td>
-                </tr>
-                <tr>
-                  <td>CPU</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.cpu?.model || '–'}</td>
-                </tr>
-                <tr>
-                  <td>CPU-Kerne</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.cpu?.cores || '–'}</td>
-                </tr>
-                <tr>
-                  <td>RAM gesamt</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.memory?.total || '–'}</td>
-                </tr>
-                <tr>
-                  <td>RAM frei</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.memory?.free || '–'}</td>
-                </tr>
-                <tr>
-                  <td>Node.js</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.runtime?.node || '–'}</td>
-                </tr>
-                <tr>
-                  <td>Electron</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.runtime?.electron || '–'}</td>
-                </tr>
-                <tr>
-                  <td>Chromium</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.runtime?.chromium || '–'}</td>
-                </tr>
-                <tr>
-                  <td>V8</td>
-                  <td style={{color: 'var(--text-main)', fontWeight: 500}}>{systemInfo.runtime?.v8 || '–'}</td>
-                </tr>
-              </>
+              ))
             ) : (
               <tr>
                 <td colSpan="2" style={{textAlign: 'center', color: 'var(--text-muted)'}}>
-                  Keine Systeminformationen verfügbar
+                  {t('settings.diagnostics.systemEmpty')}
                 </td>
               </tr>
             )}
@@ -255,36 +258,37 @@ const DiagnosticsSettings = () => {
       {/* Crash Reports */}
       <div className="settings-card">
         <div className="settings-card-header">
-          <span className="settings-card-title">Crash Reports</span>
+          <span className="settings-card-title">{t('settings.diagnostics.crashTitle')}</span>
           <div style={{display: 'flex', gap: '8px'}}>
             <button onClick={handleClearCrashReports} className="btn-secondary" style={{width: 'auto', padding: '6px 14px', fontSize: '12px', color: '#ef4444'}}>
-              🗑 Alle löschen
+              {t('settings.diagnostics.crashDeleteAll')}
             </button>
             <button onClick={handleReloadCrashReports} className="btn-secondary" style={{width: 'auto', padding: '6px 14px', fontSize: '12px'}}>
-              ↺ Neu laden
+              {t('common.reload')}
             </button>
           </div>
         </div>
         <div id="crashReportList">
           {loadingCrash ? (
             <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '12px 0'}}>
-              Wird geladen...
+              {t('common.loading')}
             </p>
           ) : crashReports.length === 0 ? (
             <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '12px 0'}}>
-              Keine Crash-Reports vorhanden ✓
+              {t('settings.diagnostics.crashEmpty')}
             </p>
           ) : (
             crashReports.map((report) => {
-              const date = report.created ? new Date(report.created).toLocaleString('de-DE') : '–';
+              const date = report.created ? formatDateTime(new Date(report.created)) : t('common.none');
               return (
                 <div key={report.id} className="crash-report-item">
                   <span className="crash-report-name" title={report.file}>{report.file}</span>
                   <span className="crash-report-date">{date}</span>
-                  <button 
-                    className="btn-icon-sm" 
+                  <button
+                    className="btn-icon-sm"
                     onClick={() => handleDeleteCrashReport(report.id)}
-                    title="Löschen"
+                    title={t('common.delete')}
+                    aria-label={t('common.delete')}
                   >
                     🗑
                   </button>

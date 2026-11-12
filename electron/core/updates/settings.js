@@ -23,6 +23,7 @@ const logger = LogManager.getLogger("ChannelSettings");
 const VALID_CHANNELS = new Set([
     UpdateState.CHANNELS.STABLE,
     UpdateState.CHANNELS.BETA,
+    UpdateState.CHANNELS.RC,
     UpdateState.CHANNELS.ALPHA
 ]);
 

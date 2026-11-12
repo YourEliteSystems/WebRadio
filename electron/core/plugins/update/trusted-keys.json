@@ -1,0 +1,4 @@
+{
+  "_comment": "Vertrauensliste für Plugin-Update-Signaturen (Ed25519, Base64 DER/SPKI). Hier ausschließlich ÖFFENTLICHE Schlüssel eingetragener Plugin-Herausgeber. Private Schlüssel dürfen niemals in diesem Repository oder in der Anwendung liegen. Ein leerer Eintrag bedeutet: signierte Manifeste werden abgelehnt, bis der Herausgeber-Schlüssel aufgenommen wurde.",
+  "keys": []
+}

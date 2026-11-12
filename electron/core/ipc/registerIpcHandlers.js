@@ -15,6 +15,8 @@ const registerCredentialHandlers   = require("./credentialHandlers");
 const registerPlayerHandlers       = require("./playerHandlers");
 const registerPluginHttpHandlers   = require("./pluginHttpHandlers");
 const registerPackageHandlers      = require("./packageHandlers");
+const registerLocalizationHandlers = require("./localizationHandlers");
+const registerPluginUpdateHandlers = require("./pluginUpdateHandlers");
 
 function registerAllIpc(window) {
   registerPluginHandlers(window);
@@ -32,6 +34,8 @@ function registerAllIpc(window) {
   registerPlayerHandlers(window);
   registerPluginHttpHandlers();
   registerPackageHandlers();
+  registerLocalizationHandlers();
+  registerPluginUpdateHandlers();
 }
 
 module.exports = { registerAllIpc };

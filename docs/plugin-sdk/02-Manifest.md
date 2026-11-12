@@ -235,6 +235,56 @@ A manifest that requests a web-session capability without valid origins is rejec
 
 ---
 
+# localization
+
+Optional. Declares the plugin's own translations as data. WebRadio validates
+them and provisions them under `userData/localization/plugins/<plugin-id>/`;
+the runtime reads them only from there. Keys resolve as
+`plugin.<plugin-id>.*`, and the plugin can access them through
+`context.localization` (see [Localization](14-Localization.md)).
+
+```json
+{
+    "localization": {
+        "de-DE": { "settings": { "title": "Einstellungen" } },
+        "en-US": { "settings": { "title": "Settings" } }
+    }
+}
+```
+
+Rules:
+
+* supported locales only (`de-DE`, `en-US`)
+* nested objects with non-empty string values
+* maximum depth 6, maximum 2000 characters per value, maximum 20 locales
+* the `plugin.` prefix is reserved for the plugin's own namespace
+* translations are never executed as code
+
+---
+
+# update
+
+Optional. Declares where WebRadio can find updates for this plugin.
+
+```json
+{
+    "update": {
+        "manifestUrl": "https://updates.example.com/mediahub/manifest.json",
+        "channel": "stable"
+    }
+}
+```
+
+* `manifestUrl` must be HTTPS and point to a version 1 update manifest.
+* `channel` is one of `stable`, `beta` or `alpha` and is only a default; users
+  can choose a channel in the plugin settings.
+* Without `manifestUrl`, the plugin is never checked for updates.
+
+See [Plugin updates](../PLUGIN_UPDATES.md) for the manifest format, signing,
+hosting and troubleshooting.
+
+---
+
 # Validation
 
 Before a plugin is registered, the PluginValidator verifies the manifest.

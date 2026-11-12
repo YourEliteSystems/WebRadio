@@ -1,0 +1,360 @@
+{
+  "app": {
+    "name": "WebRadio",
+    "windowTitle": "WebRadio",
+    "settingsWindowTitle": "WebRadio – Einstellungen",
+    "settingsSuffix": "Einstellungen",
+    "tagline": "Dein modernes Radioerlebnis",
+    "description": "WebRadio wurde entwickelt, um deine Lieblingssender einfach und stilvoll zu hören. Mit Plugin-Unterstützung, anpassbaren Themes und automatischen Updates bleibst du immer auf dem neuesten Stand.",
+    "copyright": "© 2025 YourEliteSystems. Alle Rechte vorbehalten.",
+    "developer": "Entwickler",
+    "platform": "Plattform",
+    "version": "Version",
+    "logoAlt": "WebRadio"
+  },
+  "common": {
+    "openFolder": "Ordner öffnen",
+    "reload": "↺ Neu laden",
+    "rescanning": "↺ Rescan läuft…",
+    "loading": "Wird geladen...",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "none": "–"
+  },
+  "titlebar": {
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "close": "Schließen",
+    "updateAvailable": "Update verfügbar: v{version} ({channel})",
+    "updateBadge": "Update v{version}",
+    "versionTooltip": "WebRadio {version} – {channel}-Build"
+  },
+  "navigation": {
+    "title": "Navigation",
+    "radio": "Radio",
+    "home": "Startseite",
+    "settings": "Einstellungen",
+    "plugins": "Plugins"
+  },
+  "search": {
+    "title": "Suchen",
+    "placeholder": "Sender suchen...",
+    "allCountries": "Alle Länder",
+    "allGenres": "Alle Genres",
+    "action": "Suchen"
+  },
+  "library": {
+    "title": "Meine Sender",
+    "loadFavorites": "Favoriten laden",
+    "loadHistory": "Verlauf laden"
+  },
+  "home": {
+    "title": "Entdecken",
+    "empty": "Keine Sender gefunden. Nutze die Suche in der Seitenleiste."
+  },
+  "player": {
+    "favorite": "Favorit",
+    "play": "Wiedergabe starten",
+    "stop": "Stopp",
+    "volume": "Lautstärke",
+    "volumeTitle": "Lautstärke: {percent}%",
+    "mutedTitle": "Stumm (klicken zum Einschalten)",
+    "mute": "Ton ausschalten",
+    "unmute": "Ton einschalten",
+    "settings": "Einstellungen",
+    "unknownArtist": "Unbekannter Interpret"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "nav": {
+      "integrations": "Integrationen",
+      "plugins": "Plugins",
+      "themes": "Themes",
+      "updates": "Updates",
+      "player": "Player",
+      "language": "Sprache",
+      "about": "Über",
+      "diagnostics": "Diagnostics"
+    },
+    "group": {
+      "general": "Allgemein",
+      "system": "System"
+    },
+    "integrations": {
+      "title": "Integrationen",
+      "subtitle": "Externe Dienste verbinden",
+      "discordTitle": "Discord Rich Presence",
+      "discordEnable": "Discord Rich Presence aktivieren",
+      "discordDescription": "Zeigt aktuellen Song in Discord Status"
+    },
+    "plugins": {
+      "title": "Plugins",
+      "subtitle": "Erweiterungen aktivieren oder deaktivieren",
+      "cardTitle": "Installierte Plugins",
+      "empty": "Keine Plugins gefunden",
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "updates": {
+        "sectionTitle": "Plugin-Updates",
+        "sectionHint": "Updates werden ausschließlich nach deiner Bestätigung installiert.",
+        "checkAll": "Nach Updates suchen",
+        "checkOne": "Prüfen",
+        "checking": "Suche läuft …",
+        "autoCheck": "Automatisch nach Updates suchen",
+        "autoCheckHint": "Sucht beim Start und regelmäßig. Eine automatische Installation findet nicht statt.",
+        "lastChecked": "Zuletzt geprüft",
+        "neverChecked": "Noch nicht geprüft",
+        "installedVersion": "Installiert",
+        "availableVersion": "Verfügbar",
+        "channel": "Kanal",
+        "developer": "Entwickler",
+        "source": "Update-Quelle",
+        "sourceMissing": "Keine Update-Quelle hinterlegt",
+        "changelog": "Änderungen",
+        "changelogEmpty": "Kein Changelog angegeben",
+        "integrity": "Integrität",
+        "integrityVerified": "Prüfsumme bestätigt",
+        "integrityFailed": "Prüfung fehlgeschlagen",
+        "integrityPending": "Noch nicht geprüft",
+        "signature": "Signatur",
+        "signatureValid": "Signiert und gültig",
+        "signatureUnsigned": "Nicht signiert",
+        "signatureUnknown": "Unbekannter Schlüssel",
+        "signatureInvalid": "Ungültige Signatur",
+        "update": "Aktualisieren",
+        "updateAll": "Alle aktualisieren",
+        "cancel": "Abbrechen",
+        "close": "Schließen",
+        "backupNote": "Die vorherige Version bleibt als Backup erhalten.",
+        "downloadHost": "Download von",
+        "status": {
+          "idle": "Bereit",
+          "checking": "Wird geprüft …",
+          "up_to_date": "Aktuell",
+          "update_available": "Update verfügbar",
+          "incompatible": "Nicht kompatibel",
+          "not_published": "Nicht veröffentlicht",
+          "channel_mismatch": "Anderer Kanal",
+          "no_source": "Keine Quelle",
+          "downloading": "Wird geladen …",
+          "installing": "Wird installiert …",
+          "updated": "Aktualisiert",
+          "error": "Fehler",
+          "rollback_failed": "Wiederherstellung fehlgeschlagen"
+        },
+        "permissions": {
+          "title": "Neue Berechtigungen",
+          "intro": "Die neue Version fordert zusätzliche Berechtigungen an. Ohne deine Bestätigung wird nichts installiert.",
+          "added": "Neu",
+          "removed": "Entfällt",
+          "capabilities": "Zusätzliche Fähigkeiten",
+          "confirm": "Bestätigen und aktualisieren",
+          "cancel": "Abbrechen",
+          "none": "Keine Änderungen"
+        },
+        "unsigned": {
+          "title": "Nicht signiertes Update",
+          "warning": "Für dieses Update liegt keine Signatur vor. Prüfsumme und Plugin-ID werden geprüft, die Herkunft ist damit aber nicht kryptografisch bestätigt.",
+          "confirm": "Trotzdem installieren"
+        },
+        "hints": {
+          "noSource": "Entwickler hinterlegen update.manifestUrl in der plugin.json.",
+          "incompatible": "Diese Version benötigt eine andere WebRadio-Version.",
+          "notPublished": "Dieses Plugin ist im WebRadio-Katalog nicht veröffentlicht.",
+          "channelMismatch": "Das Manifest gehört zu einem anderen Update-Kanal.",
+          "catalog": "Der Plugin-Katalog ist nicht erreichbar.",
+          "permissions": "Ohne Bestätigung der neuen Berechtigungen wird nicht installiert."
+        },
+        "result": {
+          "success": "Update installiert.",
+          "rolledBack": "Update fehlgeschlagen – die vorherige Version wurde wiederhergestellt.",
+          "rollbackFailed": "Update und Wiederherstellung sind fehlgeschlagen. Das Backup bleibt erhalten."
+        },
+        "permissionNames": {
+          "events": "Ereignisse",
+          "storage": "Speicher",
+          "settings": "Einstellungen",
+          "theme": "Theme",
+          "ui": "Benutzeroberfläche",
+          "navigation": "Navigation",
+          "navigation.register": "Navigation registrieren",
+          "audio": "Audio",
+          "notifications": "Benachrichtigungen",
+          "network": "Netzwerk",
+          "player": "Player",
+          "media-control": "Mediensteuerung"
+        }
+      }
+    },
+    "themes": {
+      "title": "Themes",
+      "subtitle": "Aussehen der App anpassen",
+      "cardTitle": "Verfügbare Themes",
+      "empty": "Keine Themes gefunden"
+    },
+    "player": {
+      "title": "Player-Einstellungen",
+      "subtitle": "Now-Playing-Anzeige konfigurieren",
+      "cardTitle": "Now-Playing-Anzeige",
+      "offTitle": "Aus",
+      "offDescription": "Now-Playing-Anzeige deaktivieren",
+      "onceTitle": "Einmalig bei Titelwechsel",
+      "onceDescription": "Anzeige nur beim Wechsel des abgespielten Inhalts (Standard)",
+      "persistentTitle": "Dauerhaft",
+      "persistentDescription": "Anzeige immer sichtbar",
+      "infoUnified": "Die Anzeige verwendet ausschließlich die Unified Player API und ist providerunabhängig.",
+      "infoTechnical": "Technische Provider-Informationen (z.B. „Radio – FFmpeg\") werden nicht als Musikinfo dargestellt."
+    },
+    "updates": {
+      "title": "Updates",
+      "subtitle": "WebRadio auf dem neuesten Stand halten",
+      "status": {
+        "checkingTitle": "Prüfe auf Updates…",
+        "checkingSub": "Verbindung zum Update-Server wird hergestellt",
+        "currentTitle": "Du bist aktuell",
+        "currentSub": "{version} ist die neueste Version",
+        "availableTitle": "Update verfügbar – v{version}",
+        "availableSub": "Eine neue Version ist bereit zum Herunterladen",
+        "availableBetaTitle": "Beta-Update verfügbar – v{version}",
+        "availableBetaSub": "Hinweis: Beta-Version – kann Fehler enthalten.",
+        "availableAlphaTitle": "Alpha-Update verfügbar – v{version}",
+        "availableAlphaSub": "Hinweis: Alpha-Version – experimentell, kann schwere Fehler enthalten.",
+        "availableRcTitle": "Release-Candidate-Update verfügbar – v{version}",
+        "availableRcSub": "Hinweis: Release Candidate – für abschließende Tests und Freigabe vorgesehen.",
+        "downloadingTitle": "Wird heruntergeladen – v{version}",
+        "downloadingSub": "Update wird heruntergeladen…",
+        "downloadedTitle": "Update bereit – v{version}",
+        "downloadedSub": "Das Update ist heruntergeladen und wartet auf Installation",
+        "errorTitle": "Update konnte nicht geprüft werden",
+        "errorSub": "Bitte überprüfe deine Internetverbindung und versuche es später erneut.",
+        "idleTitle": "Bereit",
+        "idleSub": "Klicke auf „Jetzt prüfen“, um nach Updates zu suchen"
+      },
+      "downloadingLabel": "Wird heruntergeladen…",
+      "downloadedTitle": "Update bereit",
+      "downloadedDescription": "Das Update wird installiert, sobald WebRadio neu gestartet wird.",
+      "restartLater": "Später neu starten",
+      "restartNow": "↻ Jetzt neu starten",
+      "releaseNotesTitle": "Was ist neu",
+      "checkNow": "Jetzt prüfen",
+      "later": "Später",
+      "download": "⬇ Update herunterladen",
+      "autoCheck": "Beim Start nach Updates suchen",
+      "channelTitle": "Update-Kanal",
+      "channelDescription": "Wähle, welche Versionen dir angeboten werden.",
+      "channelDescriptions": {
+        "stable": "Offiziell veröffentlichte, stabile Versionen.",
+        "beta": "Frühe Versionen mit neuen Funktionen, aber ohne volle Stabilität.",
+        "alpha": "Experimentelle Vorab-Builds vor dem Beta-Kanal.",
+        "rc": "Release Candidates für die abschließende Prüfung und Freigabe."
+      },
+      "betaHint": "Du erhältst jetzt auch Beta-Versionen. Diese können instabil sein.",
+      "alphaHint": "Du erhältst jetzt auch Alpha-Versionen. Diese sind experimentell und können noch unbekannte Fehler enthalten.",
+      "rcHint": "Du erhältst jetzt Release Candidates. Diese sind für die abschließende Prüfung gedacht und können noch Fehler enthalten.",
+      "channelSwitchNote": "Der gewählte Kanal ist für alle Update-Prüfungen sofort aktiv. Die installierte Version ({version}) stammt weiterhin aus dem {channel}-Kanal und wechselt erst, wenn ein Update installiert wurde.",
+      "currentVersion": "Aktuelle Version: {version}",
+      "installedReleaseType": "Installierter Release-Typ",
+      "byline": "WebRadio by Your Elite Systems",
+      "betaModal": {
+        "title": "Beta-Versionen aktivieren",
+        "intro": "Du möchtest WebRadio auf den Beta-Kanal umstellen.",
+        "body": "Beta-Versionen befinden sich noch in Entwicklung und wurden möglicherweise nicht vollständig getestet. Sie können Fehler, Abstürze, Funktionsprobleme oder andere unerwartete Probleme enthalten.",
+        "warning": "Der Beta-Kanal sollte nur aktiviert werden, wenn du bereit bist, mögliche Fehler zu melden und mit instabileren Versionen zu arbeiten.",
+        "question": "Möchtest du den Beta-Kanal wirklich aktivieren?",
+        "confirm": "Beta aktivieren"
+      },
+      "alphaModal": {
+        "title": "Alpha-Versionen aktivieren",
+        "intro": "Du möchtest WebRadio auf den Alpha-Kanal umstellen.",
+        "body": "Alpha-Versionen sind experimentelle Builds, die noch nicht einmal Beta-Stabilität erreicht haben. Sie können schwere Fehler, Datenverlust, Abstürze oder andere kritische Probleme enthalten.",
+        "warning": "Der Alpha-Kanal sollte nur von Entwicklern aktiviert werden, die bereit sind, kritische Fehler zu melden und mit sehr instabilen Versionen zu arbeiten.",
+        "question": "Möchtest du den Alpha-Kanal wirklich aktivieren?",
+        "confirm": "Alpha aktivieren"
+      },
+      "rcModal": {
+        "title": "Release Candidates aktivieren",
+        "intro": "Du möchtest WebRadio auf den Release-Candidate-Kanal umstellen.",
+        "body": "Release Candidates sind weitgehend vollständige Versionen, die vor der stabilen Veröffentlichung abschließend geprüft werden. Es können noch Fehler enthalten sein, die vor dem Stable-Release behoben werden.",
+        "warning": "Der Release-Candidate-Kanal sollte nur aktiviert werden, wenn du bereit bist, verbleibende Fehler zu melden.",
+        "question": "Möchtest du den Release-Candidate-Kanal wirklich aktivieren?",
+        "confirm": "Release Candidate aktivieren"
+      }
+    },
+    "language": {
+      "title": "Sprache",
+      "subtitle": "Anzeigesprache der Anwendung",
+      "cardTitle": "Anwendungssprache",
+      "systemTitle": "Systemstandard",
+      "systemDescription": "Erkennt die Systemsprache automatisch. Nicht unterstützte Sprachen fallen auf Englisch zurück.",
+      "activeLanguage": "Aktive Sprache: {language}",
+      "systemLanguage": "Systemsprache: {locale}",
+      "systemUnsupported": "Die Systemsprache {locale} wird nicht unterstützt. Englisch wird verwendet.",
+      "instantNote": "Änderungen werden sofort übernommen – ein Neustart ist nicht erforderlich.",
+      "saveError": "Die Spracheinstellung konnte nicht gespeichert werden."
+    },
+    "about": {
+      "title": "Über WebRadio",
+      "subtitle": "Informationen zur App"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "subtitle": "System-Gesundheit, Logs und Absturzberichte",
+      "foldersTitle": "Ordner",
+      "logsFolder": "Logs-Ordner",
+      "crashFolder": "Crash-Ordner",
+      "userDataFolder": "App-Daten",
+      "pluginsFolder": "Plugins-Ordner",
+      "themesFolder": "Themes-Ordner",
+      "healthTitle": "Health Check",
+      "healthRecheck": "↺ Neu prüfen",
+      "healthEmpty": "Keine Prüfungen vorhanden",
+      "healthOk": "✓ OK",
+      "healthFail": "✗ {message}",
+      "healthError": "Fehler",
+      "checks": {
+        "pluginDirectory": "Plugin-Verzeichnis",
+        "themeDirectory": "Theme-Verzeichnis",
+        "pluginData": "Plugin-Daten",
+        "logs": "Logs",
+        "historyFile": "Verlaufsdatei",
+        "favoritesFile": "Favoritendatei",
+        "settingsFile": "Einstellungsdatei",
+        "registryFile": "Registrierungsdatei"
+      },
+      "systemTitle": "System Info",
+      "systemEmpty": "Keine Systeminformationen verfügbar",
+      "platform": "Plattform",
+      "architecture": "Architektur",
+      "hostname": "Hostname",
+      "cpu": "CPU",
+      "cores": "CPU-Kerne",
+      "ramTotal": "RAM gesamt",
+      "ramFree": "RAM frei",
+      "crashTitle": "Crash Reports",
+      "crashDeleteAll": "🗑 Alle löschen",
+      "crashEmpty": "Keine Crash-Reports vorhanden ✓"
+    }
+  },
+  "plugins": {
+    "viewError": "Fehler beim Rendern der Ansicht: {message}",
+    "viewMissing": "Keine Ansicht für '{id}' registriert."
+  },
+  "tray": {
+    "show": "WebRadio anzeigen",
+    "playPause": "Play / Pause",
+    "stop": "Stopp",
+    "settings": "Einstellungen",
+    "checkUpdates": "Update prüfen",
+    "quit": "Beenden"
+  },
+  "updates": {
+    "notificationTitle": "WebRadio – Update verfügbar",
+    "notificationBody": "WebRadio {version} ({channel}) ist verfügbar."
+  },
+  "time": {
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {count} Minuten",
+    "hoursAgo": "vor {count} Stunden",
+    "daysAgo": "vor {count} Tagen"
+  }
+}

@@ -30,6 +30,41 @@ class IntegrationLoader {
         return manifest;
     }
 
+    /**
+     * Ermittelt den ausführbaren Einstiegspunkt einer Integration.
+     *
+     * Manifeste dürfen `entry` (dokumentiertes Feld) oder `main` (Feld der
+     * Plugin-Runtime) verwenden. Die Runtime lädt ausschließlich `main`;
+     * deshalb wird `entry` hier einmalig abgebildet, statt die Runtime zu
+     * ändern oder einen Platzhalter-Einstiegspunkt zu erfinden.
+     *
+     * @param {Object} manifest
+     * @param {string} integrationPath
+     * @returns {{main:string, mainPath:string}}
+     */
+    resolveEntry(manifest, integrationPath) {
+        const entry = typeof manifest.main === "string" && manifest.main.length > 0
+            ? manifest.main
+            : typeof manifest.entry === "string" && manifest.entry.length > 0
+                ? manifest.entry
+                : null;
+
+        if (!entry) {
+            throw new Error('Manifest enthält weder "main" noch "entry".');
+        }
+
+        const root = path.resolve(integrationPath);
+        const mainPath = path.resolve(root, entry);
+        if (mainPath !== root && !mainPath.startsWith(root + path.sep)) {
+            throw new Error(`Einstiegspunkt liegt außerhalb des Integrationsverzeichnisses: ${entry}`);
+        }
+        if (!fs.existsSync(mainPath)) {
+            throw new Error(`Einstiegspunkt fehlt: ${entry}`);
+        }
+
+        return { main: entry, mainPath };
+    }
+
     discoverIntegrations() {
         const integrations = [];
         
@@ -67,9 +102,13 @@ class IntegrationLoader {
 
             try {
                 const manifest = this.loadManifest(integrationPath);
+                const entry = this.resolveEntry(manifest, integrationPath);
 
                 integrations.push({
                     ...manifest,
+                    // Die Plugin-Runtime lädt `manifest.main`; `entry` bleibt
+                    // als dokumentiertes Feld erhalten.
+                    main: entry.main,
                     path: integrationPath,
                     dir: folder.name
                 });

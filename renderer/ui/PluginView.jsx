@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { views } from './componentRegistry';
+import { t } from '../localization/instance.js';
+
+// Plugin-Ansichten werden außerhalb von React gerendert. `t` aus der
+// Renderer-Instanz liefert dieselbe Sprache wie der React-Provider.
 
 /**
  * Renders a full-page view based on the current active view ID.
@@ -28,7 +32,7 @@ export default function PluginView({ viewId }) {
         const errBox = document.createElement('div');
         errBox.className = 'error';
         errBox.style.cssText = 'color: #ef4444; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;';
-        errBox.textContent = `Fehler beim Rendern der Ansicht: ${err?.message || err}`;
+        errBox.textContent = t('plugins.viewError', { message: err?.message || String(err) });
         container.appendChild(errBox);
       }
     } else {
@@ -42,7 +46,7 @@ export default function PluginView({ viewId }) {
       const desc = document.createElement('div');
       desc.className = 'error';
       desc.style.cssText = 'color: var(--text-muted, #9ca3af); font-size: 13px;';
-      desc.textContent = `Keine Ansicht für '${viewId}' registriert.`;
+      desc.textContent = t('plugins.viewMissing', { id: viewId || '' });
 
       wrapper.appendChild(title);
       wrapper.appendChild(desc);

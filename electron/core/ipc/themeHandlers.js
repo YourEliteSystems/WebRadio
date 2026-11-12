@@ -7,6 +7,7 @@ const ThemeManager = require("../themes/ThemeManager");
 const ThemeLoader = require("../themes/ThemeLoader");
 const eventBus = require("../eventBus");
 const LogManager = require("../diagnostics/logging/LogManager");
+const LocalizationService = require("../localization/LocalizationService");
 
 const logger = LogManager.getLogger("ThemeHandlers");
 
@@ -19,12 +20,21 @@ function registerThemeHandlers(windowManager) {
     // ThemeManager verwenden für zentrale Theme-Verwaltung
     if (ThemeManager.isInitialized()) {
       const themes = ThemeManager.getThemes();
-      return themes.map(t => ({
-        id: t.id,
-        name: t.name,
-        css: t.css,
-        source: t.source
-      }));
+      return themes.map(t => {
+        // Theme-Metadaten werden über die zentrale Localization API
+        // lokalisiert; es wird ausschließlich Datenmaterial verwendet.
+        const meta = LocalizationService.getThemeMetadata(t.id, {
+          name: t.name,
+          description: t.description || ""
+        });
+        return {
+          id: t.id,
+          name: meta.name,
+          description: meta.description,
+          css: t.css,
+          source: t.source
+        };
+      });
     }
 
     // Fallback: Direkt aus Dateisystem laden (für Abwärtskompatibilität)
@@ -49,9 +59,15 @@ function registerThemeHandlers(windowManager) {
         const data = JSON.parse(fs.readFileSync(themeJsonPath, "utf8"));
         const cssAbsPath = path.join(themesPath, folder.name, data.css);
 
+        const meta = LocalizationService.getThemeMetadata(folder.name, {
+          name: data.name,
+          description: data.description || ""
+        });
+
         themes.push({
           id: folder.name,
-          name: data.name,
+          name: meta.name,
+          description: meta.description,
           css: cssAbsPath,
           source: "builtin"
         });

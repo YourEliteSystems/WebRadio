@@ -280,6 +280,24 @@ test("Geladenes, aber nicht registrierendes Skript wird als Registrierungsfehler
     );
 });
 
+test("Skript-Einträge mit pluginId werden unterstützt (Objektform)", async () => {
+    const manager = await loadManager();
+    window.api = { getRendererScripts: async () => [{ url: PLUGIN_URL, pluginId: "demo" }] };
+    logs.length = 0;
+
+    const loading = manager.loadRendererPlugins();
+    await tick();
+
+    const script = createdScripts[createdScripts.length - 1];
+    assert.ok(script, "Skript-Tag wurde erzeugt");
+
+    window.registerPlugin({ id: "demo" });
+    script.onload();
+    await loading;
+
+    assert.ok(!lastError(), `Kein Fehler erwartet, erhalten: ${lastError()?.message}`);
+});
+
 function report() {
     console.log("\n==========================================");
     if (skipped.length > 0) console.log(`Übersprungen: ${skipped.join(", ")}`);

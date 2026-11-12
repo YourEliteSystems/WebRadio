@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from '../localization/index.js';
 
 export default function StationGrid({ stations, favorites = [], onPlay, onToggleFavorite }) {
+  const { t } = useTranslation();
+
   if (!stations || stations.length === 0) {
     return (
       <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '40px' }}>
-        Keine Sender gefunden. Nutze die Suche in der Seitenleiste.
+        {t('home.empty')}
       </div>
     );
   }
@@ -29,7 +32,8 @@ export default function StationGrid({ stations, favorites = [], onPlay, onToggle
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: isFav ? '#ef4444' : 'rgba(255,255,255,0.5)'
               }}
-              title="Favorit"
+              title={t('player.favorite')}
+              aria-label={t('player.favorite')}
             >
               <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill={isFav ? 'currentColor' : 'none'} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>

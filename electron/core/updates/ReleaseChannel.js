@@ -16,16 +16,18 @@
  *   - UI-Metadaten / Farben / Icons (ChannelMetadata.js)
  *   - Channel-Validierung / Update-State (UpdateState.js)
  *
- * Kanal-Set: stable | beta | alpha
- * Farben kommen von ChannelMetadata.CHANNEL_METADATA.{alpha,beta,stable}.color
+ * Kanal-Set: stable | rc | beta | alpha
+ * Farben kommen von ChannelMetadata.CHANNEL_METADATA.{alpha,beta,rc,stable}.color
  */
 
 const { CHANNEL_METADATA } = require("./ChannelMetadata");
+const UpdateChannel = require("./UpdateChannel");
 
 // ── Channel-Konstanten (konsistent mit UpdateState / UpdateChannel) ──────────
 
 const CHANNELS = Object.freeze({
   STABLE: "stable",
+  RC: "rc",
   BETA: "beta",
   ALPHA: "alpha"
 });
@@ -36,41 +38,19 @@ const CHANNELS = Object.freeze({
  * Erkennt den Release-Kanal einer Versionszeichenkette.
  *
  * @param {string} version - SemVer-String, z. B. "1.0.7-alpha.1"
- * @returns {"alpha" | "beta" | "stable"} der Release-Kanal
+ * @returns {"alpha" | "beta" | "rc" | "stable"} der Release-Kanal
  *
  * @example
  *   resolveChannel("1.0.7-alpha.1") // "alpha"
  *   resolveChannel("1.0.7-beta.3")  // "beta"
+ *   resolveChannel("1.0.8-rc.1")    // "rc"
  *   resolveChannel("1.0.7")         // "stable"
  *
  * @public
  */
 function resolveChannel(version) {
-  if (typeof version !== "string") {
-    return CHANNELS.STABLE;
-  }
-
-  // Case-insensitive Prüfung, um v1.0.7-Beta usw. abzudecken.
-  const v = version.trim();
-  if (!v) {
-    return CHANNELS.STABLE;
-  }
-
-  // Prerelease-Filter
-  if (/-alpha(\.|$)/i.test(v)) {
-    return CHANNELS.ALPHA;
-  }
-  if (/-beta(\.|$)/i.test(v)) {
-    return CHANNELS.BETA;
-  }
-
-  // Falls der String explizit ein stabil-markiertes Prerelease ist (z. B. "v1.0.7-stable"),
-  // wird "stable" zurückgegeben. Sonst ist die Version ohne Prerelease → stable.
-  if (/^v?1\.0\.7(-.*)?$/i.test(v)) {
-    return CHANNELS.STABLE;
-  }
-
-  return CHANNELS.STABLE;
+  // Eine einzige Erkennungsquelle im Core (UpdateChannel).
+  return UpdateChannel.detectChannelFromVersion(version);
 }
 
 /**

@@ -249,8 +249,27 @@ async function loadRendererScripts(scripts, explicitId = null) {
   // Sequentiell laden: so ist die Zuordnung Renderer-ID → Plugin-ID
   // eindeutig und die Registrierungsreihenfolge deterministisch.
   for (const scriptUrl of scripts) {
-    await injectScript(scriptUrl, explicitId);
+    const entry = normalizeScriptEntry(scriptUrl);
+    if (!entry) continue;
+    await injectScript(entry.url, explicitId || entry.pluginId);
   }
+}
+
+/**
+ * Der Main-Prozess liefert `{ url, pluginId }`, ältere Aufrufer (und Tests)
+ * weiterhin reine URL-Strings. Beides wird unterstützt; die explizite
+ * Plugin-ID hat Vorrang vor der Ableitung aus dem Skriptpfad, weil der
+ * Ordner-/URL-Name vom Manifest abweichen kann.
+ */
+function normalizeScriptEntry(entry) {
+  if (typeof entry === "string") return { url: entry, pluginId: null };
+  if (entry && typeof entry.url === "string") {
+    return {
+      url: entry.url,
+      pluginId: typeof entry.pluginId === "string" ? entry.pluginId : null
+    };
+  }
+  return null;
 }
 
 async function loadRendererPlugins() {
@@ -277,11 +296,15 @@ async function loadRendererPlugins() {
         // Fetch new scripts and inject if not already present
         if (window.api && window.api.getRendererScripts) {
           const scripts = await window.api.getRendererScripts();
-          for (const scriptUrl of scripts) {
-            const match = scriptUrl.match(/\/plugins\/([^/]+)\//);
-            const scriptId = match ? match[1] : null;
-            if (scriptId === id && !injectedScripts.has(id)) {
-              await injectScript(scriptUrl, id);
+          if (!injectedScripts.has(id)) {
+            for (const rawEntry of scripts) {
+              const entry = normalizeScriptEntry(rawEntry);
+              if (!entry) continue;
+              const match = entry.url.match(/\/plugins\/([^/]+)\//);
+              const scriptId = entry.pluginId || (match ? match[1] : null);
+              if (scriptId === id) {
+                await injectScript(entry.url, id);
+              }
             }
           }
         }

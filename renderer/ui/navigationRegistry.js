@@ -6,6 +6,9 @@ const defaultRadioItem = {
   id: 'home',
   parent: null,
   label: 'Radio',
+  // `labelKey` wird beim Rendern aufgelöst; `label` bleibt als neutraler
+  // Fallback für Kontexte ohne Localization Engine erhalten.
+  labelKey: 'navigation.radio',
   icon: 'radio',
   route: 'home',
   order: 10,
@@ -53,6 +56,7 @@ export function registerSection(section, pluginId = null) {
   const entry = {
     id: section.id,
     label: section.label,
+    labelKey: section.labelKey || null,
     icon: section.icon || null,
     collapsible: section.collapsible ?? true,
     expanded: section.expanded ?? true,
@@ -98,6 +102,7 @@ export function registerItem(item, pluginId = null) {
     id: item.id,
     parent: item.parent || null,
     label: item.label,
+    labelKey: item.labelKey || null,
     icon: item.icon || null,
     route: item.route || item.id,
     order: typeof item.order === 'number' ? item.order : 100,

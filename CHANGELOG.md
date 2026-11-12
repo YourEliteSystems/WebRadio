@@ -4,6 +4,64 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 ---
 
+## [v1.0.8-rc.1] – 2026-11-12
+
+> Release Candidate 1.0.8-rc.1: Zentrale Localization Engine für Core, Plugins und Themes mit Deutsch und Englisch, Plugin-Update-System mit Integritätsprüfung und Rollback sowie Korrekturen am Plugin-Ladeverhalten. Windows wurde real geprüft; Linux und macOS sind noch nicht lokal verifiziert.
+
+### ✨ Neue Funktionen
+
+- **Localization Engine:** Zentrale Übersetzungs-API für Main-Prozess, Renderer und Plugins. Sprachkataloge werden als JSON ausgeliefert, beim ersten Start nach Electron `userData/localization/` provisioniert und zur Laufzeit ausschließlich von dort gelesen.
+- **Deutsch und Englisch:** Vollständige Kataloge für beide Sprachen inklusive Fallback-Kette (gewählte Sprache → Englisch → Schlüssel).
+- **Locale-Wechsel zur Laufzeit:** Sprachwechsel in den Einstellungen wirkt ohne Neustart auf Hauptfenster, Einstellungen und Plugin-/Theme-Texte; die Auswahl wird gespeichert und beim nächsten Start wiederhergestellt.
+- **Systemsprache:** Die Option „System“ übernimmt die Betriebssystemsprache und fällt bei nicht unterstützten Sprachen auf Englisch zurück.
+- **Plugin Localization API:** Plugins deklarieren eigene Kataloge im Manifest und erhalten über `PluginAPI.localization` eine auf ihre Namespaces begrenzte Übersetzungs-API. Fehlt die Deklaration, liefert die API `null` statt zu werfen.
+- **Theme Localization:** Theme-Metadaten (Name, Beschreibung) können lokalisiert werden; die Theme-Auswahl zeigt die Texte in der aktiven Sprache.
+- **Plugin Update System:** Update-Prüfung, Manifest- und Katalogvalidierung, ZIP-Härtung (Pfad-Traversal, Größen- und Eintragslimits), SHA-256-Integritätsprüfung, Signaturprüfung, atomarer Austausch und Rollback auf die vorherige Version.
+- **Lokalisierte Update-Metadaten:** Update-Kataloge und Update-Hinweise werden in der aktiven Sprache angezeigt.
+- **Rollback-Schutz:** Fehlgeschlagene oder manipulierte Updates werden verworfen; die zuvor installierte Plugin-Version bleibt funktionsfähig.
+- **Vier Update-Kanäle:** Alpha (rot), Beta (orange), Release Candidate (violett) und Stable (grün) sind eigenständige Kanäle mit eigener Kanalauswahl, persistenter Einstellung und Feed-Zuordnung (`alpha.yml`, `beta.yml`, `rc.yml`, `latest.yml`).
+- **Einheitliches Channel-Badge:** Kanalname, Farbe, Icon und Versionsnummer werden in Titlebar, Update-Einstellungen, Über-Dialog und Benachrichtigungen aus zentralen Metadaten dargestellt.
+
+### 🚀 Verbesserungen
+
+- **Zentrale Speicherung der Sprachkataloge:** `userData/localization/` ist die einzige aktive Laufzeitquelle; ausgelieferte Kataloge dienen nur der Erstprovisionierung und werden nicht parallel gelesen.
+- **Plugin- und Theme-Integration:** Übersetzungen von Plugins und Themes folgen derselben Sprachauflösung wie der Core und werden bei Sprachwechsel automatisch aktualisiert.
+- **Plugin-Ladeverhalten:** Integrationsmanifeste dürfen den Einstiegspunkt als `entry` deklarieren; er wird auf den intern erwarteten `main`-Eintrag abgebildet und auf Existenz sowie Verzeichnisgrenzen geprüft.
+- **Renderer-Zuordnung:** Renderer-Skripte werden mit ihrer Manifest-Plugin-ID übergeben, sodass Ordnername und Plugin-ID abweichen dürfen.
+- **Plugin-Aktivierung:** Beim Aktivieren eines Plugins wird sein Renderer-Skript erneut geladen und registriert; beim Deaktivieren werden Skript, Ansichten und Listener entfernt.
+- **Release-Paket:** Das Verzeichnis `integrations/` wird in die Anwendung aufgenommen, damit die YouTube-Integration auch in der installierten Version geladen wird.
+- **Fehlerbehandlung und Rollback:** Update- und Ladefehler werden mit Ursache protokolliert, ohne den Start der Anwendung zu blockieren.
+- **Sicherheit und Validierung von Plugin-Updates:** Signatur-, Hash-, Größen- und Pfadprüfungen greifen vor dem Austausch; nicht vertrauenswürdige Quellen werden abgelehnt.
+- **Semantischer Versionsvergleich:** `VersionCompare` wertet SemVer inklusive Pre-Release-Stufen und ohne Build-Metadaten aus; ältere oder gleiche Versionen werden nie als reguläres Update angeboten (`allowDowngrade` ist in allen Kanälen deaktiviert).
+- **Kanal-Stufen:** Beta erhält Beta/RC/Stable, RC erhält RC/Stable, Stable ausschließlich finale Releases; ein Kanal sieht nie eine frühere Stufe.
+
+### 🐞 Fehlerkorrekturen
+
+- **YouTube-Integration:** Der im Manifest dokumentierte Einstiegspunkt `entry` wird korrekt aufgelöst, statt einen leeren Pfad zu erzeugen; die Integration startet wieder.
+- **Logger-Kompatibilität:** Die YouTube-Integration verwendet den Logger als Objekt (`context.logger.info`) statt als Fabrik und startet ohne Typfehler.
+- **Plugin-ID-Zuordnung bei Renderer-Skripten:** Renderer-Skripte werden über die Manifest-ID statt über den Ordnernamen zugeordnet; die Ansicht wird korrekt registriert und beim Entladen entfernt.
+- **Plugin-Aktivierung und erneute Renderer-Registrierung:** Das Umschalten eines Plugins löst ein `plugin:toggled`-Ereignis aus, sodass der Renderer ohne Neustart nachlädt.
+- **App-Updater:** Der Updater bietet keine ältere Version mehr an, wenn ein Pre-Release-Kanal fälschlich auf einen älteren Feed zeigt; die installierte Version und der gewählte Kanal bleiben getrennt sichtbar.
+- **Lokalisierte Kanaltexte:** Bestehende `userData`-Kataloge erhalten neue Übersetzungsschlüssel beim Start, ohne vorhandene Werte zu überschreiben.
+- **YouTube-Nutzer-Plugin (lokale userData-Installation):** Der Renderer registriert sich über die aktuelle `registerPluginRenderer`-API und registriert seine Ansicht unter der Plugin-ID. Diese Korrektur betrifft die lokale Installation und muss in der externen Plugin-Quelle separat übernommen werden.
+
+### ⚠️ Bekannte Einschränkungen
+
+- Windows wurde real geprüft; Linux und macOS wurden für diesen Release Candidate nicht lokal verifiziert.
+- Ein produktiver Plugin-Update-Download gegen einen externen Update-Server wurde nicht getestet.
+- Nicht signierte Updates benötigen weiterhin eine ausdrückliche Bestätigung durch den Benutzer.
+- Die bestehende Plugin-Architektur mit Main-Process-Code bleibt eine bekannte Vertrauensgrenze.
+- Die Korrektur am YouTube-Nutzer-Plugin betrifft die lokale Installation unter `userData` und ist nicht Teil des Repository-Codes.
+- Auf einem Pre-Release-Kanal kann der App-Updater das ältere stabile Release 1.0.7 als Downgrade anbieten; es wird nichts automatisch heruntergeladen oder installiert.
+
+### 🧪 Tests und Prüfungen
+
+- 43 Test-Suites mit 941 Tests, darunter neue Tests für Integrations-Loader und Renderer-Skriptformen.
+- `npm run lint` ohne Fehler, `npm run build` und `npm run i18n:validate` erfolgreich.
+- Echter Electron-Start unter Windows inklusive Sprachwechsel, Persistenzprüfung und Plugin-De-/Reaktivierung.
+
+---
+
 ## [v1.0.7] – 2026-11-10
 
 > Stabiles Release 1.0.7: Das Update-System erkennt Betriebssystem, Version, Architektur, Linux-Distribution, Installationsart, Installationsquelle, Installationspfad und Berechtigungen und wählt daraus automatisch den sicheren Update-Weg. Paketmanagerverwaltete und unbekannte Installationen werden niemals eigenmächtig überschrieben; Integritäts-, Format-, Architektur- und Signaturprüfungen sowie atomarer Austausch und Backup/Rollback bleiben erhalten.

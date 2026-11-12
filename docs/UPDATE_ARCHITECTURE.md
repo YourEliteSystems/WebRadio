@@ -312,12 +312,69 @@ Harte Regeln:
 | Kanal | electron-updater | `allowPrerelease` | akzeptierte Releases |
 | ----- | ---------------- | ----------------- | -------------------- |
 | `stable` | `latest` | `false` | nur stabile Versionen |
-| `beta` | `beta` | `true` | Beta + Stable (kein Alpha) |
-| `alpha` | `alpha` | `true` | Alpha + Beta + Stable |
+| `rc` | `rc` | `true` | RC + Stable (kein Beta/Alpha) |
+| `beta` | `beta` | `true` | Beta + RC + Stable (kein Alpha) |
+| `alpha` | `alpha` | `true` | Alpha + Beta + RC + Stable |
 
 Die kanonischen IDs und die Zuordnung liegen ausschließlich in
 `UpdateState.CHANNELS`, `UpdateChannel` und `ChannelMetadata`. Die
 Provider-Auswahl liest den Kanal nur zur Diagnose.
+
+`allowDowngrade` ist in **allen** Kanälen `false`. Eine ältere oder gleiche
+Version wird niemals als reguläres Update angeboten – unabhängig davon, welche
+Metadaten der Feed liefert. Ein bewusster Downgrade ist ein separater manueller
+Vorgang (Neuinstallation) und nicht Teil des Update-Flusses.
+
+### Semantischer Versionsvergleich
+
+`electron/core/updates/VersionCompare.js` implementiert SemVer 2.0.0:
+
+- `major.minor.patch` numerisch, optionales `v`-Präfix.
+- Pre-Release-Kennungen punktweise; numerische Identifier numerisch,
+  alphanumerische lexikalisch, numerische kleiner als alphanumerische.
+- `1.0.8-rc.1 < 1.0.8-rc.2 < 1.0.8`; `alpha < beta < rc < stable`.
+- Build-Metadaten (`+build`) werden ignoriert.
+- Ungültige oder fehlende Versionen werden abgelehnt und lösen kein Update aus.
+
+Der Vergleich greift an drei Stellen: beim `update-available`-Event, beim
+Download und bei der Check-Ergebnisauswertung. Damit kann weder ein falscher
+Feed noch eine Fehlkonfiguration eine ältere Version anbieten (beobachteter
+Fall: installiert `1.0.8-rc.1`, Feed meldet `1.0.7`).
+
+Fehlt die Feed-Datei eines Kanals (z. B. `rc.yml` vor dem ersten RC-Release),
+wird das als "kein Update" und nicht als Netzwerkfehler behandelt; die
+Oberfläche bleibt bei "aktuell".
+
+### Visuelle Kennzeichnung
+
+Die Farben und Labels kommen zentral aus `ChannelMetadata` und den
+CSS-Tokens `--release-alpha`, `--release-beta`, `--release-rc`,
+`--release-stable`:
+
+| Kanal | Farbe | Badge |
+| ----- | ----- | ----- |
+| Alpha | Rot (`#ef4444`) | `ALPHA` |
+| Beta | Orange (`#f59e0b`) | `BETA` |
+| Release Candidate | Violett (`#8b5cf6`) | `RC` |
+| Stable | Grün (`#22c55e`) | `STABLE` |
+
+Badges werden nicht ausschließlich über Farbe unterschieden, sondern tragen
+immer ein Textlabel und ein Icon. Verwendet werden sie in Titlebar,
+Update-Einstellungen, Über-Dialog und Update-Benachrichtigungen.
+
+### Release Candidate und Stable-Freigabe
+
+1. RC bauen: `UPDATE_CHANNEL=rc` (Version z. B. `1.0.8-rc.1`) erzeugt `rc.yml`.
+2. RC testen und freigeben. Der Kanal `rc` liefert RC-Versionen und – sofern im
+   `rc`-Feed veröffentlicht – das finale Stable-Release.
+3. Stable bauen und veröffentlichen (`latest.yml`). Damit RC-Nutzer das finale
+   Release erhalten, wird dieselbe Version zusätzlich im `rc`-Kanal
+   veröffentlicht (`rc.yml` mit denselben Artefakten).
+4. Erst danach gilt `1.0.8` als Stable; eine RC-Version wird nie automatisch
+   als Stable eingestuft.
+
+Ohne Schritt 3 bleibt ein RC-Nutzer auf dem RC-Kanal und erhält kein Stable –
+das ist eine bewusste Release-Entscheidung, kein automatischer Wechsel.
 
 ---
 
@@ -335,7 +392,8 @@ App-Start
 
 Check
   → Provider prüft GitHub-Release-Metadaten des Kanals
-  → Kanal-Filter (Alpha/Beta/Stable) wird angewendet
+  → Kanal-Filter (Alpha/Beta/RC/Stable) wird angewendet
+  → semantischer Versionsvergleich: nur echt neuere Versionen werden angeboten
 
 Download
   → Benutzer löst Download explizit aus (autoDownload = false)

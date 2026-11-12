@@ -4,7 +4,7 @@
  * UpdateChannel.js
  *
  * Verantwortet die Zuordnung zwischen dem internen Channel-Namen
- * (stable / beta) und der electron-updater-Konfiguration.
+ * (stable / beta / rc / alpha) und der electron-updater-Konfiguration.
  *
  * Keine I/O, keine Auto-Updater-Aufrufe – nur reine Konfigurations-
  * abbildung. Wird sowohl im UpdateManager als auch in den Tests
@@ -49,31 +49,28 @@ function getStableBase(version) {
  * @returns {boolean}
  */
 function isValidChannel(channel) {
-    return channel === CHANNELS.STABLE || channel === CHANNELS.BETA || channel === CHANNELS.ALPHA;
+    return channel === CHANNELS.STABLE ||
+        channel === CHANNELS.BETA ||
+        channel === CHANNELS.RC ||
+        channel === CHANNELS.ALPHA;
 }
 
 /**
  * Liefert die electron-updater-Konfiguration für den angegebenen
  * Channel. Reine Funktion, daher deterministisch testbar.
  *
- * Stable: nur stable Releases.
- *   channel       = null  (electron-updater Standard)
- *   allowPrerelease = false
- *   allowDowngrade = false (interner Wechsel bleibt aber möglich)
+ * Stable: nur finale Releases ueber den Standard-Feed (latest.yml).
+ * Beta:   beta.yml, Pre-Releases erlaubt, nur Beta/Stable akzeptiert.
+ * RC:     rc.yml, Pre-Releases erlaubt, nur RC/Stable akzeptiert.
+ * Alpha:  alpha.yml, Pre-Releases erlaubt, nur Alpha/Stable akzeptiert.
  *
- * Beta: stable + pre-releases, die NICHT alpha sind.
- *   channel       = "beta"
- *   allowPrerelease = true
- *   allowDowngrade = true (Beta-User können jederzeit auf Stable zurück)
+ * allowDowngrade ist absichtlich IMMER false: Eine aeltere Version darf
+ * nicht als regulaeres Update angeboten werden. Ein bewusster manueller
+ * Downgrade ist ein separater Vorgang (Neuinstallation) und nicht Teil
+ * des Update-Flusses.
  *
- * Alpha: alle pre-releases einschließlich alpha.
- *   channel       = "alpha"
- *   allowPrerelease = true
- *   allowDowngrade = true (Alpha-User können jederzeit auf Stable/Beta zurück)
- *
- * WICHTIG: allowPrerelease ist KEIN globaler Schalter. Für Alpha-Channel
- * werden alle Pre-Releases akzeptiert. Für Beta werden alpha-Releases
- * zusätzlich über Filter ausgeschlossen.
+ * Die Stage-Trennung wird zusaetzlich in getAllowedPreReleaseFilter()
+ * abgesichert, weil electron-updater pro Feed nur allowPrerelease kennt.
  */
 function getUpdaterConfig(channel, currentVersion) {
     if (!isValidChannel(channel)) {
@@ -81,34 +78,34 @@ function getUpdaterConfig(channel, currentVersion) {
     }
 
     if (channel === CHANNELS.STABLE) {
-        // Wenn die aktuell installierte Version ein Pre-Release (z.B. Beta/Alpha)
-        // ist und der Benutzer auf Stable wechselt, muss allowDowngrade
-        // aktiv sein, damit electron-updater auch eine Version akzeptiert,
-        // die semver-seitig kleiner als die Beta-Version ist (z.B. 1.0.6-beta.2 -> 1.0.5).
-        const allowDowngrade = currentVersion ? isPrerelease(currentVersion) : false;
         return {
             channel: null,            // "latest" = default
             allowPrerelease: false,
-            allowDowngrade: allowDowngrade
+            allowDowngrade: false
         };
     }
 
     if (channel === CHANNELS.BETA) {
-        // Beta: stable + pre-releases außer alpha
-        const allowDowngrade = currentVersion ? isPrerelease(currentVersion) : false;
         return {
             channel: "beta",
             allowPrerelease: true,
-            allowDowngrade: allowDowngrade
+            allowDowngrade: false
         };
     }
 
-    // Alpha: alle pre-releases einschließlich alpha
-    const allowDowngrade = currentVersion ? isPrerelease(currentVersion) : false;
+    if (channel === CHANNELS.RC) {
+        return {
+            channel: "rc",
+            allowPrerelease: true,
+            allowDowngrade: false
+        };
+    }
+
+    // Alpha: eigener Feed, Pre-Releases erlaubt
     return {
         channel: "alpha",
         allowPrerelease: true,
-        allowDowngrade: allowDowngrade
+        allowDowngrade: false
     };
 }
 
@@ -118,9 +115,13 @@ function getUpdaterConfig(channel, currentVersion) {
  * Funktion (release) => boolean, die true liefert, wenn die
  * Release akzeptabel ist.
  *
- * Stable-Filter:  alles ablehnen, was Pre-Release ist.
- * Beta-Filter:    alle Pre-Releases außer "alpha" erlauben.
- * Alpha-Filter:   alle Pre-Releases erlauben (inklusive alpha).
+ * Stable-Filter:  nur finale Releases.
+ * RC-Filter:      RC und finale Releases.
+ * Beta-Filter:    Beta, RC und finale Releases (Promotion-Pfad).
+ * Alpha-Filter:   alle Stages (Alpha, Beta, RC, final).
+ *
+ * Kein Kanal akzeptiert eine Stage, die frueher ist als er selbst:
+ * Beta sieht niemals Alpha, RC niemals Beta/Alpha, Stable nur final.
  *
  * Da electron-updater 6.x keinen direkten "includePrerelease"-Hook
  * hat, sondern nur allowPrerelease, prüfen wir die Pre-Release-
@@ -132,19 +133,30 @@ function getUpdaterConfig(channel, currentVersion) {
  * bekommt durch allowPrerelease=false GARANTIERT keine Pre-Releases.
  */
 function getAllowedPreReleaseFilter(channel) {
+    const stageOf = (version) => {
+        if (typeof version !== "string") return null;
+        const match = /-(alpha|beta|rc|nightly)(?:\.|$)/i.exec(version);
+        return match ? match[1].toLowerCase() : null;
+    };
+
     if (channel === CHANNELS.STABLE) {
         return (release) => !isPrerelease(release?.version);
     }
-    if (channel === CHANNELS.BETA) {
-        // Beta: alles außer alpha erlauben
-        return (release) => {
-            const v = release?.version;
-            if (typeof v !== "string") return true;
-            return !/-alpha(\.|$)/i.test(v);
-        };
-    }
-    // Alpha: alles erlauben
-    return (release) => true;
+
+    // Rang der Stages: alpha < beta < rc < stable(final).
+    const stageRank = { alpha: 0, beta: 1, rc: 2, nightly: 0 };
+    const channelRank = channel === CHANNELS.ALPHA
+        ? 0
+        : channel === CHANNELS.BETA
+            ? 1
+            : 2; // rc
+
+    return (release) => {
+        const stage = stageOf(release?.version);
+        // Finale Releases sind in jedem Kanal erlaubt.
+        if (stage === null) return true;
+        return (stageRank[stage] ?? 0) >= channelRank;
+    };
 }
 
 /**
@@ -154,16 +166,17 @@ function getAllowedPreReleaseFilter(channel) {
  */
 function detectChannelFromVersion(version) {
     if (isPrerelease(version)) {
-        // Innerhalb der Pre-Releases unterscheiden wir zusätzlich.
-        // v1 kennt Stable, Beta und Alpha als separate Channels.
         if (/-alpha(\.|$)/i.test(version)) {
             return CHANNELS.ALPHA;
         }
         if (/-beta(\.|$)/i.test(version)) {
             return CHANNELS.BETA;
         }
-        // rc / nightly -> wir behandeln sie als Beta-kompatibel,
-        // aber nur, wenn der Benutzer explizit Beta aktiviert hat.
+        if (/-rc(\.|$)/i.test(version)) {
+            return CHANNELS.RC;
+        }
+        // Unbekannte Pre-Release-Stages (z. B. nightly) bleiben
+        // Beta-kompatibel, werden aber keinem eigenen Kanal zugeordnet.
         return CHANNELS.BETA;
     }
     return CHANNELS.STABLE;
@@ -180,7 +193,7 @@ function detectChannelFromVersion(version) {
  * 
  * @param {object} settings - SettingsManager Konfiguration
  * @param {string} currentVersion - Aktuelle App-Version
- * @returns {string} Channel (stable|beta|alpha)
+ * @returns {string} Channel (stable|beta|rc|alpha)
  */
 function getUpdateChannel(settings, currentVersion) {
     // 1. User-Settings haben höchste Priorität

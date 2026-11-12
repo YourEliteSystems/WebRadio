@@ -86,6 +86,7 @@ const ERROR_CATEGORY_BY_CODE = Object.freeze({
 const CHANNELS = Object.freeze({
     STABLE: "stable",
     BETA: "beta",
+    RC: "rc",
     ALPHA: "alpha"
 });
 

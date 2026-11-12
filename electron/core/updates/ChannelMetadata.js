@@ -33,7 +33,7 @@ const CHANNEL_METADATA = Object.freeze({
         id: "alpha",
         label: "Alpha",
         shortLabel: "Alpha",
-        color: "#a855f7", // Violet/Purple (werden im Core und in der UI zentriert)
+        color: "#ef4444", // Rot – frueheste, experimentelle Builds
         icon: '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="10" r="3"/></svg>',
         description: "Experimentelle Vorab-Builds vor dem Beta-Kanal.",
         order: 0
@@ -49,6 +49,16 @@ const CHANNEL_METADATA = Object.freeze({
         order: 1
     }),
 
+    rc: Object.freeze({
+        id: "rc",
+        label: "Release Candidate",
+        shortLabel: "RC",
+        color: "#8b5cf6", // Violett – Release Candidates
+        icon: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 21V4h8l-1 3h7l-2 5 2 5h-7l-1-3H7v7z"/></svg>',
+        description: "Release Candidates fuer die abschliessende Pruefung und Freigabe.",
+        order: 2
+    }),
+
     stable: Object.freeze({
         id: "stable",
         label: "Stable",
@@ -56,13 +66,14 @@ const CHANNEL_METADATA = Object.freeze({
         color: "#22c55e",
         icon: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
         description: "Offiziell veröffentlichte, stabile Versionen.",
-        order: 2
+        order: 3
     })
 });
 
 const CHANNEL_IDS = Object.freeze([
     CHANNEL_METADATA.alpha.id,
     CHANNEL_METADATA.beta.id,
+    CHANNEL_METADATA.rc.id,
     CHANNEL_METADATA.stable.id
 ]);
 
@@ -93,6 +104,7 @@ function getAllUpdateChannelMetadata() {
     return [
         cloneChannelMetadata(CHANNEL_METADATA.alpha),
         cloneChannelMetadata(CHANNEL_METADATA.beta),
+        cloneChannelMetadata(CHANNEL_METADATA.rc),
         cloneChannelMetadata(CHANNEL_METADATA.stable)
     ];
 }

@@ -47,7 +47,7 @@ Die Hauptansicht erlaubt Skripte von `self` und dem Loopback-Plugin-Server. Auß
 | Kompromittierte npm-Abhängigkeit | Codeausführung beim Build oder zur Laufzeit | Lockfile, CI und Dependabot; der Dependency-Audit meldet derzeit noch offene Schwachstellen |
 | Missbrauch des lokalen Plugin-HTTP-Servers | Lesen von Plugin-Ressourcen oder Missbrauch von Endpunkten aus einem lokalen Prozess | Loopback-Bindung, erlaubte Methoden und Origin-Prüfungen; keine Authentifizierung allein durch CORS |
 | Manipuliertes Radio-Metadatum oder Plugin-Inhalt | UI-Manipulation, Phishing oder Renderer-Codeausführung, falls Inhalte unsicher verarbeitet werden | CSP und bestehende Sanitization; alle dynamischen UI-Ausgaben müssen weiterhin geprüft werden |
-| Manipuliertes oder kompromittiertes Update-Artefakt | Ausführung einer schädlichen Programmversion | Release-Infrastruktur und Prüfsummen; Code-Signing und Artefakt-Verifikation sind nicht vollständig etabliert |
+| Manipuliertes oder kompromittiertes Update-Artefakt | Ausführung einer schädlichen Programmversion | Release-Infrastruktur und Prüfsummen; Plugin-Updates zusätzlich mit streng validiertem Manifest, SHA-256 und optionaler Ed25519-Signatur – nicht signierte Plugin-Updates benötigen eine ausdrückliche Bestätigung |
 | Offenlegung lokaler Diagnoseinformationen | Preisgabe von Pfaden, Stationsverlauf oder anderen lokalen Daten | Diagnosefunktionen und lokale Speicherung; Export und Weitergabe sollten bewusst durch den Benutzer erfolgen |
 
 ## Vorhandene Schutzmaßnahmen
@@ -57,6 +57,8 @@ Die Hauptansicht erlaubt Skripte von `self` und dem Loopback-Plugin-Server. Auß
 - Preload-APIs werden über `contextBridge` statt durch direkte Freigabe von `ipcRenderer` bereitgestellt;
 - Plugin-HTTP-Server bindet nur an Loopback, erlaubt nur GET/HEAD für Ressourcen und prüft externe Origins anhand von Capabilities;
 - Tests prüfen unter anderem Renderer-Plugin-Laden, CSP-Verhalten, Plugin-Navigation und den Loopback-Server;
+- **Plugin-Updates:** ausschließlich HTTPS mit öffentlicher DNS-Auflösung (Schutz vor SSRF/DNS-Rebinding), Größen- und Timeout-Limits, strikte Manifest-Validierung (unbekannte Felder werden abgelehnt), SHA-256- und optionale Ed25519-Prüfung, ZIP-Schutz gegen Path Traversal/ZIP Slip/Symlinks, atomare Installation mit Backup und Rollback, Bestätigung neuer Berechtigungen;
+- **Lokalisierung:** Kataloge werden ausschließlich aus `userData/localization/` gelesen, Plugin- und Theme-Zugriffe sind auf den eigenen Namensraum beschränkt, Übersetzungen sind reine Daten und werden nie ausgeführt, Schreibzugriffe gibt es nur im Core;
 - CI, Lockfile, Dependabot und SHA-256-Prüfsummen für Release-Artefakte.
 
 Diese Maßnahmen reduzieren bestimmte Risiken, bedeuten aber **nicht**, dass Plugins aktuell sicher isoliert oder gefahrlos aus beliebigen Quellen installierbar sind.
@@ -75,7 +77,7 @@ Diese Maßnahmen reduzieren bestimmte Risiken, bedeuten aber **nicht**, dass Plu
 1. `sandbox: true` für beide BrowserWindows in einem separaten Kompatibilitätsschritt testen; erst nach erfolgreichen Plugin-, Audio- und Settings-Tests übernehmen.
 2. CSP-Ausnahmen für Bilder, Medien und Frames minimieren, soweit Senderlogos, Radiostreams und MediaHub weiterhin funktionieren.
 3. Den lokalen Plugin-HTTP-Server zusätzlich mit kurzlebigen, nicht erratbaren Zugriffstokens beziehungsweise einer gleichwertigen Request-Bindung absichern und Pfadauflösung gegen Traversal testen.
-4. Für Plugins eine explizite Vertrauens-/Installationsentscheidung sowie später Hash- oder Signaturprüfung etablieren.
+4. Für Plugins eine explizite Vertrauens-/Installationsentscheidung etablieren; Hash- und Signaturprüfung für Plugin-Updates sind umgesetzt, eine verpflichtende Signatur für alle Kanäle bleibt offen.
 
 ### Priorität 1 – Lieferkette und Releases
 

@@ -3,7 +3,10 @@ module.exports = {
 
   init(context) {
     this.context = context;
-    const logger = context.logger("YouTube");
+    // `context.logger` ist im aktuellen Plugin-Kontext ein Logger-Objekt
+    // (keine Fabrikfunktion). Die alte Aufruf-Form warf einen TypeError und
+    // verhinderte die Initialisierung der Integration.
+    const logger = context.logger;
 
     // Initialisiere Storage
     if (!context.storage.exists()) {
