@@ -1,17 +1,17 @@
 # 📊 WebRadio Download Statistics
 
-> Automatisch aus den GitHub Release-Assets erzeugt. Stand: 2026-11-16T11:09:02.477Z.
+> Automatisch aus den GitHub Release-Assets erzeugt. Stand: 2026-11-17T11:46:29.815Z.
 
 Diese Statistik zählt bewusst nur Installations-/Distributionspakete. Update-Metadaten (.yml/.json), Blockmaps, Checksums und Builder-Debug-Dateien werden ausgeschlossen.
 
 ## Gesamt
 
-**127 Downloads**
+**128 Downloads**
 
 | Plattform | Downloads |
 | --- | ---: |
 | Linux AppImage | 61 |
-| Windows | 34 |
+| Windows | 35 |
 | Arch Linux | 29 |
 | other | 3 |
 
@@ -19,7 +19,7 @@ Diese Statistik zählt bewusst nur Installations-/Distributionspakete. Update-Me
 
 | Release | Typ | Downloads |
 | --- | --- | ---: |
-| v1.0.8-rc.1 | Pre-release | 6 |
+| v1.0.8-rc.1 | Pre-release | 7 |
 | v1.0.7 | Stable | 6 |
 | v1.0.7-beta.3 | Pre-release | 8 |
 | v1.0.7-beta.2 | Pre-release | 6 |
